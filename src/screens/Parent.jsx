@@ -208,6 +208,17 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
             ))}
           </div>
           <div className="card">
+            <h3>会話のAI（Live）</h3>
+            {[['auto', 'おまかせ（3.8 Live を優先）'], ['3.8', 'Gemini 3.8 Live'], ['3-flash', 'Gemini 3 Flash Live']].map(([id, label]) => (
+              <button key={id} className="list-btn" onClick={() => { update((prev) => ({ ...prev, liveModel: id })); showToast(`${label} にしました`) }}>
+                <span>{label}</span><span>{(state.liveModel || 'auto') === id ? '✅' : ''}</span>
+              </button>
+            ))}
+            <p className="muted" style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>
+              返事の速さや声を聞き比べたいときに切り替えてください。{state.liveModelName ? `前回つながったモデル：${state.liveModelName}` : 'まだ Live につながったことはありません。'}
+            </p>
+          </div>
+          <div className="card">
             <h3>PIN</h3>
             <button className="btn ghost" onClick={() => { try { localStorage.removeItem(PIN_KEY) } catch {} showToast('次回ひらくときに新しいPINを決めます') }}>PINを変更する</button>
           </div>

@@ -11,9 +11,11 @@ const MODELS = (Deno.env.get('GEMINI_MODELS') ?? 'gemini-3.1-flash-lite,gemini-3
 
 // Live（リアルタイム会話）のモデル。GEMINI_LIVE_MODEL があればそれ、なければ使えるものから選ぶ
 const LIVE_MODEL = Deno.env.get('GEMINI_LIVE_MODEL') ?? ''
-const LIVE_PREFERENCE = [/gemini-3-flash-live/, /gemini-3\.1-flash-live/, /gemini-3[\d.-]*flash.*live/, /gemini-3\.8.*live/, /live/, /native-audio/]
+const LIVE_PREFERENCE = [/gemini-3\.8.*live/, /gemini-3-flash-live/, /gemini-3\.1-flash-live/, /gemini-3[\d.-]*flash.*live/, /live/, /native-audio/]
+// 保護者画面で選んだモデル（おまかせ以外）
+const LIVE_CHOICES: Record<string, RegExp> = { '3.8': /gemini-3\.8.*live/, '3-flash': /gemini-3(\.1)?-flash-live/ }
 const LIVE_EXCLUDE = /translat|transcri|thinking/i
-let liveModelCache: { model: string; at: number } | null = null
+let liveModelsCache: { names: string[]; at: number } | null = null
 
 const LIMITS = { system: 24000, historyItems: 16, historyText: 2000, inputText: 1000, audioBase64: 3_000_000 }
 
@@ -62,9 +64,8 @@ async function verifyUser(req: Request) {
   return response.ok
 }
 
-async function pickLiveModel(): Promise<string | null> {
-  if (LIVE_MODEL) return LIVE_MODEL
-  if (liveModelCache && Date.now() - liveModelCache.at < 6 * 3600_000) return liveModelCache.model
+async function listLiveModels(): Promise<string[]> {
+  if (liveModelsCache && Date.now() - liveModelsCache.at < 6 * 3600_000) return liveModelsCache.names
   const names: string[] = []
   let pageToken = ''
   for (let page = 0; page < 5; page += 1) {
@@ -80,12 +81,18 @@ async function pickLiveModel(): Promise<string | null> {
     pageToken = data.nextPageToken ?? ''
     if (!pageToken) break
   }
+  if (names.length) liveModelsCache = { names, at: Date.now() }
+  return names
+}
+
+async function pickLiveModel(choice?: string): Promise<string | null> {
+  const names = await listLiveModels()
+  const chosen = choice && LIVE_CHOICES[choice] ? names.find((name) => LIVE_CHOICES[choice].test(name)) : null
+  if (chosen) return chosen
+  if (LIVE_MODEL) return LIVE_MODEL
   for (const pattern of LIVE_PREFERENCE) {
     const hit = names.find((name) => pattern.test(name))
-    if (hit) {
-      liveModelCache = { model: hit, at: Date.now() }
-      return hit
-    }
+    if (hit) return hit
   }
   return null
 }
@@ -206,11 +213,11 @@ Deno.serve(async (req) => {
   if (!GEMINI_API_KEY) return json({ code: 'config', message: 'GEMINI_API_KEY が設定されていません' }, 500)
   if (!(await verifyUser(req))) return json({ code: 'auth', message: 'ログインが必要です' }, 401)
 
-  let body: Body & { action?: string }
+  let body: Body & { action?: string; liveModel?: string }
   try { body = await req.json() } catch { return json({ code: 'bad_request', message: 'invalid json' }, 400) }
 
   if (body?.action === 'live-token') {
-    const model = await pickLiveModel()
+    const model = await pickLiveModel(body.liveModel)
     if (!model) return json({ code: 'no_live_model', message: 'Live のモデルが見つかりません' }, 503)
     const token = await createLiveToken()
     if (!token) return json({ code: 'live_token', message: 'Live に接続できませんでした' }, 502)

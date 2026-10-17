@@ -6,13 +6,13 @@ import { PcmPlayer, sampleRateOf } from './player.js'
 
 const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained'
 
-export async function requestLiveToken() {
+export async function requestLiveToken(liveModel = 'auto') {
   const token = await getAccessToken().catch(() => null)
   if (!token) throw Object.assign(new Error('auth'), { code: 'auth' })
   const response = await fetch(TALK_ENDPOINT, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'live-token' })
+    body: JSON.stringify({ action: 'live-token', liveModel })
   })
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.token || !data?.model) {

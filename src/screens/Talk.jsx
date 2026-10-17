@@ -265,7 +265,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   }
 
   const startLive = async () => {
-    const { token, model } = await requestLiveToken()
+    const { token, model } = await requestLiveToken(stateRef.current.liveModel || 'auto')
     const session = new LiveSession({
       token,
       model,
@@ -308,7 +308,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     await session.connect()
     live.current = session
     setEngine('live')
-    update((prev) => ({ ...prev, liveDate: todayKey() }))
+    update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model }))
     const first = turnsRef.current[0]
     newLiveTurn(true)
     waitForReply()

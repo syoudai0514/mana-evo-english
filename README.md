@@ -29,7 +29,7 @@ Supabase ダッシュボード → app-save-hub → Edge Functions → Secrets �
 | 名前 | 値 |
 |---|---|
 | `GEMINI_API_KEY` | Google AI Studio の API キー |
-| `GEMINI_LIVE_MODEL`（任意） | Live のモデルを固定したいとき。未設定なら使えるものから「3 Flash Live」を優先して自動で選ぶ |
+| `GEMINI_LIVE_MODEL`（任意） | Live のモデルを固定したいとき。未設定なら「3.8 Live」→「3 Flash Live」の順で自動で選ぶ（保護者画面の設定が最優先） |
 | `GEMINI_MODELS`（任意） | 予備の方式と読み付けに使うモデル。例 `gemini-3.1-flash-lite,gemini-3.5-flash` |
 
 ## 開発
