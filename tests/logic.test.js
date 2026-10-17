@@ -177,3 +177,26 @@ test('topics respect seasons and avoid recent ones', () => {
   }
   assert.ok(levelOf(9).level === 1)
 })
+
+test('live prompts: voice rules without JSON, annotation keeps the partner line', async () => {
+  const { buildLiveSystemPrompt, buildAnnotatePrompt, annotateInput } = await import('../src/data/prompt.js')
+  const topic = TOPICS.find((item) => item.id === 'pumpkin')
+  const live = buildLiveSystemPrompt({ mode: 'free', persona: 'niji', level: 2, nickname: 'そうちゃん', topic, memory: ['likes soccer'], maxTurns: 10 })
+  assert.match(live, /OUT LOUD/)
+  assert.match(live, /likes soccer/)
+  assert.match(live, /Bye-bye!/)
+  assert.doesNotMatch(live, /JSON/)
+  const adult = buildLiveSystemPrompt({ mode: 'adult', adultScene: { about: 'travel', opener: 'Hi' }, maxTurns: 16 })
+  assert.doesNotMatch(adult, /tip_ja/)
+  const annotate = buildAnnotatePrompt({ mode: 'free', level: 3 })
+  assert.match(annotate, /reply_en must be EXACTLY/)
+  assert.match(annotateInput({ childText: 'dog', partnerText: 'You like dogs!', turn: 2, maxTurns: 10 }), /Partner said: "You like dogs!"/)
+})
+
+test('pcm helpers round-trip 16-bit audio', async () => {
+  const { floatToPcm16Base64, pcm16Base64ToFloat } = await import('../src/lib/wav.js')
+  const input = new Float32Array([0, 0.5, -0.5, 0.25])
+  const back = pcm16Base64ToFloat(floatToPcm16Base64(input))
+  assert.equal(back.length, 4)
+  for (let i = 0; i < 4; i += 1) assert.ok(Math.abs(back[i] - input[i]) < 1e-3)
+})

@@ -120,3 +120,64 @@ export function selectMemory(memory, random = Math.random) {
   while (picks.length < 2 && older.length) picks.push(older.splice(Math.floor(random() * older.length), 1)[0])
   return [...picks, ...recent]
 }
+
+// ---------- Live（リアルタイム音声）用 ----------
+// Live は声で返事をするので JSON は使わない。読み・訳・ヒント・記憶は、
+// 1往復ごとに buildAnnotatePrompt で別に作る（english-talk のふつうの呼び出し）。
+
+const LIVE_VOICE_RULES = `
+You are talking OUT LOUD in a real-time voice chat. Only speak; never read out symbols, emojis or lists.
+- Speak clearly and a little slowly, with warm, lively emotion, like a friendly character in a kids' show.
+- One to three short sentences per reply, then stop and let the child talk.
+- The child speaks by holding a button, so wait for them; never say "are you there?".`
+
+export function buildLiveSystemPrompt(ctx) {
+  const persona = personaOf(ctx.persona)
+  const level = levelOf(ctx.level)
+  const nickname = ctx.nickname || 'friend'
+  const maxTurns = ctx.maxTurns || 10
+
+  if (ctx.mode === 'adult') {
+    return [
+      'You are a friendly English conversation partner talking out loud.',
+      modeRules(ctx).replace(/In tip_ja[^.]*\.[^.]*\./, '').replace(/hints:.*$/, ''),
+      '- The learner may answer in Japanese; understand it, say the natural English version back, and continue.',
+      LIVE_VOICE_RULES,
+      `After about ${maxTurns} exchanges, wrap up kindly and say goodbye.`
+    ].join('\n\n')
+  }
+
+  return [
+    persona.personality,
+    `You are chatting in English with a Japanese child (about 5-6 years old) whose nickname is "${nickname}". ` +
+      'Your goal: make the child feel "English is easy and fun, I want to talk with people from other countries!"',
+    level.prompt,
+    KID_RULES.replace(/"\[HINT\] text"[^.]*\./, '"[HINT] text" = the child chose that answer; treat it as the child saying it.') + '\n' + japanesePolicy(ctx.level),
+    LIVE_VOICE_RULES,
+    ctx.parentReads ? '- A parent is reading your lines aloud to the child too. Keep lines very short.' : '',
+    modeRules(ctx),
+    memoryBlock(nickname, ctx.memory),
+    `Turn budget: about ${maxTurns} child turns. Do not end before turn ${Math.max(3, maxTurns - 3)} unless the child wants to stop. ` +
+      'To end, say a warm goodbye that mentions something you talked about, and finish with "Bye-bye!".'
+  ].filter(Boolean).join('\n\n')
+}
+
+export function buildAnnotatePrompt(ctx) {
+  const level = levelOf(ctx.level)
+  const adult = ctx.mode === 'adult'
+  return [
+    `You annotate ONE exchange of a voice chat for the app screen. ${adult ? 'The learner is a Japanese adult practicing English.' : 'A Japanese child (5-6) talks with an English-speaking monster.'}`,
+    'Do NOT write a new reply. reply_en must be EXACTLY the partner line you are given (fix only obvious transcription spacing).',
+    `Hints must fit this stage: ${level.label}. ${level.prompt}`,
+    adult
+      ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "". hints: 2-3 useful English replies with the Japanese meaning in the kana field.'
+      : 'tip_ja: "".',
+    'end: true only if the partner line is a goodbye that ends the chat.',
+    'heard: false only if the child line is empty or meaningless noise.',
+    OUTPUT_RULES
+  ].join('\n\n')
+}
+
+export function annotateInput({ childText, partnerText, turn, maxTurns }) {
+  return `Child said: "${childText || ''}"\nPartner said: "${partnerText || ''}"\nChild turn ${turn} of about ${maxTurns}.`
+}

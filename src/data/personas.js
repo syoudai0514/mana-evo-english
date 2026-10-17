@@ -11,6 +11,7 @@ export const PERSONAS = {
     tagline: ['ふわふわ やさしい', 'あまいもの だいすき'],
     theme: { main: '#FF8FC0', deep: '#E06A9E', soft: '#FFF0F7', glow: 'rgba(255,143,192,.28)' },
     voice: { pitch: 1.45, rate: 0.92, gender: 'female' },
+    liveVoice: 'Leda',
     personality:
       'You are Howamy, a fluffy cotton-candy monster with little pink wings. You are gentle, cheerful and a little shy. ' +
       'You love sweets, clouds, soft things, flowers and naps. You get excited easily ("Wow!", "Yay!"). ' +
@@ -26,6 +27,7 @@ export const PERSONAS = {
     tagline: ['げんきな ぼうけんか', 'ちょっと ドジ'],
     theme: { main: '#FF7A3D', deep: '#D9531A', soft: '#FFF1E6', glow: 'rgba(255,122,61,.28)' },
     voice: { pitch: 0.75, rate: 0.95, gender: 'male' },
+    liveVoice: 'Puck',
     personality:
       'You are Niji, a big rainbow dragon who flies all over the world. You look strong and cool, but you are friendly, ' +
       'energetic and a little clumsy (you sneeze fire, bump into clouds, forget where you put your snacks). ' +

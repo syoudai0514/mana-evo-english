@@ -1,4 +1,4 @@
-import { bytesToBase64, downsample, encodeWav, rms } from './wav.js'
+import { bytesToBase64, downsample, encodeWav, floatToPcm16Base64, rms } from './wav.js'
 
 const MAX_SECONDS = 15
 
@@ -12,6 +12,7 @@ export class Recorder {
     this.chunks = []
     this.recording = false
     this.onLevel = null
+    this.onChunk = null // Live API：録音中の音声を 16kHz PCM の base64 で順に渡す
   }
 
   async open() {
@@ -28,6 +29,7 @@ export class Recorder {
       const data = event.inputBuffer.getChannelData(0)
       this.chunks.push(new Float32Array(data))
       this.onLevel?.(Math.min(1, rms(data) * 6))
+      if (this.onChunk) this.onChunk(floatToPcm16Base64(downsample(data, this.context.sampleRate, 16000)))
       if (this.duration() > MAX_SECONDS) this.recording = false
     }
     this.source.connect(this.processor)
@@ -40,6 +42,8 @@ export class Recorder {
   }
 
   async start() {
+    // iOS：録音中も相棒の声がスピーカーから出るようにする（対応ブラウザのみ）
+    try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record' } catch {}
     await this.open()
     if (this.context.state === 'suspended') await this.context.resume()
     this.chunks = []

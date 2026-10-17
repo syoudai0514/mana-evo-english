@@ -2,12 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { levelOf } from '../data/levels.js'
 import { MODES } from '../data/modes.js'
-import { buildHistory, buildSystemPrompt, selectMemory } from '../data/prompt.js'
-import { modelToday, withMemory, withModelResult, withUtterance } from '../lib/state.js'
+import { annotateInput, buildAnnotatePrompt, buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
+import { modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
 import { nextReading } from '../lib/kana.js'
 import { Recorder, micSupported } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
+import { LiveSession, requestLiveToken } from '../lib/live.js'
+import { isMockMode } from '../lib/config.js'
 import { Reading } from '../components/ui.jsx'
 
 function titleOf(config) {
@@ -21,7 +23,7 @@ function titleOf(config) {
 function openerTurn(config) {
   if (config.mode === 'free' && config.topic) {
     const { en, kana, ja } = config.topic.opener
-    return { who: 'partner', text: en, kana, ja, hints: [] }
+    return { who: 'partner', text: en, kana, ja, hints: [], opener: true }
   }
   if (config.mode === 'adult') return { who: 'partner', text: config.adultScene.opener, kana: '', ja: '', hints: [] }
   return null
@@ -59,6 +61,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const [talkingIndex, setTalkingIndex] = useState(-1)
   const [stopped, setStopped] = useState(null) // 'exhausted' | 'auth'
   const [caption, setCaption] = useState('')
+  const [engine, setEngine] = useState('connecting') // connecting | live | turn
 
   const recorder = useRef(null)
   const pressing = useRef(false)
@@ -68,10 +71,32 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   turnsRef.current = turns
   const memoryAdded = useRef([])
   const finished = useRef(false)
+  const live = useRef(null)
+  const liveTurn = useRef({ child: '', partner: '', start: false, id: 0 })
+  const pendingEnd = useRef(false)
+  const waitTimer = useRef(null)
+  const liveAudio = useRef(new Map()) // turnId → 相棒の声
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   const childTurnCount = turns.filter((turn) => turn.who === 'child').length
   const latestPartnerIndex = turns.map((turn) => turn.who).lastIndexOf('partner')
   const latest = turns[latestPartnerIndex]
+
+  const makeContext = (turn) => ({
+    mode: config.mode,
+    persona: persona.id,
+    level: stateRef.current.level,
+    nickname: stateRef.current.profile?.nickname,
+    topic: config.topic,
+    play: config.play,
+    secret: config.secret,
+    adultScene: config.adultScene,
+    parentReads: config.parentReads,
+    memory: adult ? [] : selectMemory(stateRef.current.memory),
+    turn,
+    maxTurns: mode.maxTurns
+  })
 
   const say = useCallback(async (line, index) => {
     if (config.parentReads || !line) return
@@ -85,6 +110,8 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     finished.current = true
     stopSpeech()
     recorder.current?.close()
+    live.current?.close()
+    clearTimeout(waitTimer.current)
     onFinish({
       id: `s${Date.now()}`,
       mode: config.mode,
@@ -108,20 +135,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     const isStart = input.text === '[START]'
     const special = isStart || input.text === '[DONT_KNOW]'
     const turnNumber = isStart ? 0 : childTurnCount + 1
-    const context = {
-      mode: config.mode,
-      persona: persona.id,
-      level: state.level,
-      nickname: state.profile?.nickname,
-      topic: config.topic,
-      play: config.play,
-      secret: config.secret,
-      adultScene: config.adultScene,
-      parentReads: config.parentReads,
-      memory: adult ? [] : selectMemory(state.memory),
-      turn: turnNumber,
-      maxTurns: mode.maxTurns
-    }
+    const context = makeContext(turnNumber)
     const history = buildHistory(turnsRef.current.filter((turn) => !turn.pending))
 
     try {
@@ -175,12 +189,137 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     }
   }, [busy, childTurnCount, config, persona.id, state, adult, mode.maxTurns, update, say, finish])
 
-  // はじめのひとこと
-  useEffect(() => {
+  // ---------- Live（リアルタイム会話） ----------
+  const childCount = () => turnsRef.current.filter((turn) => turn.who === 'child' && !turn.pending).length
+
+  // Live の文字起こしは少しずつ届くので、その往復（turnId）の吹き出しを書きかえていく
+  const setLiveBubble = (who, text) => {
+    const turnId = liveTurn.current.id
+    setTurns((prev) => {
+      const next = [...prev]
+      const index = next.findLastIndex((turn) => turn.turnId === turnId && turn.who === who)
+      if (index >= 0) {
+        next[index] = { ...next[index], text, english: who === 'child' ? /[a-z]/i.test(text) : next[index].english }
+        return next
+      }
+      const bubble = who === 'child'
+        ? { who, text, pending: true, live: true, turnId, english: /[a-z]/i.test(text) }
+        : { who, text, live: true, turnId, kana: '', ja: '', hints: [] }
+      const partnerIndex = next.findLastIndex((turn) => turn.turnId === turnId && turn.who === 'partner')
+      if (who === 'child' && partnerIndex >= 0) next.splice(partnerIndex, 0, bubble)
+      else next.push(bubble)
+      return next
+    })
+  }
+
+  const newLiveTurn = (start = false) => {
+    liveTurn.current = { child: '', partner: '', start, id: Date.now() }
+  }
+
+  const waitForReply = () => {
+    setBusy(true)
+    clearTimeout(waitTimer.current)
+    waitTimer.current = setTimeout(() => { setBusy(false); setCaption('もういちど はなしてみてね') }, 15000)
+  }
+
+  const annotateLive = async (childText, partnerText, turnId) => {
+    const turn = childCount()
+    const context = makeContext(turn)
+    const byeBye = /bye[- ]?bye|see you/i.test(partnerText)
+    let reply = null
+    try {
+      const result = await sendTurn({
+        system: buildAnnotatePrompt(context),
+        history: [],
+        input: { text: annotateInput({ childText, partnerText, turn, maxTurns: mode.maxTurns }) },
+        startModel: modelToday(stateRef.current).startIndex,
+        context
+      })
+      reply = result.reply
+    } catch {
+      reply = null // 読みや訳が出せなくても、会話はそのまま続ける
+    }
+    if (reply) {
+      setTurns((prev) => prev.map((item) => {
+        if (item.turnId !== turnId) return item
+        if (item.who === 'partner') return { ...item, kana: reply.reply_kana, ipa: reply.reply_ipa, ja: reply.reply_ja, hints: (reply.hints || []).slice(0, 3), tip: reply.tip_ja || '' }
+        return { ...item, english: Boolean(reply.spoke_english), lang: reply.child_lang, recast: reply.recast || '' }
+      }))
+    }
+    if (childText && !adult) {
+      const english = reply ? reply.spoke_english : /[a-z]/i.test(childText)
+      update((prev) => withMemory(withUtterance(prev, { english, text: childText }), reply?.memory || [], persona.id))
+      if (reply?.memory?.length) memoryAdded.current.push(...reply.memory)
+    }
+    if (reply?.end || (byeBye && turn >= 3)) {
+      pendingEnd.current = true
+      if (!live.current?.speaking) setTimeout(finish, 900)
+    }
+  }
+
+  const startTurnEngine = () => {
+    setEngine('turn')
     const first = turnsRef.current[0]
     if (first) say(first.text, 0)
     else send({ text: '[START]' })
-    return () => { stopSpeech(); recorder.current?.close() }
+  }
+
+  const startLive = async () => {
+    const { token, model } = await requestLiveToken()
+    const session = new LiveSession({
+      token,
+      model,
+      system: buildLiveSystemPrompt(makeContext(0)),
+      voiceName: persona.liveVoice,
+      handlers: {
+        onPartnerText: (text) => {
+          liveTurn.current.partner += text
+          if (liveTurn.current.start && turnsRef.current[0]?.opener) return
+          setLiveBubble('partner', liveTurn.current.partner.trim())
+        },
+        onChildText: (text) => {
+          if (liveTurn.current.typed) return
+          liveTurn.current.child += text
+          setLiveBubble('child', liveTurn.current.child.trim())
+        },
+        onSpeaking: (speaking) => {
+          setTalkingIndex(speaking ? 'latest' : -1)
+          if (!speaking && pendingEnd.current) setTimeout(finish, 700)
+        },
+        onTurnComplete: (audio) => {
+          clearTimeout(waitTimer.current)
+          setBusy(false)
+          const { child, partner, start, id } = liveTurn.current
+          if (audio.length) liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
+          newLiveTurn()
+          setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false } : item)))
+          if (start && turnsRef.current[0]?.opener) return
+          annotateLive(child.trim(), partner.trim(), id)
+        },
+        onClose: () => {
+          if (finished.current) return
+          live.current = null
+          setBusy(false)
+          setEngine('turn')
+          setCaption('つうしんを きりかえたよ。そのまま はなしてね')
+        }
+      }
+    })
+    await session.connect()
+    live.current = session
+    setEngine('live')
+    update((prev) => ({ ...prev, liveDate: todayKey() }))
+    const first = turnsRef.current[0]
+    newLiveTurn(true)
+    waitForReply()
+    session.sendText(first ? `[START] Begin by saying exactly this line, then wait for the child: "${first.text}"` : '[START]')
+  }
+
+  // はじめのひとこと。Live につながればリアルタイム、だめなら1回ずつ送る方式
+  useEffect(() => {
+    if (isMockMode() || config.parentReads) startTurnEngine()
+    else startLive().catch(() => { if (!finished.current) startTurnEngine() })
+    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); clearTimeout(waitTimer.current) }
   }, [])
 
   useEffect(() => {
@@ -197,6 +336,13 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       if (!recorder.current) {
         recorder.current = new Recorder()
         recorder.current.onLevel = setMicLevel
+      }
+      if (live.current) {
+        live.current.beginSpeech()
+        newLiveTurn()
+        recorder.current.onChunk = (chunk) => live.current?.sendAudio(chunk)
+      } else {
+        recorder.current.onChunk = null
       }
       await recorder.current.start()
       // はじめてのマイク許可ダイアログの間に指を離していたら、録音しない
@@ -216,6 +362,13 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     setRecording(false)
     setMicLevel(0)
     const audio = recorder.current.stop()
+    if (live.current) {
+      live.current.endSpeech()
+      if (audio.seconds < 0.4) return setCaption('ながめに おしながら はなしてね')
+      if (!liveTurn.current.child) setLiveBubble('child', '…')
+      setCaption('')
+      return waitForReply()
+    }
     if (audio.seconds < 0.4) return setCaption('ながめに おしながら はなしてね')
     if (audio.loudness < 0.004) return setCaption('こえが きこえなかったよ。もういちど！')
     send({ audio: { mime: audio.mime, data: audio.base64 } })
@@ -224,7 +377,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const tapHint = (hint) => {
     unlockSpeech()
     if (pickedHint?.en === hint.en) {
-      send({ text: `[HINT] ${hint.en}` }, hint.en)
+      sendTyped(hint.en, `[HINT] ${hint.en}`)
       return
     }
     setPickedHint(hint)
@@ -236,7 +389,38 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     const value = text.trim()
     if (!value) return
     setText('')
-    send({ text: value }, value)
+    sendTyped(value, value)
+  }
+
+  // 文字やヒントで答えたとき
+  function sendTyped(display, message) {
+    setPickedHint(null)
+    if (!live.current) return send({ text: message }, display)
+    if (busy) return
+    newLiveTurn()
+    liveTurn.current.child = display
+    liveTurn.current.typed = true
+    setLiveBubble('child', display)
+    live.current.sendText(message)
+    waitForReply()
+  }
+
+  const dontKnow = () => {
+    unlockSpeech()
+    if (!live.current) return send({ text: '[DONT_KNOW]' })
+    if (busy) return
+    newLiveTurn()
+    live.current.sendText('[DONT_KNOW]')
+    waitForReply()
+  }
+
+  // 🔊：Live の声が残っていればそれを、なければ端末の読み上げで
+  const replay = (turn, index) => {
+    unlockSpeech()
+    const audio = liveAudio.current.get(turn.opener ? 'opener' : turn.turnId)
+    if (live.current && audio) return live.current.replay(audio)
+    setTalkingIndex(index)
+    speak(turn.text, voice).then(() => setTalkingIndex(-1))
   }
 
   const cycleReading = () => update((prev) => ({ ...prev, reading: nextReading(prev.reading) }))
@@ -269,7 +453,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
                 </div>
                 <Reading kana={turn.kana} ipa={turn.ipa} policy={readingPolicy} mode={state.reading} onCycle={cycleReading} />
                 {showJa && turn.ja && <div className="ja">{turn.ja}</div>}
-                <button className="speak" aria-label="もういちど きく" onClick={() => { unlockSpeech(); setTalkingIndex(index); speak(turn.text, voice).then(() => setTalkingIndex(-1)) }}>🔊</button>
+                {!turn.live && <button className="speak" aria-label="もういちど きく" onClick={() => replay(turn, index)}>🔊</button>}
               </div>
             </div>
             {turn.tip && <div className="tip" style={{ marginTop: 8 }}>💡 {turn.tip}</div>}
@@ -313,7 +497,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
           </form>
         )}
         <div className="dock-row">
-          <button className="side-btn" disabled={busy} onClick={() => { unlockSpeech(); send({ text: '[DONT_KNOW]' }) }}>
+          <button className="side-btn" disabled={busy} onClick={dontKnow}>
             🤔<br />わから<br />ない
           </button>
           <div
@@ -332,7 +516,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
           </div>
           <button className="side-btn" onClick={() => setTyping((v) => !v)}>⌨️<br />もじ</button>
         </div>
-        <div className="cap">{caption || (busy ? `${persona.name}が かんがえてるよ…` : recording ? 'きいてるよ…' : 'おしながら はなしてね')}</div>
+        <div className="cap">{caption || (engine === 'connecting' ? `${persona.name}に つないでるよ…` : busy ? `${persona.name}が かんがえてるよ…` : recording ? 'きいてるよ…' : 'おしながら はなしてね')}</div>
       </div>
 
       {stopped && (

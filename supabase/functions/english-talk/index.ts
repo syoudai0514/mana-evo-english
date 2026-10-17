@@ -9,6 +9,12 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const MODELS = (Deno.env.get('GEMINI_MODELS') ?? 'gemini-3.1-flash-lite,gemini-3.5-flash')
   .split(',').map((model) => model.trim()).filter(Boolean)
 
+// Live（リアルタイム会話）のモデル。GEMINI_LIVE_MODEL があればそれ、なければ使えるものから選ぶ
+const LIVE_MODEL = Deno.env.get('GEMINI_LIVE_MODEL') ?? ''
+const LIVE_PREFERENCE = [/gemini-3-flash-live/, /gemini-3\.1-flash-live/, /gemini-3[\d.-]*flash.*live/, /gemini-3\.8.*live/, /live/, /native-audio/]
+const LIVE_EXCLUDE = /translat|transcri|thinking/i
+let liveModelCache: { model: string; at: number } | null = null
+
 const LIMITS = { system: 24000, historyItems: 16, historyText: 2000, inputText: 1000, audioBase64: 3_000_000 }
 
 const CORS = {
@@ -54,6 +60,54 @@ async function verifyUser(req: Request) {
     headers: { Authorization: auth, apikey: SUPABASE_ANON_KEY }
   })
   return response.ok
+}
+
+async function pickLiveModel(): Promise<string | null> {
+  if (LIVE_MODEL) return LIVE_MODEL
+  if (liveModelCache && Date.now() - liveModelCache.at < 6 * 3600_000) return liveModelCache.model
+  const names: string[] = []
+  let pageToken = ''
+  for (let page = 0; page < 5; page += 1) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?pageSize=200${pageToken ? `&pageToken=${pageToken}` : ''}`
+    const response = await fetch(url, { headers: { 'x-goog-api-key': GEMINI_API_KEY } })
+    if (!response.ok) break
+    const data = await response.json()
+    for (const model of data.models ?? []) {
+      if ((model.supportedGenerationMethods ?? []).includes('bidiGenerateContent') && !LIVE_EXCLUDE.test(model.name)) {
+        names.push(String(model.name).replace(/^models\//, ''))
+      }
+    }
+    pageToken = data.nextPageToken ?? ''
+    if (!pageToken) break
+  }
+  for (const pattern of LIVE_PREFERENCE) {
+    const hit = names.find((name) => pattern.test(name))
+    if (hit) {
+      liveModelCache = { model: hit, at: Date.now() }
+      return hit
+    }
+  }
+  return null
+}
+
+// ブラウザが Live API に直接つなぐための使い捨てキー（1回だけ・新しい接続は2分以内）
+async function createLiveToken() {
+  const now = Date.now()
+  const response = await fetch('https://generativelanguage.googleapis.com/v1alpha/auth_tokens', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+    body: JSON.stringify({
+      uses: 1,
+      expireTime: new Date(now + 30 * 60_000).toISOString(),
+      newSessionExpireTime: new Date(now + 2 * 60_000).toISOString()
+    })
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !data?.name) {
+    console.error('live token failed', response.status, JSON.stringify(data).slice(0, 300))
+    return null
+  }
+  return data.name as string
 }
 
 type Turn = { role: 'user' | 'model'; text: string }
@@ -152,8 +206,16 @@ Deno.serve(async (req) => {
   if (!GEMINI_API_KEY) return json({ code: 'config', message: 'GEMINI_API_KEY が設定されていません' }, 500)
   if (!(await verifyUser(req))) return json({ code: 'auth', message: 'ログインが必要です' }, 401)
 
-  let body: Body
+  let body: Body & { action?: string }
   try { body = await req.json() } catch { return json({ code: 'bad_request', message: 'invalid json' }, 400) }
+
+  if (body?.action === 'live-token') {
+    const model = await pickLiveModel()
+    if (!model) return json({ code: 'no_live_model', message: 'Live のモデルが見つかりません' }, 503)
+    const token = await createLiveToken()
+    if (!token) return json({ code: 'live_token', message: 'Live に接続できませんでした' }, 502)
+    return json({ token, model })
+  }
   const invalid = validate(body)
   if (invalid) return json({ code: 'bad_request', message: `invalid ${invalid}` }, 400)
 

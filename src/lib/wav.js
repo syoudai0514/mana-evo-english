@@ -53,3 +53,27 @@ export function rms(samples) {
   for (let i = 0; i < samples.length; i += 1) sum += samples[i] * samples[i]
   return Math.sqrt(sum / samples.length)
 }
+
+// Live API 用：Float32 → 16bit PCM（little endian）の base64
+export function floatToPcm16Base64(samples) {
+  const bytes = new Uint8Array(samples.length * 2)
+  const view = new DataView(bytes.buffer)
+  for (let i = 0; i < samples.length; i += 1) {
+    const s = Math.max(-1, Math.min(1, samples[i]))
+    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+  }
+  return bytesToBase64(bytes)
+}
+
+// Live API の返事（24kHz 16bit PCM の base64）→ Float32
+export function pcm16Base64ToFloat(base64) {
+  const binary = atob(base64)
+  const length = Math.floor(binary.length / 2)
+  const out = new Float32Array(length)
+  for (let i = 0; i < length; i += 1) {
+    let value = binary.charCodeAt(i * 2) | (binary.charCodeAt(i * 2 + 1) << 8)
+    if (value >= 0x8000) value -= 0x10000
+    out[i] = value / 0x8000
+  }
+  return out
+}

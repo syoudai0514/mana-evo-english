@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { HOME_MODE_IDS, MODES } from '../data/modes.js'
 import { levelOf, WORLD_UNLOCK_LEVEL } from '../data/levels.js'
-import { modelToday, streakCount } from '../lib/state.js'
+import { modelToday, streakCount, todayKey } from '../lib/state.js'
 import { speak, unlockSpeech } from '../lib/tts.js'
 import { Hearts, Reading, TabBar } from '../components/ui.jsx'
 import { nextReading } from '../lib/kana.js'
@@ -13,7 +13,8 @@ export default function Home({ state, update, navigate, showToast, topic, onStar
   const persona = personaOf(state.profile?.partner)
   const level = levelOf(state.level)
   const [wiggle, setWiggle] = useState(false)
-  const done = modelToday(state).done
+  // Live が今日つながっていれば、1回ずつ送る方式の上限に関係なく話せる
+  const done = modelToday(state).done && state.liveDate !== todayKey()
   const streak = streakCount(state)
   const voice = { ...persona.voice, rate: persona.voice.rate * level.speechRate }
 
