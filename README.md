@@ -2,6 +2,8 @@
 
 mana-evo の英語に特化した姉妹アプリ。mana-evo のモンスターと毎日英語でおしゃべりする iPhone 向け PWA。
 
+公開先：https://mana-evo-english.vercel.app/（main に入ると Vercel が自動で公開）
+
 - コンセプト：[`docs/CONCEPT.md`](docs/CONCEPT.md)
 - モックアップ：[`design/mockups/`](design/mockups/)
 - Supabase 連携（mana-evo とのデータ連携）：issue #1
