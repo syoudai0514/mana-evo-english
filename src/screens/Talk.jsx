@@ -280,7 +280,19 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         tried.add(model)
         const session = createLiveSession(granted)
         await session.connect()
-        return onLiveConnected(session, model)
+        onLiveConnected(session, model)
+        try {
+          await Promise.race([session.firstTurn, new Promise((_, reject) => setTimeout(() => reject(new Error('live first reply timeout')), 12000))])
+        } catch (error) {
+          if (live.current === session) live.current = null
+          session.close()
+          clearTimeout(waitTimer.current)
+          setBusy(false)
+          throw error
+        }
+        session.probing = false
+        update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model, liveError: null }))
+        return
       } catch (error) {
         lastError = error
         const info = { step: model ? 'connect' : 'token', choice: attempt, model, message: String(error?.message || error) }
@@ -337,11 +349,10 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const onLiveConnected = (session, model) => {
     live.current = session
     setEngine('live')
-    update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model, liveError: null }))
     const first = turnsRef.current[0]
     newLiveTurn(true)
     waitForReply()
-    session.sendText(first ? `[START] Begin by saying exactly this line, then wait for the child: "${first.text}"` : '[START]')
+    session.sendStart(first ? `[START] Begin by saying exactly this line, then wait for the child: "${first.text}"` : '[START]')
   }
 
   // はじめのひとこと。Live につながればリアルタイム、だめなら1回ずつ送る方式
@@ -378,6 +389,17 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       if (!pressing.current) { recorder.current.stop(); return }
       setRecording(true)
       setCaption('はなしてね… はなしたら ゆびを はなす')
+      // 0.8秒たっても音が届かなければ、マイクが止まっている。作りなおして、もういちど押してもらう
+      const rec = recorder.current
+      setTimeout(() => {
+        if (rec !== recorder.current || !rec.silentSinceStart) return
+        rec.recording = false
+        rec.close()
+        if (live.current) live.current.endSpeech()
+        pressing.current = false
+        setRecording(false)
+        setCaption('マイクを じゅんびしたよ。もういちど おしてね')
+      }, 800)
     } catch {
       setTyping(true)
       setCaption('マイクが つかえないよ。おうちのひとに きいてね')

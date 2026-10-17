@@ -57,6 +57,10 @@ export class LiveSession {
     this.ready = false
     this.closedByUs = false
     this.turnAudio = [] // 🔊で聞きなおせるよう、1往復ぶんの声をとっておく
+    // 最初の返事が最後まで届いたら「つながった」とみなす（つながってすぐ切られるモデルがあるため）
+    this.probing = true
+    this.firstTurn = new Promise((resolve, reject) => { this.firstTurnDone = resolve; this.firstTurnFailed = reject })
+    this.firstTurn.catch(() => {})
   }
 
   connect(timeoutMs = 8000) {
@@ -98,7 +102,8 @@ export class LiveSession {
       ws.onclose = (event) => {
         clearTimeout(timer)
         if (!this.ready) reject(new Error(`live closed ${event.code} ${event.reason}`))
-        if (this.ready && !this.closedByUs) this.handlers.onClose?.(event)
+        if (this.ready) this.firstTurnFailed(new Error(`live closed ${event.code} ${event.reason}`))
+        if (this.ready && !this.closedByUs && !this.probing) this.handlers.onClose?.(event)
       }
     })
   }
@@ -120,6 +125,7 @@ export class LiveSession {
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
     if (content.outputTranscription?.text) this.handlers.onPartnerText?.(content.outputTranscription.text)
     if (content.turnComplete) {
+      this.firstTurnDone()
       const audio = this.turnAudio
       this.turnAudio = []
       this.handlers.onTurnComplete?.(audio)
@@ -146,12 +152,17 @@ export class LiveSession {
     this.send({ realtimeInput: { activityEnd: {} } })
   }
 
+  // 会話のはじまり：最初の文脈として送る（clientContent はセッション開始時だけ使える）
+  sendStart(text) {
+    this.player.ensure()
+    this.send({ clientContent: { turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true } })
+  }
+
+  // 会話の途中の文字（ヒントや文字入力）
   sendText(text) {
     this.player.ensure()
     this.player.stop()
-    this.send({ realtimeInput: { activityStart: {} } })
     this.send({ realtimeInput: { text } })
-    this.send({ realtimeInput: { activityEnd: {} } })
   }
 
   replay(audio) {

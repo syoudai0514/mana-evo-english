@@ -10,13 +10,22 @@ export class Recorder {
     this.source = null
     this.processor = null
     this.chunks = []
+    this.frames = 0
     this.recording = false
     this.onLevel = null
     this.onChunk = null // Live API：録音中の音声を 16kHz PCM の base64 で順に渡す
   }
 
+  // iOS は読み上げや相棒の声のあと、マイクが止まったり AudioContext が "interrupted" のままになる。
+  // そうなっていたら、マイクごと作りなおす。
+  healthy() {
+    const track = this.stream?.getAudioTracks()[0]
+    return Boolean(track && track.readyState === 'live' && this.context && this.context.state !== 'closed')
+  }
+
   async open() {
-    if (this.stream) return
+    if (this.healthy()) return
+    this.close()
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     })
@@ -25,6 +34,7 @@ export class Recorder {
     this.source = this.context.createMediaStreamSource(this.stream)
     this.processor = this.context.createScriptProcessor(4096, 1, 1)
     this.processor.onaudioprocess = (event) => {
+      this.frames += 1
       if (!this.recording) return
       const data = event.inputBuffer.getChannelData(0)
       this.chunks.push(new Float32Array(data))
@@ -45,9 +55,25 @@ export class Recorder {
     // iOS：録音中も相棒の声がスピーカーから出るようにする（対応ブラウザのみ）
     try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record' } catch {}
     await this.open()
-    if (this.context.state === 'suspended') await this.context.resume()
+    if (!(await this.resume())) {
+      this.close()
+      await this.open()
+      await this.resume()
+    }
     this.chunks = []
     this.recording = true
+  }
+
+  // suspended だけでなく iOS の interrupted からも戻す。戻らなければ false
+  async resume() {
+    if (this.context.state === 'running') return true
+    await Promise.race([this.context.resume().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 500))])
+    return this.context.state === 'running'
+  }
+
+  // 押しはじめてしばらくしても音が1つも届かないときに使う（マイクが止まっている）
+  get silentSinceStart() {
+    return this.recording && this.chunks.length === 0
   }
 
   stop() {
