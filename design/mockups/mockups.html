@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>mana-evo-english mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2B2950; --ink2:#6A6890; --line:#E7E3F5;
+  --coral:#FF6B5B; --coral-d:#E04A3B;
+  --sun:#FFC83D; --sun-d:#E5A400;
+  --mint:#2FC79F; --mint-d:#1BA07D;
+  --sky:#4AA8FF; --sky-d:#2A84DB;
+  --grape:#8B6CF0; --grape-d:#6A4CD0;
+  --pink:#FF8FC0; --pink-d:#E06A9E;
+  --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1d1b33;font-family:"Zen Maru Gothic",sans-serif;color:var(--ink);padding:40px;display:flex;flex-wrap:wrap;gap:40px}
+.en{font-family:"Baloo 2","Zen Maru Gothic",sans-serif}
+.phone{width:390px;height:844px;border-radius:0;overflow:hidden;position:relative;background:linear-gradient(180deg,#FFF4E6 0%,#FFE9F1 45%,#E9F1FF 100%)}
+.status{height:47px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 34px;font:600 16px -apple-system,"Baloo 2",sans-serif}
+.status .r{display:flex;gap:6px;align-items:center;font-size:13px}
+.cloud{position:absolute;background:#fff;border-radius:999px;opacity:.7}
+.top{display:flex;justify-content:space-between;align-items:center;padding:6px 20px 0}
+.pill{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:6px 12px 6px 8px;font-weight:900;font-size:14px;box-shadow:0 3px 0 var(--line)}
+.pill .ic{font-size:18px}
+.press{border-radius:24px;box-shadow:0 6px 0 var(--d,#ddd);}
+.bubble{background:#fff;border-radius:24px;padding:14px 16px;box-shadow:0 4px 0 var(--line),0 10px 24px rgba(80,60,140,.08);position:relative}
+.kana{font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.02em;margin-top:4px}
+.ja{font-size:12.5px;color:#8a7fb8;margin-top:6px;padding-top:6px;border-top:1.5px dashed var(--line);font-weight:700}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #F1EDFA;display:flex;justify-content:space-around;padding-top:10px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:900;color:#B3AECF;gap:2px}
+.tabbar div span{font-size:24px;filter:grayscale(1);opacity:.55}
+.tabbar .on{color:var(--coral)} .tabbar .on span{filter:none;opacity:1}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:#2B2950}
+.sig{display:inline-block;width:18px;height:11px;background:linear-gradient(90deg,currentColor 0 3px,transparent 3px 5px,currentColor 5px 8px,transparent 8px 10px,currentColor 10px 13px,transparent 13px 15px,currentColor 15px 18px);clip-path:polygon(0 100%,100% 0,100% 100%)}
+.bat{display:inline-block;width:24px;height:11px;border:1.5px solid currentColor;border-radius:3.5px;position:relative;opacity:.9}.bat:after{content:"";position:absolute;inset:1.5px;right:4px;background:currentColor;border-radius:1.5px}
+.label{color:#fff;font:800 18px "Zen Maru Gothic";width:390px;margin-bottom:-28px}
+.label small{display:block;font-weight:500;font-size:13px;color:#b9b4df;margin-top:2px}
+.wrap{display:flex;flex-direction:column;gap:12px}
+</style>
+</head>
+<body>
+
+<!-- ============ 1. HOME ============ -->
+<div class="wrap" id="s1">
+<div class="label">① ホーム<small>相棒が自分から話しかけてくる。毎回ちがう話題</small></div>
+<div class="phone">
+  <div class="cloud" style="width:120px;height:36px;top:90px;left:-30px"></div>
+  <div class="cloud" style="width:90px;height:28px;top:150px;right:-20px"></div>
+  <div class="status"><span>7:42</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+  <div class="top">
+    <div class="pill"><span class="ic">🔥</span>3にち</div>
+    <div style="font:800 22px 'Baloo 2';color:var(--coral);letter-spacing:.02em">Hello<span style="color:var(--sun)">!</span>Evo</div>
+    <div class="pill"><span class="ic">⭐</span>12</div>
+  </div>
+
+  <div style="position:relative;height:330px;margin-top:6px">
+    <div style="position:absolute;left:50%;top:190px;transform:translateX(-50%);width:230px;height:40px;border-radius:50%;background:radial-gradient(closest-side,rgba(139,108,240,.25),transparent)"></div>
+    <img src="img/m049.webp" style="position:absolute;left:50%;top:78px;transform:translateX(-50%);width:200px">
+    <div class="bubble" style="position:absolute;left:22px;right:22px;top:4px;padding:12px 16px">
+      <div class="en" style="font-size:21px;font-weight:700;line-height:1.15">Guess what? I found a <span style="color:var(--coral)">big</span> pumpkin! 🎃</div>
+      <div class="kana">ゲス ワット？ アイ ファウンド ア ビッグ パンプキン！</div>
+      <div style="position:absolute;bottom:-12px;left:50%;margin-left:-12px;width:24px;height:24px;background:#fff;transform:rotate(45deg);border-radius:4px"></div>
+    </div>
+    <div style="position:absolute;left:0;right:0;top:282px;text-align:center">
+      <span class="tag" style="background:#fff;color:var(--grape);font-size:13px;padding:5px 12px;box-shadow:0 3px 0 var(--line)">ホワミィ　<span style="color:var(--pink)">♥♥♥</span><span style="color:#ddd">♥♥</span></span>
+    </div>
+  </div>
+
+  <div style="padding:0 20px">
+    <div class="press" style="--d:var(--coral-d);background:linear-gradient(180deg,#FF7E6E,var(--coral));color:#fff;height:76px;display:flex;align-items:center;justify-content:center;gap:12px;font-weight:900;font-size:22px">
+      <span style="font-size:32px">🎤</span> おはなし する！
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:20px 20px 0">
+    <div class="press" style="--d:#E7DCFF;background:#fff;padding:12px 10px 10px;display:flex;gap:8px;align-items:center">
+      <div style="flex:none;font-size:24px;width:38px;height:38px;border-radius:12px;background:#FFF1C9;display:grid;place-items:center">🎭</div>
+      <div><div style="font-weight:900;font-size:14px;white-space:nowrap;letter-spacing:-.03em">ごっこあそび</div><div class="en" style="font-size:12px;color:var(--ink2);font-weight:600;margin-top:-2px">Pretend Play</div></div>
+    </div>
+    <div class="press" style="--d:#E7DCFF;background:#fff;padding:12px 10px 10px;display:flex;gap:8px;align-items:center;position:relative">
+      <div style="flex:none;font-size:24px;width:38px;height:38px;border-radius:12px;background:#DDF0FF;display:grid;place-items:center">📞</div>
+      <div><div style="font-weight:900;font-size:14px;white-space:nowrap;letter-spacing:-.03em">せかいのともだち</div><div class="en" style="font-size:12px;color:var(--ink2);font-weight:600;margin-top:-2px">Video Call</div></div>
+      <span class="tag" style="position:absolute;top:-8px;right:-4px;background:var(--mint);color:#fff">でんわ きてる！</span>
+    </div>
+    <div class="press" style="--d:#E7DCFF;background:#fff;padding:12px 10px 10px;display:flex;gap:8px;align-items:center">
+      <div style="flex:none;font-size:24px;width:38px;height:38px;border-radius:12px;background:#E9FBE9;display:grid;place-items:center">🔍</div>
+      <div><div style="font-weight:900;font-size:14px;white-space:nowrap;letter-spacing:-.03em">あてっこゲーム</div><div class="en" style="font-size:12px;color:var(--ink2);font-weight:600;margin-top:-2px">Guess Who?</div></div>
+    </div>
+    <div class="press" style="--d:#E7DCFF;background:#fff;padding:12px 10px 10px;display:flex;gap:8px;align-items:center">
+      <div style="flex:none;font-size:24px;width:38px;height:38px;border-radius:12px;background:#FFE3EF;display:grid;place-items:center">📖</div>
+      <div><div style="font-weight:900;font-size:14px;white-space:nowrap;letter-spacing:-.03em">おはなしづくり</div><div class="en" style="font-size:12px;color:var(--ink2);font-weight:600;margin-top:-2px">Story Time</div></div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="on"><span>🏠</span>ホーム</div>
+    <div><span>🌟</span>シール</div>
+    <div><span>🐾</span>なかま</div>
+    <div><span>👪</span>おうちのひと</div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- ============ 2. TALK ============ -->
+<div class="wrap" id="s2">
+<div class="label">② おしゃべり中<small>言い直しで返す・ヒントはカタカナと絵・大きなマイク</small></div>
+<div class="phone" style="background:linear-gradient(180deg,#FFF0E0 0%,#FFE6F0 55%,#F2EBFF 100%)">
+  <div class="status"><span>7:44</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+  <div class="top" style="padding-top:2px">
+    <div style="width:40px;height:40px;border-radius:14px;background:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 var(--line)">✕</div>
+    <div class="pill" style="font-size:13px"><span class="ic">🎃</span>かぼちゃの はなし</div>
+    <div style="width:40px;height:40px;border-radius:14px;background:#fff;display:grid;place-items:center;font-size:12px;font-weight:900;box-shadow:0 3px 0 var(--line);color:var(--grape)">あ⇄A</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-end;gap:8px;padding:14px 16px 0">
+    <img src="img/m049.webp" style="width:82px;margin-bottom:-6px">
+    <div class="bubble" style="flex:1;padding:10px 14px;border-bottom-left-radius:6px">
+      <div class="en" style="font-size:17px;font-weight:700;line-height:1.2">Guess what? I found a big pumpkin! Do you like pumpkins?</div>
+      <div class="kana">ゲス ワット？ アイ ファウンド ア ビッグ パンプキン！ ドゥ ユー ライク パンプキンズ？</div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;padding:12px 16px 0">
+    <div style="background:linear-gradient(180deg,#5DB5FF,var(--sky));color:#fff;border-radius:22px;border-bottom-right-radius:6px;padding:10px 16px;box-shadow:0 4px 0 var(--sky-d);max-width:70%">
+      <div class="en" style="font-size:18px;font-weight:700">Yes! Halloween!</div>
+    </div>
+  </div>
+  <div style="text-align:right;padding:6px 20px 0"><span class="tag" style="background:#FFF4CC;color:#B07A00">✨ えいごで いえたね！</span></div>
+
+  <div style="display:flex;align-items:flex-end;gap:8px;padding:6px 16px 0">
+    <img src="img/m049.webp" style="width:82px;margin-bottom:-6px;transform:rotate(-6deg)">
+    <div class="bubble" style="flex:1;padding:10px 14px;border-bottom-left-radius:6px;outline:3px solid #FFD6E7">
+      <div class="en" style="font-size:17px;font-weight:700;line-height:1.2"><span style="background:#FFF1B8;border-radius:6px;padding:0 3px">You like Halloween!</span> Me too! What do you want to be?</div>
+      <div class="kana">ユー ライク ハロウィン！ ミー トゥー！ ワット ドゥ ユー ウォント トゥ ビー？</div>
+      <div class="ja">ハロウィン好きなんだね！ぼくも！なにになりたい？</div>
+      <div style="position:absolute;right:10px;top:-14px;width:32px;height:32px;border-radius:50%;background:var(--grape);color:#fff;display:grid;place-items:center;font-size:15px;box-shadow:0 3px 0 var(--grape-d)">🔊</div>
+    </div>
+  </div>
+
+  <div style="padding:18px 16px 0">
+    <div style="font-size:12px;font-weight:900;color:var(--ink2);margin:0 0 8px 4px">💡 こまったら タップ → まねして いってみよう</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="press" style="--d:#F0E3C2;background:#FFFBEF;border-radius:18px;padding:8px 4px 6px;text-align:center"><div style="font-size:30px">👻</div><div class="en" style="font-weight:800;font-size:15px;line-height:1">a ghost</div><div style="font-size:10.5px;font-weight:900;color:var(--ink2)">ア ゴースト</div></div>
+      <div class="press" style="--d:#F0E3C2;background:#FFFBEF;border-radius:18px;padding:8px 4px 6px;text-align:center"><div style="font-size:30px">🧙</div><div class="en" style="font-weight:800;font-size:15px;line-height:1">a wizard</div><div style="font-size:10.5px;font-weight:900;color:var(--ink2)">ア ウィザード</div></div>
+      <div class="press" style="--d:#F0E3C2;background:#FFFBEF;border-radius:18px;padding:8px 4px 6px;text-align:center"><div style="font-size:30px">🦖</div><div class="en" style="font-weight:800;font-size:15px;line-height:1">a dinosaur</div><div style="font-size:10.5px;font-weight:900;color:var(--ink2)">ア ダイナソー</div></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;height:200px;background:linear-gradient(180deg,rgba(255,255,255,0),#fff 38%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:34px">
+    <div style="display:flex;align-items:center;gap:28px">
+      <div style="width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 4px 0 var(--line);display:grid;place-items:center;font-size:12px;font-weight:900;color:var(--ink2);text-align:center;line-height:1.1">🤔<br>わから<br>ない</div>
+      <div style="position:relative;width:112px;height:112px">
+        <div style="position:absolute;inset:-14px;border-radius:50%;background:rgba(255,107,91,.15)"></div>
+        <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(255,107,91,.22)"></div>
+        <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(180deg,#FF8576,var(--coral));box-shadow:0 7px 0 var(--coral-d);display:grid;place-items:center;font-size:48px">🎤</div>
+      </div>
+      <div style="width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 4px 0 var(--line);display:grid;place-items:center;font-size:12px;font-weight:900;color:var(--ink2);text-align:center;line-height:1.1">⌨️<br>もじ</div>
+    </div>
+    <div style="margin-top:14px;font-weight:900;font-size:14px;color:var(--coral)">おしながら はなしてね</div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- ============ 3. VIDEO CALL ============ -->
+<div class="wrap" id="s3">
+<div class="label">③ せかいのともだち（でんわ）<small>外国の友だちから電話がくる。ドキドキ感と「通じた！」体験</small></div>
+<div class="phone" style="background:radial-gradient(120% 70% at 50% 30%,#3B2B7A 0%,#1E1745 60%,#120E2C 100%);color:#fff">
+  <div class="status" style="color:#fff"><span>18:05</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+  <div style="position:absolute;inset:0;background-image:radial-gradient(#fff 1px,transparent 1.5px);background-size:46px 46px;opacity:.15"></div>
+  <div style="text-align:center;margin-top:40px;position:relative">
+    <div style="font-size:14px;font-weight:700;opacity:.8">📞 ビデオでんわ が きたよ！</div>
+    <div class="en" style="font-size:30px;font-weight:800;margin-top:6px">Niji Ryuga</div>
+    <div style="font-size:15px;font-weight:700;opacity:.85">ニジリュウガ ・ 🇦🇺 オーストラリア から</div>
+  </div>
+  <div style="position:relative;width:300px;height:300px;margin:26px auto 0">
+    <div style="position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#FF6B5B,#FFC83D,#2FC79F,#4AA8FF,#8B6CF0,#FF6B5B);filter:blur(2px);opacity:.9"></div>
+    <div style="position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#FFE7C2,#FFB37A 60%,#E86A3A)"></div>
+    <img src="img/m186.webp" style="position:absolute;left:50%;top:50%;width:270px;transform:translate(-50%,-48%)">
+  </div>
+  <div class="bubble" style="margin:22px 26px 0;color:var(--ink);text-align:center">
+    <div class="en" style="font-size:24px;font-weight:800">G'day, mate! 👋</div>
+    <div class="kana">グダイ、メイト！（オーストラリアの「こんにちは」）</div>
+  </div>
+  <div style="text-align:center;font-size:13px;font-weight:700;opacity:.75;margin-top:14px">きょうの ミッション：<b style="color:var(--sun)">すきな たべもの を おしえて あげよう</b></div>
+
+  <div style="position:absolute;bottom:60px;left:0;right:0;display:flex;justify-content:center;gap:70px">
+    <div style="text-align:center"><div style="width:76px;height:76px;border-radius:50%;background:#FF4D4D;display:grid;place-items:center;font-size:30px;box-shadow:0 6px 0 #C22B2B">✕</div><div style="font-size:13px;font-weight:900;margin-top:10px;opacity:.8">あとで</div></div>
+    <div style="text-align:center"><div style="width:76px;height:76px;border-radius:50%;background:#2FD17A;display:grid;place-items:center;font-size:32px;box-shadow:0 6px 0 #1A9E58;outline:8px solid rgba(47,209,122,.25)">📞</div><div style="font-size:13px;font-weight:900;margin-top:10px">でる！</div></div>
+  </div>
+  <div class="homebar" style="background:#fff"></div>
+</div>
+</div>
+
+<!-- ============ 4. PRETEND PLAY ============ -->
+<div class="wrap" id="s4">
+<div class="label">④ ごっこあそび えらび<small>場面×役割×ハプニングで毎回ちがう展開になる</small></div>
+<div class="phone">
+  <div class="status"><span>16:20</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+  <div class="top">
+    <div style="width:40px;height:40px;border-radius:14px;background:#fff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 var(--line)">‹</div>
+    <div style="font-weight:900;font-size:20px">🎭 ごっこあそび</div>
+    <div style="width:40px"></div>
+  </div>
+  <div style="padding:14px 20px 0">
+    <div style="display:flex;gap:8px">
+      <span class="tag" style="background:var(--ink);color:#fff;font-size:13px;padding:6px 14px">ぜんぶ</span>
+      <span class="tag" style="background:#fff;color:var(--ink2);font-size:13px;padding:6px 14px">おみせ</span>
+      <span class="tag" style="background:#fff;color:var(--ink2);font-size:13px;padding:6px 14px">おでかけ</span>
+      <span class="tag" style="background:#fff;color:var(--ink2);font-size:13px;padding:6px 14px">おうち</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px 20px 0">
+    <!-- card -->
+    <div class="press" style="--d:#F3C9B9;background:linear-gradient(160deg,#FFE3D6,#FFF6EF);padding:14px;position:relative;height:178px">
+      <span class="tag" style="position:absolute;top:10px;right:10px;background:var(--coral);color:#fff">NEW</span>
+      <div style="font-size:54px;line-height:1">🍦</div>
+      <div style="font-weight:900;font-size:16px;margin-top:10px">アイスやさん</div>
+      <div class="en" style="font-size:12.5px;color:var(--ink2);font-weight:600">Ice Cream Shop</div>
+      <div style="font-size:11px;font-weight:900;margin-top:8px;color:var(--coral-d)">きみは：おきゃくさん</div>
+    </div>
+    <div class="press" style="--d:#BFD9F5;background:linear-gradient(160deg,#DCEEFF,#F4F9FF);padding:14px;height:178px">
+      <div style="font-size:54px;line-height:1">✈️</div>
+      <div style="font-weight:900;font-size:16px;margin-top:10px">くうこう</div>
+      <div class="en" style="font-size:12.5px;color:var(--ink2);font-weight:600">At the Airport</div>
+      <div style="font-size:11px;font-weight:900;margin-top:8px;color:var(--sky-d)">にもつが ない！？</div>
+    </div>
+    <div class="press" style="--d:#C9E8C9;background:linear-gradient(160deg,#DFF7E4,#F5FCF6);padding:14px;height:178px">
+      <div style="font-size:54px;line-height:1">🗺️</div>
+      <div style="font-weight:900;font-size:16px;margin-top:10px">みちあんない</div>
+      <div class="en" style="font-size:12.5px;color:var(--ink2);font-weight:600">Help a Tourist</div>
+      <div style="font-size:11px;font-weight:900;margin-top:8px;color:var(--mint-d)">まいごの りょこうしゃを たすけよう</div>
+    </div>
+    <div class="press" style="--d:#E2CCF2;background:linear-gradient(160deg,#F1E3FF,#FAF5FF);padding:14px;height:178px">
+      <div style="font-size:54px;line-height:1">🎂</div>
+      <div style="font-weight:900;font-size:16px;margin-top:10px">たんじょうび</div>
+      <div class="en" style="font-size:12.5px;color:var(--ink2);font-weight:600">Birthday Party</div>
+      <div style="font-size:11px;font-weight:900;margin-top:8px;color:var(--grape-d)">プレゼント なにかな？</div>
+    </div>
+    <div class="press" style="--d:#F5D9A8;background:linear-gradient(160deg,#FFF0CC,#FFFAEE);padding:14px;height:178px">
+      <div style="font-size:54px;line-height:1">🍔</div>
+      <div style="font-weight:900;font-size:16px;margin-top:10px">バーガーやさん</div>
+      <div class="en" style="font-size:12.5px;color:var(--ink2);font-weight:600">Burger Shop</div>
+      <div style="font-size:11px;font-weight:900;margin-top:8px;color:var(--sun-d)">きみは：てんいんさん</div>
+    </div>
+    <div class="press" style="--d:#F5C2D6;background:linear-gradient(160deg,#FFE0EC,#FFF5F9);padding:14px;height:178px">
+      <div style="font-size:54px;line-height:1">🩺</div>
+      <div style="font-weight:900;font-size:16px;margin-top:10px">おいしゃさん</div>
+      <div class="en" style="font-size:12.5px;color:var(--ink2);font-weight:600">Doctor</div>
+      <div style="font-size:11px;font-weight:900;margin-top:8px;color:var(--pink-d)">ドラゴンが かぜを ひいた！</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="on"><span>🏠</span>ホーム</div>
+    <div><span>🌟</span>シール</div>
+    <div><span>🐾</span>なかま</div>
+    <div><span>👪</span>おうちのひと</div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- ============ 5. RESULT ============ -->
+<div class="wrap" id="s5">
+<div class="label">⑤ おしゃべり おわり<small>言えたことを褒める・相棒が覚えて次につなぐ</small></div>
+<div class="phone" style="background:linear-gradient(180deg,#FFF3C9 0%,#FFE7EF 55%,#EDE7FF 100%)">
+  <div class="status"><span>7:49</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+  <div style="position:absolute;top:60px;left:0;right:0;height:220px;background:repeating-conic-gradient(from 0deg at 50% 70%,rgba(255,200,61,.22) 0 10deg,transparent 10deg 20deg)"></div>
+  <div style="text-align:center;position:relative;margin-top:22px">
+    <div class="en" style="font-size:40px;font-weight:800;color:var(--coral);line-height:1">Great talk!</div>
+    <div style="font-weight:900;font-size:15px;margin-top:2px">たくさん おはなし できたね！</div>
+  </div>
+  <div style="position:relative;height:190px">
+    <img src="img/m049.webp" style="position:absolute;left:50%;top:6px;transform:translateX(-50%) rotate(4deg);width:180px">
+    <div style="position:absolute;right:48px;top:24px;font-size:28px">💕</div>
+    <div style="position:absolute;left:60px;top:70px;font-size:20px">✨</div>
+  </div>
+  <div style="text-align:center;margin-top:-4px"><span class="tag" style="background:#fff;color:var(--pink-d);font-size:14px;padding:6px 14px;box-shadow:0 3px 0 var(--line)">なかよし ♥ +1　ホワミィ <span style="color:var(--pink)">♥♥♥♥</span><span style="color:#ddd">♥</span></span></div>
+
+  <div class="bubble" style="margin:16px 20px 0;padding:14px">
+    <div style="font-weight:900;font-size:14px;margin-bottom:8px">🗣️ きょう いえた えいご</div>
+    <div style="display:flex;flex-direction:column;gap:7px">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#F6F3FF;border-radius:14px;padding:7px 12px"><span class="en" style="font-weight:700;font-size:17px">Yes! Halloween!</span><span>🔊</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#F6F3FF;border-radius:14px;padding:7px 12px"><span class="en" style="font-weight:700;font-size:17px">I want to be a dinosaur!</span><span>🔊</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#FFF6D8;border-radius:14px;padding:7px 12px"><span class="en" style="font-weight:700;font-size:17px">Trick or treat! <span class="tag" style="background:var(--sun);color:#fff">はじめて！</span></span><span>🔊</span></div>
+    </div>
+  </div>
+  <div class="bubble" style="margin:12px 20px 0;padding:12px 14px;display:flex;gap:10px;align-items:center;background:#fff">
+    <div style="font-size:26px">🧠</div>
+    <div style="font-size:13px;font-weight:700;line-height:1.4">ホワミィが おぼえたよ：<br><b>「きょうりゅうに なりたい」</b> → つぎ はなすときに きいてくるかも！</div>
+  </div>
+  <div style="display:flex;gap:12px;padding:18px 20px 0">
+    <div class="press" style="flex:1;--d:#E3DDF5;background:#fff;height:58px;display:grid;place-items:center;font-weight:900;font-size:16px">おわり</div>
+    <div class="press" style="flex:1.4;--d:var(--mint-d);background:var(--mint);color:#fff;height:58px;display:grid;place-items:center;font-weight:900;font-size:16px">🌟 シールを もらう</div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+<!-- ============ 6. PARENT ============ -->
+<div class="wrap" id="s6">
+<div class="label">⑥ おうちのひと<small>会話ログ（訳つき）・成長の段階・おうち英語カード・大人の練習</small></div>
+<div class="phone" style="background:#F7F6FB">
+  <div class="status"><span>21:10</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+  <div style="padding:6px 20px 0;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-weight:900;font-size:22px">おうちのひと</div>
+    <div class="tag" style="background:#fff;color:var(--ink2);font-size:12px;padding:6px 10px;box-shadow:0 2px 0 var(--line)">🔒 保護者</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:14px 20px 0">
+    <div style="background:#fff;border-radius:18px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--ink2);font-weight:700">きょう</div><div class="en" style="font-size:24px;font-weight:800">6<span style="font-size:13px">分</span></div></div>
+    <div style="background:#fff;border-radius:18px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--ink2);font-weight:700">英語で返せた</div><div class="en" style="font-size:24px;font-weight:800;color:var(--mint-d)">9<span style="font-size:13px">/12</span></div></div>
+    <div style="background:#fff;border-radius:18px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--ink2);font-weight:700">新しい表現</div><div class="en" style="font-size:24px;font-weight:800;color:var(--coral)">2</div></div>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;margin:12px 20px 0;padding:14px">
+    <div style="font-weight:900;font-size:14px;margin-bottom:10px">🌱 いまの段階</div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <div style="flex:1;text-align:center"><div style="height:8px;border-radius:9px;background:var(--mint)"></div><div style="font-size:10.5px;font-weight:700;margin-top:4px">聞く</div></div>
+      <div style="flex:1;text-align:center"><div style="height:8px;border-radius:9px;background:var(--mint)"></div><div style="font-size:10.5px;font-weight:700;margin-top:4px">選ぶ</div></div>
+      <div style="flex:1;text-align:center"><div style="height:8px;border-radius:9px;background:linear-gradient(90deg,var(--mint) 60%,#E9E6F3 60%)"></div><div style="font-size:10.5px;font-weight:900;margin-top:4px;color:var(--mint-d)">単語</div></div>
+      <div style="flex:1;text-align:center"><div style="height:8px;border-radius:9px;background:#E9E6F3"></div><div style="font-size:10.5px;font-weight:700;margin-top:4px;color:#aaa">型で文</div></div>
+      <div style="flex:1;text-align:center"><div style="height:8px;border-radius:9px;background:#E9E6F3"></div><div style="font-size:10.5px;font-weight:700;margin-top:4px;color:#aaa">自由に</div></div>
+    </div>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;margin:12px 20px 0;padding:14px">
+    <div style="font-weight:900;font-size:14px;margin-bottom:8px">💬 きょうの会話（かぼちゃの話）</div>
+    <div style="font-size:12.5px;line-height:1.55">
+      <div><b style="color:var(--grape)">ホワミィ</b> <span class="en" style="font-size:14px;font-weight:600">Do you like pumpkins?</span><br><span style="color:var(--ink2)">かぼちゃ好き？</span></div>
+      <div style="margin-top:6px"><b style="color:var(--sky-d)">子ども</b> <span class="en" style="font-size:14px;font-weight:600">Yes! Halloween!</span> <span class="tag" style="background:#E3F8F0;color:var(--mint-d)">英語で返答</span></div>
+      <div style="margin-top:6px"><b style="color:var(--grape)">ホワミィ</b> <span class="en" style="font-size:14px;font-weight:600">What do you want to be?</span><br><span style="color:var(--ink2)">なにになりたい？</span></div>
+      <div style="margin-top:6px"><b style="color:var(--sky-d)">子ども</b> きょうりゅう！ <span class="tag" style="background:#FFF1D6;color:#B07A00">日本語→言い直し</span></div>
+    </div>
+    <div style="font-size:12px;color:var(--ink2);margin-top:8px;font-weight:700">すべて見る ›</div>
+  </div>
+
+  <div style="background:linear-gradient(135deg,#FFE9D6,#FFF6E8);border-radius:20px;margin:12px 20px 0;padding:14px;border:2px solid #FFD8B5">
+    <div style="font-weight:900;font-size:14px">🏠 おうち英語カード</div>
+    <div class="en" style="font-size:22px;font-weight:800;margin-top:4px">What do you want to be?</div>
+    <div style="font-size:12.5px;font-weight:700;color:var(--ink2)">ワット ドゥ ユー ウォント トゥ ビー？ ／ なにになりたい？</div>
+    <div style="font-size:12px;margin-top:6px;line-height:1.5">お風呂や寝る前に聞いてみてください。「I want to be …」で返せたら大成功！</div>
+  </div>
+
+  <div style="display:flex;gap:10px;padding:12px 20px 0">
+    <div class="press" style="flex:1;--d:var(--grape-d);background:var(--grape);color:#fff;height:52px;border-radius:18px;display:grid;place-items:center;font-weight:900;font-size:14px">🧑 大人の練習</div>
+    <div class="press" style="flex:1;--d:#E3DDF5;background:#fff;height:52px;border-radius:18px;display:grid;place-items:center;font-weight:900;font-size:14px">👨‍👦 親子モード</div>
+  </div>
+  <div class="homebar"></div>
+</div>
+</div>
+
+</body>
+</html>
