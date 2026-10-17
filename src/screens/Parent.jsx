@@ -209,7 +209,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
           </div>
           <div className="card">
             <h3>会話のAI（Live）</h3>
-            {[['auto', 'おまかせ（3.8 Live を優先）'], ['3.8', 'Gemini 3.8 Live'], ['3-flash', 'Gemini 3 Flash Live']].map(([id, label]) => (
+            {[['auto', 'おまかせ（速い 3 Flash Live を優先）'], ['3-flash', 'Gemini 3 Flash Live（速い）'], ['3.8', 'Gemini 3.8 Live（かしこい）']].map(([id, label]) => (
               <button key={id} className="list-btn" onClick={() => { update((prev) => ({ ...prev, liveModel: id })); showToast(`${label} にしました`) }}>
                 <span>{label}</span><span>{(state.liveModel || 'auto') === id ? '✅' : ''}</span>
               </button>
@@ -217,6 +217,11 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
             <p className="muted" style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>
               返事の速さや声を聞き比べたいときに切り替えてください。{state.liveModelName ? `前回つながったモデル：${state.liveModelName}` : 'まだ Live につながったことはありません。'}
             </p>
+            {state.liveError && (
+              <p style={{ fontSize: 11.5, marginTop: 6, color: '#D0453A', lineHeight: 1.5, wordBreak: 'break-all' }}>
+                前回 Live につながらなかった理由：{state.liveError.model || state.liveError.choice} / {state.liveError.message}
+              </p>
+            )}
           </div>
           <div className="card">
             <h3>PIN</h3>

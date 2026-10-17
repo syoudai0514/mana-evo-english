@@ -11,7 +11,7 @@ const MODELS = (Deno.env.get('GEMINI_MODELS') ?? 'gemini-3.1-flash-lite,gemini-3
 
 // Live（リアルタイム会話）のモデル。GEMINI_LIVE_MODEL があればそれ、なければ使えるものから選ぶ
 const LIVE_MODEL = Deno.env.get('GEMINI_LIVE_MODEL') ?? ''
-const LIVE_PREFERENCE = [/gemini-3\.8.*live/, /gemini-3-flash-live/, /gemini-3\.1-flash-live/, /gemini-3[\d.-]*flash.*live/, /live/, /native-audio/]
+const LIVE_PREFERENCE = [/gemini-3-flash-live/, /gemini-3\.8.*live/, /gemini-3\.1-flash-live/, /gemini-3[\d.-]*flash.*live/, /live/, /native-audio/]
 // 保護者画面で選んだモデル（おまかせ以外）
 const LIVE_CHOICES: Record<string, RegExp> = { '3.8': /gemini-3\.8.*live/, '3-flash': /gemini-3(\.1)?-flash-live/ }
 const LIVE_EXCLUDE = /translat|transcri|thinking/i
@@ -216,8 +216,14 @@ Deno.serve(async (req) => {
   let body: Body & { action?: string; liveModel?: string }
   try { body = await req.json() } catch { return json({ code: 'bad_request', message: 'invalid json' }, 400) }
 
+  if (body?.action === 'live-log') {
+    console.warn('live problem', JSON.stringify((body as any).info ?? {}).slice(0, 800))
+    return json({ ok: true })
+  }
+
   if (body?.action === 'live-token') {
     const model = await pickLiveModel(body.liveModel)
+    console.log('live token', body.liveModel ?? 'auto', '->', model)
     if (!model) return json({ code: 'no_live_model', message: 'Live のモデルが見つかりません' }, 503)
     const token = await createLiveToken()
     if (!token) return json({ code: 'live_token', message: 'Live に接続できませんでした' }, 502)

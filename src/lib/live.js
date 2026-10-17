@@ -6,6 +6,19 @@ import { PcmPlayer, sampleRateOf } from './player.js'
 
 const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained'
 
+// Live に失敗した理由を english-talk のログに残す（原因調べ用。会話の中身は送らない）
+export async function reportLiveProblem(info) {
+  try {
+    const token = await getAccessToken()
+    if (!token) return
+    await fetch(TALK_ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'live-log', info: { ...info, ua: navigator.userAgent } })
+    })
+  } catch {}
+}
+
 export async function requestLiveToken(liveModel = 'auto') {
   const token = await getAccessToken().catch(() => null)
   if (!token) throw Object.assign(new Error('auth'), { code: 'auth' })
@@ -48,7 +61,8 @@ export class LiveSession {
 
   connect(timeoutMs = 8000) {
     return new Promise((resolve, reject) => {
-      const ws = new WebSocket(`${WS_BASE}?access_token=${encodeURIComponent(this.token)}`)
+      // 公式 SDK と同じく、トークン（auth_tokens/...）はそのまま付ける
+      const ws = new WebSocket(`${WS_BASE}?access_token=${this.token}`)
       this.ws = ws
       const timer = setTimeout(() => { reject(new Error('live timeout')); this.close() }, timeoutMs)
       ws.onopen = () => {
@@ -79,11 +93,12 @@ export class LiveSession {
         }
         this.handle(message)
       }
-      ws.onerror = () => { clearTimeout(timer); if (!this.ready) reject(new Error('live error')) }
+      // error のあとには必ず close が来るので、理由（code / reason）は onclose で受け取る
+      ws.onerror = () => {}
       ws.onclose = (event) => {
         clearTimeout(timer)
         if (!this.ready) reject(new Error(`live closed ${event.code} ${event.reason}`))
-        if (!this.closedByUs) this.handlers.onClose?.(event)
+        if (this.ready && !this.closedByUs) this.handlers.onClose?.(event)
       }
     })
   }

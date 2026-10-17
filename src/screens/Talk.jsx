@@ -8,7 +8,7 @@ import { nextReading } from '../lib/kana.js'
 import { Recorder, micSupported } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
-import { LiveSession, requestLiveToken } from '../lib/live.js'
+import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js'
 import { isMockMode } from '../lib/config.js'
 import { Reading } from '../components/ui.jsx'
 
@@ -264,9 +264,35 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     else send({ text: '[START]' })
   }
 
+  // 選んだ Live モデルでだめなら、もう1つの Live モデルで試してから予備の方式へ
   const startLive = async () => {
-    const { token, model } = await requestLiveToken(stateRef.current.liveModel || 'auto')
-    const session = new LiveSession({
+    const choice = stateRef.current.liveModel || 'auto'
+    const attempts = choice === '3.8' ? ['3.8', '3-flash'] : choice === '3-flash' ? ['3-flash', '3.8'] : ['auto', '3.8']
+    const tried = new Set()
+    let lastError = null
+    for (const attempt of attempts) {
+      if (finished.current) return
+      let model = ''
+      try {
+        const granted = await requestLiveToken(attempt)
+        model = granted.model
+        if (tried.has(model)) continue
+        tried.add(model)
+        const session = createLiveSession(granted)
+        await session.connect()
+        return onLiveConnected(session, model)
+      } catch (error) {
+        lastError = error
+        const info = { step: model ? 'connect' : 'token', choice: attempt, model, message: String(error?.message || error) }
+        update((prev) => ({ ...prev, liveError: { ...info, at: new Date().toISOString() } }))
+        reportLiveProblem(info)
+      }
+    }
+    throw lastError || new Error('live unavailable')
+  }
+
+  const createLiveSession = ({ token, model }) => {
+    return new LiveSession({
       token,
       model,
       system: buildLiveSystemPrompt(makeContext(0)),
@@ -296,8 +322,9 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
           if (start && turnsRef.current[0]?.opener) return
           annotateLive(child.trim(), partner.trim(), id)
         },
-        onClose: () => {
+        onClose: (event) => {
           if (finished.current) return
+          reportLiveProblem({ step: 'closed', model, message: `${event?.code} ${event?.reason || ''}` })
           live.current = null
           setBusy(false)
           setEngine('turn')
@@ -305,10 +332,12 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         }
       }
     })
-    await session.connect()
+  }
+
+  const onLiveConnected = (session, model) => {
     live.current = session
     setEngine('live')
-    update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model }))
+    update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model, liveError: null }))
     const first = turnsRef.current[0]
     newLiveTurn(true)
     waitForReply()
