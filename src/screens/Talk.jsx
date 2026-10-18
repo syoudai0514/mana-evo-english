@@ -192,6 +192,8 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         setStopped('exhausted')
       } else if (code === 'auth') {
         setStopped('auth')
+      } else if (code === 'offline') {
+        setStopped('offline')
       } else {
         setCaption(code === 'network' ? 'つうしんが うまく いかなかったよ。もういちど！' : 'もういちど はなしてみてね')
       }
