@@ -178,19 +178,20 @@ test('topics respect seasons and avoid recent ones', () => {
   assert.ok(levelOf(9).level === 1)
 })
 
-test('live prompts: voice rules without JSON, annotation keeps the partner line', async () => {
-  const { buildLiveSystemPrompt, buildAnnotatePrompt, annotateInput } = await import('../src/data/prompt.js')
+test('live prompts: short voice replies, katakana English, screen card only when enabled', async () => {
+  const { buildLiveSystemPrompt } = await import('../src/data/prompt.js')
   const topic = TOPICS.find((item) => item.id === 'pumpkin')
-  const live = buildLiveSystemPrompt({ mode: 'free', persona: 'niji', level: 2, nickname: 'そうちゃん', topic, memory: ['likes soccer'], maxTurns: 10 })
+  const base = { mode: 'free', persona: 'niji', level: 1, nickname: 'そうちゃん', topic, memory: ['likes soccer'], maxTurns: 10 }
+  const live = buildLiveSystemPrompt(base)
   assert.match(live, /OUT LOUD/)
+  assert.match(live, /at most 10 words/)
+  assert.match(live, /チーズ/)
+  assert.match(live, /Never make the child repeat/)
   assert.match(live, /likes soccer/)
-  assert.match(live, /Bye-bye!/)
-  assert.doesNotMatch(live, /JSON/)
+  assert.doesNotMatch(live, /show_card/)
+  assert.match(buildLiveSystemPrompt({ ...base, withCard: true }), /call the function show_card/)
   const adult = buildLiveSystemPrompt({ mode: 'adult', adultScene: { about: 'travel', opener: 'Hi' }, maxTurns: 16 })
   assert.doesNotMatch(adult, /tip_ja/)
-  const annotate = buildAnnotatePrompt({ mode: 'free', level: 3 })
-  assert.match(annotate, /reply_en must be EXACTLY/)
-  assert.match(annotateInput({ childText: 'dog', partnerText: 'You like dogs!', turn: 2, maxTurns: 10 }), /Partner said: "You like dogs!"/)
 })
 
 test('pcm helpers round-trip 16-bit audio', async () => {

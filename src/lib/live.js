@@ -4,6 +4,38 @@ import { SUPABASE_ANON_KEY, TALK_ENDPOINT } from './config.js'
 import { getAccessToken } from './auth.js'
 import { PcmPlayer, sampleRateOf } from './player.js'
 
+// 画面カード（読み・ひらがなの意味・ヒントなど）を相棒から受け取る関数
+const HINT_SCHEMA = {
+  type: 'OBJECT',
+  properties: { en: { type: 'STRING' }, kana: { type: 'STRING' }, ja: { type: 'STRING' }, emoji: { type: 'STRING' } },
+  required: ['en', 'kana', 'ja', 'emoji']
+}
+export function showCardDeclaration(behavior) {
+  const declaration = {
+    name: 'show_card',
+    description: 'Show the screen card for the reply you just spoke: readings, simple Japanese meaning, hints and notes about the child.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        reply_en: { type: 'STRING' },
+        kana: { type: 'STRING' },
+        ja_kids: { type: 'STRING' },
+        ja: { type: 'STRING' },
+        child_said: { type: 'STRING' },
+        spoke_english: { type: 'BOOLEAN' },
+        recast: { type: 'STRING' },
+        hints: { type: 'ARRAY', items: HINT_SCHEMA },
+        memory: { type: 'ARRAY', items: { type: 'STRING' } },
+        tip_ja: { type: 'STRING' },
+        end: { type: 'BOOLEAN' }
+      },
+      required: ['reply_en', 'kana', 'ja_kids', 'hints']
+    }
+  }
+  if (behavior === 'nonblocking') declaration.behavior = 'NON_BLOCKING'
+  return declaration
+}
+
 const WS_BASE = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained'
 
 // Live に失敗した理由を english-talk のログに残す（原因調べ用。会話の中身は送らない）
@@ -48,7 +80,9 @@ export class LiveSession {
   // text: true なら文字だけで返す接続（読み・意味・ヒントづくり用）。muted: true なら声を鳴らさない（親子モード）
   // transcription: 子どもの声の聞き取り設定（languageCodes で英語・日本語に限定、customVocabulary でよく出る単語を優先）
   // asr: true なら文字起こし専用（3.5 Transcribe Live）
-  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {} }) {
+  // card: 'nonblocking'（声を止めずにカードを渡す）/ 'blocking' / null
+  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null }) {
+    this.card = card
     this.transcription = transcription
     this.asr = asr
     this.dropAudio = false
@@ -108,6 +142,7 @@ export class LiveSession {
                   speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } } }
                 },
                 systemInstruction,
+                ...(this.card ? { tools: [{ functionDeclarations: [showCardDeclaration(this.card)] }] } : {}),
                 inputAudioTranscription: this.transcription,
                 outputAudioTranscription: {},
                 realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
@@ -138,6 +173,15 @@ export class LiveSession {
   }
 
   handle(message) {
+    for (const call of message.toolCall?.functionCalls || []) {
+      if (call.name === 'show_card') this.handlers.onCard?.(call.args || {})
+      // すぐ返事をして、相棒がカードのことで話しださないようにする
+      this.send({
+        toolResponse: {
+          functionResponses: [{ id: call.id, name: call.name, response: { ok: true }, ...(this.card === 'nonblocking' ? { scheduling: 'SILENT' } : {}) }]
+        }
+      })
+    }
     const content = message.serverContent
     if (!content) return
     if (content.interrupted) {

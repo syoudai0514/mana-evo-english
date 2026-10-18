@@ -129,11 +129,24 @@ export function selectMemory(memory, random = Math.random) {
 const LIVE_VOICE_RULES = `
 You are talking OUT LOUD in a real-time voice chat. Only speak; never read out symbols, emojis or lists.
 - Speak clearly and a little slowly, with warm, lively emotion, like a friendly character in a kids' show.
-- One to three short sentences per reply, then stop and let the child talk.
+- Keep it SHORT: react to what the child said, add one tiny thing about yourself, then ask ONE easy question. Then stop and let the child talk.
+- This is a real chat between friends. Never make the child repeat sentences ("Can you say...?") and never quiz them.
 - The child speaks by holding a button, so wait for them; never say "are you there?".
 - The child is Japanese and says English words with Japanese pronunciation (katakana English): "チーズ" = cheese, "キャット" = cat, "アップル" = apple, "イエス" = yes. Interpret them that way.
 - The child's words may come to you as text (from a speech recognizer) instead of audio. Treat that text as what the child said out loud.
 - If you are not sure what the child said, do not guess wildly. Ask a quick choice question with your best two guesses ("Cheese? Or chili?").`
+
+// 相棒が話すたびに呼ぶ「画面カード」（読み・ひらがなの意味・ヒントなど）。Live は文字だけの返事ができないため
+const CARD_RULES = `
+Screen card: after EVERY reply you speak, call the function show_card exactly once (do not say anything about it out loud).
+- reply_en: exactly what you just said.
+- kana: katakana reading of reply_en with spaces between words.
+- ja_kids: the meaning of reply_en in very simple Japanese, ONLY hiragana and katakana (no kanji).
+- ja: natural Japanese translation (for parents).
+- child_said: what the child really said in their last turn (fix speech-recognition mistakes; katakana English like "チーズ" means "cheese"). "" at the start.
+- spoke_english: true if the child used English words. recast: the natural English sentence for what the child meant.
+- hints: 2-3 short easy answers the child could say next, each with en, kana, ja (hiragana) and one emoji.
+- memory: new lasting facts about the child (likes, pets, wishes), short English. end: true only when you said goodbye.`
 
 export function buildLiveSystemPrompt(ctx) {
   const persona = personaOf(ctx.persona)
@@ -147,6 +160,7 @@ export function buildLiveSystemPrompt(ctx) {
       modeRules(ctx).replace(/In tip_ja[^.]*\.[^.]*\./, '').replace(/hints:.*$/, ''),
       '- The learner may answer in Japanese; understand it, say the natural English version back, and continue.',
       LIVE_VOICE_RULES,
+      ctx.withCard ? CARD_RULES + '\n- tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "".' : '',
       `After about ${maxTurns} exchanges, wrap up kindly and say goodbye.`
     ].join('\n\n')
   }
@@ -156,9 +170,10 @@ export function buildLiveSystemPrompt(ctx) {
     persona.voiceStyle,
     `You are chatting in English with a Japanese child (about 5-6 years old) whose nickname is "${nickname}". ` +
       'Your goal: make the child feel "English is easy and fun, I want to talk with people from other countries!"',
-    level.prompt,
+    `${level.prompt} HARD LIMIT: at most ${level.maxWords} words per reply.`,
     KID_RULES.replace(/"\[HINT\] text"[^.]*\./, '"[HINT] text" = the child chose that answer; treat it as the child saying it.') + '\n' + japanesePolicy(ctx.level),
     LIVE_VOICE_RULES,
+    ctx.withCard ? CARD_RULES : '',
     ctx.parentReads ? '- A parent is reading your lines aloud to the child too. Keep lines very short.' : '',
     modeRules(ctx),
     memoryBlock(nickname, ctx.memory),
@@ -167,61 +182,5 @@ export function buildLiveSystemPrompt(ctx) {
   ].filter(Boolean).join('\n\n')
 }
 
-export function buildAnnotatePrompt(ctx, exchange = null) {
-  const level = levelOf(ctx.level)
-  const adult = ctx.mode === 'adult'
-  // 子どもの声（音声）も一緒に渡すとき：Live の文字起こしは言語をまちがえやすいので、ここで聞きなおす
-  const audioRules = exchange ? [
-    `The audio is what the ${adult ? 'learner' : 'child'} just said. Transcribe it into child_said.`,
-    adult ? '' : 'The speaker is a Japanese 5-6 year old. They usually say English words (often with Japanese pronunciation, e.g. "キャット" means "cat") or short Japanese. Prefer the English word when it fits the question. Write English in English letters and Japanese in kana. Never output other languages.',
-    `The partner had just asked: "${exchange.previousPartner || ''}"`,
-    `The partner then replied (this is reply_en): "${exchange.partnerText || ''}"`,
-    `This is child turn ${exchange.turn} of about ${exchange.maxTurns}.`
-  ].filter(Boolean).join('\n') : ''
-  return [
-    `You annotate ONE exchange of a voice chat for the app screen. ${adult ? 'The learner is a Japanese adult practicing English.' : 'A Japanese child (5-6) talks with an English-speaking monster.'}`,
-    'Do NOT write a new reply. reply_en must be EXACTLY the partner line you are given (fix only obvious transcription spacing).',
-    `Hints must fit this stage: ${level.label}. ${level.prompt}`,
-    adult
-      ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "". hints: 2-3 useful English replies with the Japanese meaning in the kana field.'
-      : 'tip_ja: "".',
-    'end: true only if the partner line is a goodbye that ends the chat.',
-    'heard: false only if the child line is empty or meaningless noise.',
-    audioRules,
-    OUTPUT_RULES
-  ].filter(Boolean).join('\n\n')
-}
 
-export function annotateInput({ childText, partnerText, turn, maxTurns }) {
-  return `Child said: "${childText || ''}"\nPartner said: "${partnerText || ''}"\nChild turn ${turn} of about ${maxTurns}.`
-}
 
-// ---------- Live の文字だけの接続（読み・意味・ヒントづくり）用 ----------
-
-export function buildLiveAnnotatorPrompt(ctx) {
-  const level = levelOf(ctx.level)
-  const adult = ctx.mode === 'adult'
-  return [
-    `You help an English-talk app screen. Each message describes ONE exchange of a voice chat between ${adult ? 'a Japanese adult learner' : 'a Japanese child (5-6 years old)'} and an English-speaking partner.`,
-    'For each message, reply with ONLY one JSON object (no code fences, no other words). Never write a new reply yourself.',
-    'reply_en must be EXACTLY the partner line you are given.',
-    adult ? '' : 'The child line comes from automatic speech recognition and is often wrong: the child usually says English words with Japanese pronunciation, and the recognizer may output kana ("ちゃ", "きゃっと") or another language (Spanish etc.). Use the question and the partner reply to guess what the child really said, and put that in child_said (English words in English letters, Japanese in kana, never other languages).',
-    `Hints must fit this stage: ${level.label}. ${level.prompt}`,
-    adult
-      ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "". hints: 2-3 useful English replies; put the Japanese meaning in ja.'
-      : 'tip_ja: "".',
-    'end: true only if the partner line is a goodbye that ends the chat.',
-    'heard: false only if the child line is empty or meaningless noise.',
-    'JSON keys (all required): child_said, heard, child_lang, spoke_english, recast, reply_en, reply_kana, reply_ipa, reply_ja, reply_ja_kids, hints, memory, tip_ja, end.',
-    OUTPUT_RULES.replace('Output: reply ONLY with JSON matching the schema.', '')
-  ].filter(Boolean).join('\n\n')
-}
-
-export function annotatorMessage({ previousPartner, childText, partnerText, turn, maxTurns }) {
-  return [
-    `Partner had asked: "${previousPartner || ''}"`,
-    `Child said (speech recognition, may be wrong): "${childText || ''}"`,
-    `Partner replied: "${partnerText || ''}"`,
-    `Child turn ${turn} of about ${maxTurns}.`
-  ].join('\n')
-}

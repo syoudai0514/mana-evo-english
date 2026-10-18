@@ -10,7 +10,8 @@ export const LEVELS = [
       'Repeat key words. Celebrate any answer, even a nod-like "yes". Speak slowly.',
     japanese: 'understand',
     reading: 'show',
-    speechRate: 0.78
+    speechRate: 0.78,
+    maxWords: 10
   },
   {
     level: 2,
@@ -21,7 +22,8 @@ export const LEVELS = [
       'When the child answers with one word, recast it into a full short sentence.',
     japanese: 'understand',
     reading: 'show',
-    speechRate: 0.82
+    speechRate: 0.82,
+    maxWords: 12
   },
   {
     level: 3,
@@ -29,11 +31,11 @@ export const LEVELS = [
     kidLabel: 'たんご',
     prompt:
       'Stage 3 (single words). Use short natural sentences (up to 10 words). Mix choice questions with easy open questions ' +
-      '("What do you like?", "What color is it?"). Recast one-word answers into sentences and sometimes invite the child to say ' +
-      'the full sentence ("Can you say: I like dogs?") in a playful way, not every turn.',
+      '("What do you like?", "What color is it?"). Recast one-word answers into sentences naturally. Never ask the child to repeat after you.',
     japanese: 'understand',
     reading: 'hidden',
-    speechRate: 0.86
+    speechRate: 0.86,
+    maxWords: 16
   },
   {
     level: 4,
@@ -44,7 +46,8 @@ export const LEVELS = [
       '"I like ___", "I want ___", "I went to ___", "Can I ___?". Add small follow-up questions ("Why?", "What else?").',
     japanese: 'understand',
     reading: 'hidden',
-    speechRate: 0.9
+    speechRate: 0.9,
+    maxWords: 22
   },
   {
     level: 5,
@@ -55,7 +58,8 @@ export const LEVELS = [
       'length. Ask open questions, share opinions, use a little natural slang ("Cool!", "No way!").',
     japanese: 'english-only',
     reading: 'ipa',
-    speechRate: 0.95
+    speechRate: 0.95,
+    maxWords: 35
   }
 ]
 

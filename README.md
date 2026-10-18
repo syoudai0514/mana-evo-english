@@ -19,7 +19,7 @@ mana-evo の英語に特化した姉妹アプリ。mana-evo のモンスター�
 | Gemini 中継（Supabase Edge Function） | `supabase/functions/english-talk/` |
 
 - 会話は Gemini Live API（リアルタイム音声）。`english-talk` が使い捨て接続キーを発行し、ブラウザが直接つなぐ（`src/lib/live.js`）
-- 読み・日本語の意味・ヒント・記憶は、文字だけで返す Live の接続で1往復ごとに作る（`src/lib/annotator.js`）。上限のない Live API だけで動く
+- 読み・ひらがなの意味・ヒント・記憶は、相棒（声の Live）が話すたびに関数 `show_card` で渡す。子どもの声は Gemini 3.5 Transcribe Live で文字にして相棒に渡す（`src/lib/transcriber.js`）。上限のない Live API だけで動く
 - Live が切れたらつなぎなおし、だめなら「つながらなかったよ」を出す。1回ずつ送る方式（`sendTurn`）は確認用の `?mock=1` だけで使う
 - `english-talk` はログイン中（mana-evo と同じ app-save-hub アカウント）のユーザーだけが使える
 - 記録は端末内（localStorage）に保存
