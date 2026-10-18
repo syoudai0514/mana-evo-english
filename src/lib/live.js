@@ -2,7 +2,9 @@
 // API キーはブラウザに置かず、english-talk から使い捨ての接続キー（ephemeral token）をもらって直接つなぐ。
 import { SUPABASE_ANON_KEY, TALK_ENDPOINT } from './config.js'
 import { getAccessToken } from './auth.js'
-import { PcmPlayer, sampleRateOf } from './player.js'
+import { PcmPlayer, audioInfo, sampleRateOf } from './player.js'
+
+let audioInfoSent = false // 鳴らし方の情報は、起動ごとに1回だけログへ
 
 // 画面カード（読み・ひらがなの意味・ヒントなど）を相棒から受け取る関数
 const HINT_SCHEMA = {
@@ -217,12 +219,18 @@ export class LiveSession {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])
         this.chunks += 1
+        this.chunkMs = Math.round((part.inlineData.data.length * 0.75 / 2 / rate) * 1000) // 1つの細切れの長さ（ログ用）
         this.player.push(part.inlineData.data, rate)
       }
     }
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
     if (content.outputTranscription?.text) this.handlers.onPartnerText?.(content.outputTranscription.text)
     if (content.turnComplete) {
+      if (!audioInfoSent && this.chunks && !this.muted) {
+        audioInfoSent = true
+        const ctx = this.player.context
+        reportLiveProblem({ step: 'audio-info', model: this.model, message: `mode=${audioInfo.mode} err=${audioInfo.error} rate=${ctx?.sampleRate} base=${ctx?.baseLatency} out=${ctx?.outputLatency} chunks=${this.chunks} chunkMs=${this.chunkMs}` })
+      }
       if (this.gaps) {
         reportLiveProblem({ step: 'audio-gaps', model: this.model, message: `gaps=${this.gaps} chunks=${this.chunks} worklet=${!this.player.fallback} rate=${this.player.context?.sampleRate}` })
       }
