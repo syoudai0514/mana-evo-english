@@ -158,6 +158,12 @@ export class LiveSession {
     this.send({ clientContent: { turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true } })
   }
 
+  // つなぎなおしたとき：これまでの会話を渡す（相棒は話しださず、子どもを待つ）
+  sendHistory(turns) {
+    if (!turns.length) return
+    this.send({ clientContent: { turns, turnComplete: false } })
+  }
+
   // 会話の途中の文字（ヒントや文字入力）
   sendText(text) {
     this.player.ensure()

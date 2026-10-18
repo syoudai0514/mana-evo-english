@@ -12,6 +12,10 @@ import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js
 import { isMockMode } from '../lib/config.js'
 import { Reading } from '../components/ui.jsx'
 
+// Live の文字起こしが英語か日本語として読めるか（スペイン語などに化けたものは出さない）
+const READABLE = /^[\x20-\x7E\u3000-\u30FF\u4E00-\u9FFF\uFF01-\uFF5E\s]*$/
+const HAS_JAPANESE = /[\u3040-\u30FF\u4E00-\u9FFF]/
+
 function titleOf(config) {
   if (config.mode === 'free') return { emoji: config.topic?.emoji || '🎤', text: config.topic?.title || 'おしゃべり' }
   if (config.mode === 'play') return { emoji: config.play.scene.emoji, text: config.play.scene.title }
@@ -327,8 +331,10 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         },
         onChildText: (text) => {
           if (liveTurn.current.typed) return
-          // 画面には出さない（言語をまちがえやすい）。聞きなおしに失敗したときの予備にとっておく
           liveTurn.current.child += text
+          // 英語か日本語として読めれば、すぐ吹き出しに出す（化けていたら聞きなおすまで「…」）
+          const heard = liveTurn.current.child.trim()
+          if (heard && READABLE.test(heard)) setLiveBubble('child', heard)
         },
         onSpeaking: (speaking) => {
           setTalkingIndex(speaking ? 'latest' : -1)
@@ -342,18 +348,47 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
           newLiveTurn()
           setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false } : item)))
           if (start && turnsRef.current[0]?.opener) return
-          annotateLive(child.trim(), partner.trim(), id, childAudio)
+          // 声の聞きなおしは、文字起こしが空・化けている・日本語（"ちゃ" など）のときだけ
+          const heard = child.trim()
+          const recheck = childAudio && (!heard || !READABLE.test(heard) || HAS_JAPANESE.test(heard))
+          annotateLive(heard, partner.trim(), id, recheck ? childAudio : null)
         },
         onClose: (event) => {
           if (finished.current) return
           reportLiveProblem({ step: 'closed', model, message: `${event?.code} ${event?.reason || ''}` })
           live.current = null
           setBusy(false)
-          setEngine('turn')
-          setCaption('つうしんを きりかえたよ。そのまま はなしてね')
+          reconnectLive()
         }
       }
     })
+  }
+
+  // 会話の途中で Live が切れたら、Live のままつなぎなおして続きから話す。2回だめなら予備の方式へ
+  const reconnects = useRef(0)
+  const reconnectLive = async () => {
+    reconnects.current += 1
+    setEngine('connecting')
+    setCaption('つなぎなおしてるよ…')
+    try {
+      if (reconnects.current > 2) throw new Error('too many reconnects')
+      const granted = await requestLiveToken(stateRef.current.liveModel || 'auto')
+      if (finished.current) return
+      const session = createLiveSession(granted)
+      await session.connect()
+      session.probing = false
+      live.current = session
+      setEngine('live')
+      const history = buildHistory(turnsRef.current.filter((turn) => !turn.pending && turn.text && turn.text !== '…'), 12)
+        .map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] }))
+      session.sendHistory(history)
+      setCaption('')
+    } catch (error) {
+      reportLiveProblem({ step: 'reconnect', message: String(error?.message || error) })
+      if (finished.current) return
+      setEngine('turn')
+      setCaption('つうしんを きりかえたよ。そのまま はなしてね')
+    }
   }
 
   const onLiveConnected = (session, model) => {
