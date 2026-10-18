@@ -7,7 +7,7 @@ import { fillQuestions, parseChoice } from '../lib/quiz.js'
 import { SilentTool } from '../lib/annotator.js'
 import { isMockMode } from '../lib/config.js'
 import { useHoldToSpeak } from '../lib/useHoldToSpeak.js'
-import { stopSpeech } from '../lib/tts.js'
+import { prepareReader, stopReading as stopSpeech } from '../lib/reader.js'
 import { AdultTop, HoldMic, speakEnglish } from '../components/adultUi.jsx'
 
 const LETTERS = ['A', 'B', 'C', 'D']
@@ -21,6 +21,7 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
   const item = items?.[index]
 
   useEffect(() => {
+    prepareReader()
     let alive = true
     const skills = kind === 'diagnosis' ? DIAGNOSIS_PLAN : practiceSkills(adult, 4)
     const lead = kind === 'study'
@@ -49,11 +50,9 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
 
   const play = async (question) => {
     if (question.part === 'p2') {
-      await speakEnglish(question.audio_en)
-      for (let i = 0; i < question.choices.length; i += 1) await speakEnglish(`${LETTERS[i]}. ${question.choices[i]}`)
+      await speakEnglish(`${question.audio_en}\n${question.choices.map((choice, i) => `${LETTERS[i]}. ${choice}`).join('\n')}`)
     } else if (question.part === 'p3') {
-      await speakEnglish(question.audio_en)
-      await speakEnglish(question.question_en)
+      await speakEnglish(`${question.audio_en}\n${question.question_en}`)
     }
   }
 
@@ -141,7 +140,7 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
             {item.choices.map((choice, i) => {
               const state = chosen === null ? '' : i === item.answer ? 'right' : i === chosen ? 'wrong' : ''
               return (
-                <button key={i} className={`qopt ${state}`} onClick={() => choose(i)}>
+                <button key={i} type="button" className={`qopt ${state}`} onClick={() => choose(i)}>
                   <b>{LETTERS[i]}</b><span>{hideChoices ? '（音声を聞いて選ぶ）' : choice}</span>
                 </button>
               )

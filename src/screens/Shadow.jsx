@@ -5,6 +5,7 @@ import { compareShadow, shadowSentences, withShadow } from '../lib/adult.js'
 import { SilentTool } from '../lib/annotator.js'
 import { isMockMode } from '../lib/config.js'
 import { useHoldToSpeak } from '../lib/useHoldToSpeak.js'
+import { prepareReader } from '../lib/reader.js'
 import { AdultTop, HoldMic, ScoreRing, speakEnglish } from '../components/adultUi.jsx'
 
 // 会話がまだ少ないときのお手本
@@ -28,6 +29,7 @@ export default function Shadow({ adult, updateAdult, onDone }) {
   const sentence = sentences[index]
 
   useEffect(() => {
+    prepareReader()
     if (!isMockMode()) coach.current = new SilentTool({ system: PRON_TIPS_PROMPT, declaration: PRON_TIPS, step: 'pron-tips', timeoutMs: 12000 })
     return () => coach.current?.close()
   }, [])

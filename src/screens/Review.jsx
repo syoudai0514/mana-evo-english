@@ -1,9 +1,8 @@
 // 言い方の復習カード：日本語を見て英語で言ってみる → 答えを見て「わからない／あやしい／言えた」
-import React, { useMemo, useState } from 'react'
-import { ADULT_PARTNERS } from '../data/adult.js'
+import React, { useEffect, useMemo, useState } from 'react'
 import { compareShadow, dueCards, nextLabel, withGrade } from '../lib/adult.js'
 import { useHoldToSpeak } from '../lib/useHoldToSpeak.js'
-import { speak } from '../lib/tts.js'
+import { prepareReader, readAloud } from '../lib/reader.js'
 import { AdultTop, HoldMic } from '../components/adultUi.jsx'
 
 const GRADES = [
@@ -23,14 +22,14 @@ export default function Review({ adult, updateAdult, onDone }) {
   const [said, setSaid] = useState(null) // { text, score }
   const [done, setDone] = useState(0)
   const card = cards[index]
-  const voice = (ADULT_PARTNERS[adult.partner] || ADULT_PARTNERS.alex).voice
+  useEffect(() => { prepareReader() }, [])
   const hold = useHoldToSpeak({
     vocabulary: cards.map((item) => item.en),
     onText: (text) => {
       if (!card) return
       setSaid({ text, score: text ? compareShadow(card.en, text).score : 0 })
       setRevealed(true)
-      speak(card.en, voice)
+      readAloud(card.en)
     }
   })
 
@@ -67,7 +66,7 @@ export default function Review({ adult, updateAdult, onDone }) {
           {!revealed && <div className="muted" style={{ marginTop: 18, fontSize: 13 }}>英語で言ってみて（声でも、頭の中でもOK）</div>}
           {revealed && (
             <>
-              <button className="a" onClick={() => speak(card.en, voice)}>{card.en} 🔊</button>
+              <button className="a" onClick={() => readAloud(card.en)}>{card.en} 🔊</button>
               {said && (
                 <div className={`said ${said.score >= 70 ? 'ok' : ''}`}>
                   {said.text ? <>あなた：{said.text}<br />{said.score >= 70 ? '👍 ほぼ言えています' : 'もう少し！'}</> : '聞き取れませんでした'}
@@ -78,7 +77,7 @@ export default function Review({ adult, updateAdult, onDone }) {
         </div>
         {!revealed ? (
           <div style={{ padding: '0 16px' }}>
-            <button className="press btn ghost dark-ghost" style={{ width: '100%', height: 54 }} onClick={() => { setRevealed(true); speak(card.en, voice) }}>答えを見る</button>
+            <button className="press btn ghost dark-ghost" style={{ width: '100%', height: 54 }} onClick={() => { setRevealed(true); readAloud(card.en) }}>答えを見る</button>
             <HoldMic hold={hold} label="押しながら英語で言う" />
           </div>
         ) : (

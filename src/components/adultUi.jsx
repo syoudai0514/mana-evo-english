@@ -1,6 +1,6 @@
 // 大人モードの共通部品（落ち着いた濃い色の画面）
 import React from 'react'
-import { speak } from '../lib/tts.js'
+import { readAloud } from '../lib/reader.js'
 
 export function AdultTop({ onBack, backLabel = '‹', title, right }) {
   return (
@@ -31,13 +31,7 @@ export function ScoreRing({ score }) {
   return <div className="score-ring" style={{ borderColor: color }}>{score}</div>
 }
 
-// 英語の読み上げ（端末の声）。slow でゆっくり。Part 3 は M:/W: で声を変える
-export async function speakEnglish(text, { slow = false } = {}) {
-  const rate = slow ? 0.7 : 0.95
-  const lines = String(text || '').split(/(?=\b[MW]\s*:)/)
-  for (const line of lines) {
-    const match = /^([MW])\s*:\s*(.*)$/s.exec(line.trim())
-    if (match) await speak(match[2], { rate, gender: match[1] === 'W' ? 'female' : 'male', pitch: 1 })
-    else await speak(line.trim(), { rate, gender: 'male', pitch: 1 })
-  }
+// 英語の読み上げ（Live の声。だめなら端末の声）。Part 3 は M:/W: で声の調子を変える
+export function speakEnglish(text, { slow = false } = {}) {
+  return readAloud(String(text || ''), { slow })
 }

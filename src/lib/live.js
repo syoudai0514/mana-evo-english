@@ -236,7 +236,7 @@ export class LiveSession {
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
     if (content.outputTranscription?.text) this.handlers.onPartnerText?.(content.outputTranscription.text)
     if (content.turnComplete) {
-      if (!audioInfoSent && this.chunks && !this.muted) {
+      if (!audioInfoSent && this.chunks && !this.muted && audioInfo.mode !== 'none') {
         audioInfoSent = true
         const ctx = this.player.context
         reportLiveProblem({ step: 'audio-info', model: this.model, message: `mode=${audioInfo.mode} err=${audioInfo.error} rate=${ctx?.sampleRate} base=${ctx?.baseLatency} out=${ctx?.outputLatency} chunks=${this.chunks} chunkMs=${this.chunkMs}` })

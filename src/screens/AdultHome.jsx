@@ -2,7 +2,8 @@
 import React, { useMemo, useState } from 'react'
 import { ADULT_COURSES, ADULT_PARTNERS, MEMORY_CATEGORIES } from '../data/adult.js'
 import { adultStreak, dueCards, greetingFor, predictScore, todayPlan, withoutAdult } from '../lib/adult.js'
-import { speak, unlockSpeech } from '../lib/tts.js'
+import { unlockSpeech } from '../lib/tts.js'
+import { readAloud } from '../lib/reader.js'
 
 const STEP_INFO = {
   review: { emoji: '🔁', title: (step) => `言い方の復習 ${step.count}枚`, about: () => '忘れかけた順に出します' },
@@ -41,7 +42,7 @@ export default function AdultHome({ adult, adultStore, updateAdult, updateAdultS
       <div className="scroll">
         <div className="a-greet">
           <div className="avatar big">{partner.emoji}</div>
-          <button className="a-bubble" onClick={() => { unlockSpeech(); speak(greeting.en, partner.voice) }}>
+          <button className="a-bubble" onClick={() => { unlockSpeech(); readAloud(greeting.en) }}>
             {greeting.en}
             <div className="a-ja">{greeting.ja}</div>
           </button>
