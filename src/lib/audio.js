@@ -1,8 +1,9 @@
-// アプリ全体でひとつだけ使う AudioContext。
-// iPhone は AudioContext が複数あると（相棒の声・裏方・マイクで別々に作ると）音がブツブツ切れるので、ひとつにまとめる。
+// 相棒の声を鳴らす AudioContext（すべての Live の声でひとつだけ使う）。
+// マイクは別の AudioContext にする：iPhone は読み上げなどで AudioContext を止めることがあり、
+// 共用にすると声とマイクが一緒に止まってしまうため。
 let context = null
 
-export function sharedContext() {
+export function playbackContext() {
   if (!context || context.state === 'closed') {
     const Context = window.AudioContext || window.webkitAudioContext
     context = new Context()
@@ -10,15 +11,8 @@ export function sharedContext() {
   return context
 }
 
-// "interrupted" から戻らないときだけ作りなおす（声の再生側は次に鳴らすときに作りなおす）
-export function resetSharedContext() {
+// 止まったまま（"interrupted" など）戻らないときに作りなおす
+export function resetPlaybackContext() {
   try { context?.close() } catch {}
   context = null
-}
-
-export async function resumeShared(timeoutMs = 500) {
-  const ctx = sharedContext()
-  if (ctx.state === 'running') return true
-  await Promise.race([ctx.resume().catch(() => {}), new Promise((resolve) => setTimeout(resolve, timeoutMs))])
-  return ctx.state === 'running'
 }

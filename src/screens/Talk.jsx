@@ -651,17 +651,20 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           liveTurn.current.typed = true
           setLiveBubble('child', text)
           live.current.sendText(text)
-        } else {
+        } else if (audio.loudness >= 0.004) {
           // 文字にならなかったときは、相棒に声をそのまま送る
           live.current.beginSpeech()
           for (const chunk of heldChunks.current) live.current.sendAudio(chunk)
-          live.current.endSpeech()
+          if (!live.current.endSpeech()) notHeard()
+        } else {
+          notHeard()
         }
         return
       }
       if (live.current) {
-        live.current.endSpeech()
+        const sent = live.current.endSpeech()
         if (audio.seconds < 0.5) return setCaption(say2('ながめに おしながら はなしてね', '少し長めに押しながら話してください'))
+        if (!sent) return notHeard()
         setLiveBubble('child', '…')
         setCaption('')
         return waitForReply()
@@ -670,6 +673,16 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       if (audio.loudness < 0.004) return setCaption('こえが きこえなかったよ。もういちど！')
       send({ audio: { mime: audio.mime, data: audio.base64 } })
     }, 300)
+  }
+
+  // 声が届かなかった：待つのをやめて、もう一度押してもらう
+  const notHeard = () => {
+    clearTimeout(waitTimer.current)
+    setBusy(false)
+    const id = liveTurn.current.id
+    setTurns((prev) => prev.filter((turn) => !(turn.turnId === id && turn.who === 'child' && (!turn.text || turn.text === '…'))))
+    bubbleQueue.current = {}
+    setCaption(say2('こえが きこえなかったよ。もういちど おしてね', '声が聞き取れませんでした。もう一度押して話してください'))
   }
 
   const tapHint = (hint) => {

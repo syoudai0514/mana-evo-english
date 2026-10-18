@@ -1,5 +1,5 @@
 import { pcm16Base64ToFloat } from './wav.js'
-import { sharedContext } from './audio.js'
+import { playbackContext, resetPlaybackContext } from './audio.js'
 
 // Live API の声（24kHz PCM）を途切れずに鳴らす。
 // 細切れの音を1つずつ鳴らすとつなぎ目でプツッと鳴るので、AudioWorklet の中に「ためる場所」を作り、
@@ -44,9 +44,33 @@ export class PcmPlayer {
 
   // タップの中で呼ぶ（iOS は操作の中でないと音を鳴らせない）
   ensure() {
-    const context = sharedContext()
-    if (context.state !== 'running') context.resume().catch(() => {})
+    let context = playbackContext()
+    // 読み上げなどで "interrupted" にされたら、すぐ作りなおす（タップの中なら、そのまま鳴らせる）
+    if (context.state === 'interrupted') {
+      resetPlaybackContext()
+      context = playbackContext()
+      if (this.node) this.reattach()
+    }
+    if (context.state !== 'running') {
+      context.resume().catch(() => {})
+      // iPhone で止められたまま戻らないときは、少し待って作りなおす（次の声から新しいほうで鳴る）
+      clearTimeout(this.healTimer)
+      this.healTimer = setTimeout(() => {
+        if (context === playbackContext() && context.state !== 'running') {
+          resetPlaybackContext()
+          playbackContext().resume().catch(() => {})
+          if (this.active) this.reattach()
+        }
+      }, 600)
+    }
     return context
+  }
+
+  // AudioContext を作りなおしたあと、つなぎなおす（ためていた声は捨てる）
+  reattach() {
+    this.node?.disconnect()
+    this.node = null
+    this.connect()
   }
 
   get playing() {
@@ -55,7 +79,7 @@ export class PcmPlayer {
 
   // 準備中に何度呼ばれても、つなぐのは1回だけ（2つ作ると声が重なる）
   connect() {
-    const context = sharedContext()
+    const context = playbackContext()
     if (this.node && this.context === context) return Promise.resolve()
     if (this.connecting?.context === context) return this.connecting.promise
     const promise = this.attach(context).finally(() => { if (this.connecting?.promise === promise) this.connecting = null })
@@ -101,7 +125,7 @@ export class PcmPlayer {
     if (!this.active) { this.active = true; this.onStart?.() }
     clearTimeout(this.idleTimer)
     if (this.fallback) return this.pushFallback(samples, sampleRate)
-    if (this.node && this.context === sharedContext()) {
+    if (this.node && this.context === playbackContext()) {
       this.node.port.postMessage({ type: 'push', samples, rate: sampleRate }, [samples.buffer])
     } else {
       this.pending.push([samples, sampleRate])
@@ -136,7 +160,7 @@ export class PcmPlayer {
   }
 
   pushFallback(samples, sampleRate) {
-    const context = sharedContext()
+    const context = playbackContext()
     // 端末の周波数に自分で変換する（つなぎ目で位置を引きつぐので、細切れでも音が飛ばない）
     const step = sampleRate / context.sampleRate
     // p：この細切れの中での位置（samples[i] が p=i、前の細切れの最後の音が p=-1）

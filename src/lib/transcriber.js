@@ -63,17 +63,17 @@ export class Transcriber {
     this.text = ''
     this.completed = false
     this.changedAt = Date.now()
-    this.session?.send({ realtimeInput: { activityStart: {} } })
+    this.session?.beginSpeech()
   }
 
   sendAudio(base64) {
-    this.session?.send({ realtimeInput: { audio: { data: base64, mimeType: 'audio/pcm;rate=16000' } } })
+    this.session?.sendAudio(base64)
   }
 
   // 離したあと、確定した文字を待つ（空なら ''）
   async end() {
     if (!this.ready) return ''
-    this.session.send({ realtimeInput: { activityEnd: {} } })
+    if (!this.session.endSpeech()) return '' // 音が届いていない
     const started = Date.now()
     await new Promise((resolve) => {
       const check = () => {

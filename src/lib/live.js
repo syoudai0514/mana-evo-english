@@ -246,29 +246,41 @@ export class LiveSession {
     }
   }
 
+  // 音を鳴らす接続だけ、タップの中で AudioContext を起こす（裏方や文字起こしは音にさわらない）
+  wake() {
+    if (!this.muted && !this.asr && !this.textMode) this.player.ensure()
+  }
+
   send(payload) {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(payload))
   }
 
   // 押しはじめ：相棒が話していたら止める
+  // 「話しはじめ」は最初の音を送るときに送る。音が1つもなければ「話し終わり」も送らない
+  // （中身のない発話を送ると、Live が 1007 Precondition check failed で接続を切る）
   beginSpeech() {
-    this.player.ensure()
+    this.wake()
     this.player.stop()
     this.turnAudio = []
-    this.send({ realtimeInput: { activityStart: {} } })
+    this.speechOpen = 'pending'
   }
 
   sendAudio(base64) {
+    if (this.speechOpen === 'pending') { this.send({ realtimeInput: { activityStart: {} } }); this.speechOpen = 'open' }
     this.send({ realtimeInput: { audio: { data: base64, mimeType: 'audio/pcm;rate=16000' } } })
   }
 
+  // 話し終わり。音を送っていれば true
   endSpeech() {
-    this.send({ realtimeInput: { activityEnd: {} } })
+    const sent = this.speechOpen === 'open'
+    if (sent) this.send({ realtimeInput: { activityEnd: {} } })
+    this.speechOpen = null
+    return sent
   }
 
   // 会話のはじまり：最初の文脈として送る（clientContent はセッション開始時だけ使える）
   sendStart(text) {
-    this.player.ensure()
+    this.wake()
     this.send({ clientContent: { turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true } })
   }
 
@@ -292,14 +304,14 @@ export class LiveSession {
   // 会話の途中の文字（ヒントや文字入力）
   sendText(text) {
     if (!this.textMode) {
-      this.player.ensure()
+      this.wake()
       this.player.stop()
     }
     this.send({ realtimeInput: { text } })
   }
 
   replay(audio) {
-    this.player.ensure()
+    this.wake()
     this.player.stop()
     for (const [data, rate] of audio) this.player.push(data, rate)
   }
