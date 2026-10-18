@@ -192,3 +192,33 @@ export function buildAnnotatePrompt(ctx, exchange = null) {
 export function annotateInput({ childText, partnerText, turn, maxTurns }) {
   return `Child said: "${childText || ''}"\nPartner said: "${partnerText || ''}"\nChild turn ${turn} of about ${maxTurns}.`
 }
+
+// ---------- Live の文字だけの接続（読み・意味・ヒントづくり）用 ----------
+
+export function buildLiveAnnotatorPrompt(ctx) {
+  const level = levelOf(ctx.level)
+  const adult = ctx.mode === 'adult'
+  return [
+    `You help an English-talk app screen. Each message describes ONE exchange of a voice chat between ${adult ? 'a Japanese adult learner' : 'a Japanese child (5-6 years old)'} and an English-speaking partner.`,
+    'For each message, reply with ONLY one JSON object (no code fences, no other words). Never write a new reply yourself.',
+    'reply_en must be EXACTLY the partner line you are given.',
+    adult ? '' : 'The child line comes from automatic speech recognition and is often wrong: the child usually says English words with Japanese pronunciation, and the recognizer may output kana ("ちゃ", "きゃっと") or another language (Spanish etc.). Use the question and the partner reply to guess what the child really said, and put that in child_said (English words in English letters, Japanese in kana, never other languages).',
+    `Hints must fit this stage: ${level.label}. ${level.prompt}`,
+    adult
+      ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "". hints: 2-3 useful English replies; put the Japanese meaning in ja.'
+      : 'tip_ja: "".',
+    'end: true only if the partner line is a goodbye that ends the chat.',
+    'heard: false only if the child line is empty or meaningless noise.',
+    'JSON keys (all required): child_said, heard, child_lang, spoke_english, recast, reply_en, reply_kana, reply_ipa, reply_ja, reply_ja_kids, hints, memory, tip_ja, end.',
+    OUTPUT_RULES.replace('Output: reply ONLY with JSON matching the schema.', '')
+  ].filter(Boolean).join('\n\n')
+}
+
+export function annotatorMessage({ previousPartner, childText, partnerText, turn, maxTurns }) {
+  return [
+    `Partner had asked: "${previousPartner || ''}"`,
+    `Child said (speech recognition, may be wrong): "${childText || ''}"`,
+    `Partner replied: "${partnerText || ''}"`,
+    `Child turn ${turn} of about ${maxTurns}.`
+  ].join('\n')
+}

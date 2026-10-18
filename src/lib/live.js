@@ -44,11 +44,15 @@ async function messageText(data) {
 // 1回の会話（セッション）。押している間だけ話す（自動の音声検出は使わない）ので、
 // 子どもの声と相棒の声が混ざって勝手に割り込まれることがない。
 export class LiveSession {
-  constructor({ token, model, system, voiceName, handlers }) {
+  // text: true なら文字だけで返す接続（読み・意味・ヒントづくり用）。muted: true なら声を鳴らさない（親子モード）
+  constructor({ token, model, system, voiceName, handlers, text = false, muted = false }) {
     this.token = token
     this.model = model
     this.system = system
     this.voiceName = voiceName
+    this.textMode = text
+    this.muted = muted
+    this.textBuffer = ''
     this.handlers = handlers // { onReady, onPartnerText, onChildText, onTurnComplete, onInterrupted, onSpeaking, onClose }
     this.player = new PcmPlayer()
     this.player.onStart = () => this.handlers.onSpeaking?.(true)
@@ -70,20 +74,30 @@ export class LiveSession {
       this.ws = ws
       const timer = setTimeout(() => { reject(new Error('live timeout')); this.close() }, timeoutMs)
       ws.onopen = () => {
-        ws.send(JSON.stringify({
-          setup: {
-            model: this.model.startsWith('models/') ? this.model : `models/${this.model}`,
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              temperature: 0.9,
-              speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } } }
-            },
-            systemInstruction: { parts: [{ text: this.system }] },
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
-          }
-        }))
+        const model = this.model.startsWith('models/') ? this.model : `models/${this.model}`
+        const systemInstruction = { parts: [{ text: this.system }] }
+        ws.send(JSON.stringify(this.textMode
+          ? {
+              setup: {
+                model,
+                generationConfig: { responseModalities: ['TEXT'], temperature: 0.4 },
+                systemInstruction
+              }
+            }
+          : {
+              setup: {
+                model,
+                generationConfig: {
+                  responseModalities: ['AUDIO'],
+                  temperature: 0.9,
+                  speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } } }
+                },
+                systemInstruction,
+                inputAudioTranscription: {},
+                outputAudioTranscription: {},
+                realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
+              }
+            }))
       }
       ws.onmessage = async (event) => {
         let message
@@ -116,7 +130,8 @@ export class LiveSession {
       this.handlers.onInterrupted?.()
     }
     for (const part of content.modelTurn?.parts || []) {
-      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '')) {
+      if (typeof part.text === 'string' && !part.thought) this.textBuffer += part.text
+      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted) {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])
         this.player.push(part.inlineData.data, rate)
@@ -127,8 +142,10 @@ export class LiveSession {
     if (content.turnComplete) {
       this.firstTurnDone()
       const audio = this.turnAudio
+      const text = this.textBuffer
       this.turnAudio = []
-      this.handlers.onTurnComplete?.(audio)
+      this.textBuffer = ''
+      this.handlers.onTurnComplete?.(audio, text)
     }
   }
 
@@ -166,8 +183,10 @@ export class LiveSession {
 
   // 会話の途中の文字（ヒントや文字入力）
   sendText(text) {
-    this.player.ensure()
-    this.player.stop()
+    if (!this.textMode) {
+      this.player.ensure()
+      this.player.stop()
+    }
     this.send({ realtimeInput: { text } })
   }
 

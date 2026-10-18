@@ -2,19 +2,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { levelOf } from '../data/levels.js'
 import { MODES } from '../data/modes.js'
-import { annotateInput, buildAnnotatePrompt, buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
+import { annotatorMessage, buildHistory, buildLiveAnnotatorPrompt, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
 import { modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
 import { nextReading } from '../lib/kana.js'
 import { Recorder, micSupported } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
 import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js'
+import { Annotator } from '../lib/annotator.js'
 import { isMockMode } from '../lib/config.js'
 import { Reading } from '../components/ui.jsx'
 
 // Live の文字起こしが英語か日本語として読めるか（スペイン語などに化けたものは出さない）
 const READABLE = /^[\x20-\x7E\u3000-\u30FF\u4E00-\u9FFF\uFF01-\uFF5E\s]*$/
-const HAS_JAPANESE = /[\u3040-\u30FF\u4E00-\u9FFF]/
 
 function titleOf(config) {
   if (config.mode === 'free') return { emoji: config.topic?.emoji || '🎤', text: config.topic?.title || 'おしゃべり' }
@@ -65,7 +65,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const [text, setText] = useState('')
   const [pickedHint, setPickedHint] = useState(null)
   const [talkingIndex, setTalkingIndex] = useState(-1)
-  const [stopped, setStopped] = useState(null) // 'exhausted' | 'auth'
+  const [stopped, setStopped] = useState(null) // 'exhausted' | 'auth' | 'offline'
   const [caption, setCaption] = useState('')
   const [engine, setEngine] = useState('connecting') // connecting | live | turn
 
@@ -79,6 +79,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const memoryAdded = useRef([])
   const finished = useRef(false)
   const live = useRef(null)
+  const annotator = useRef(null) // 読み・意味・ヒントづくり（Live の文字だけの接続）
   const liveTurn = useRef({ child: '', partner: '', start: false, id: 0 })
   const pendingEnd = useRef(false)
   const waitTimer = useRef(null)
@@ -118,6 +119,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     stopSpeech()
     recorder.current?.close()
     live.current?.close()
+    annotator.current?.close()
     clearTimeout(waitTimer.current)
     onFinish({
       id: `s${Date.now()}`,
@@ -229,42 +231,28 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     waitTimer.current = setTimeout(() => { setBusy(false); setCaption('もういちど はなしてみてね') }, 15000)
   }
 
-  const annotateLive = async (liveChildText, partnerText, turnId, childAudio) => {
+  const annotateLive = async (liveChildText, partnerText, turnId) => {
     const turn = childCount()
-    const context = makeContext(turn)
     const byeBye = /bye[- ]?bye|see you/i.test(partnerText)
     const previousPartner = [...turnsRef.current].reverse().find((item) => item.who === 'partner' && item.turnId !== turnId)?.text || ''
-    let reply = null
-    try {
-      const result = await sendTurn({
-        system: childAudio
-          ? buildAnnotatePrompt(context, { previousPartner, partnerText, turn, maxTurns: mode.maxTurns })
-          : buildAnnotatePrompt(context),
-        history: [],
-        input: childAudio
-          ? { audio: { mime: childAudio.mime, data: childAudio.base64 } }
-          : { text: annotateInput({ childText: liveChildText, partnerText, turn, maxTurns: mode.maxTurns }) },
-        startModel: modelToday(stateRef.current).startIndex,
-        context
-      })
-      reply = result.reply
-    } catch {
-      reply = null // 読みや訳が出せなくても、会話はそのまま続ける
-    }
-    // 子どもの言葉は、聞きなおした結果を優先（だめなら Live の文字起こし）
-    const childText = (childAudio && reply?.child_said) || liveChildText
+    const reply = annotator.current
+      ? await annotator.current.ask(annotatorMessage({ previousPartner, childText: liveChildText, partnerText, turn, maxTurns: mode.maxTurns }))
+      : null // 読みや訳が出せなくても、会話はそのまま続ける
+    // 子どもの言葉は、Live の文字起こしを相棒の返事から推測しなおしたものを優先
+    const childText = (liveChildText || reply?.child_said) ? String(reply?.child_said || liveChildText) : ''
     if (reply) {
       setTurns((prev) => prev.map((item) => {
         if (item.turnId !== turnId) return item
-        if (item.who === 'partner') return { ...item, kana: reply.reply_kana, ipa: reply.reply_ipa, ja: reply.reply_ja, jaKids: reply.reply_ja_kids, hints: (reply.hints || []).slice(0, 3), tip: reply.tip_ja || '' }
-        return { ...item, text: childText || item.text, english: Boolean(reply.spoke_english), lang: reply.child_lang, recast: reply.recast || '' }
+        if (item.who === 'partner') {
+          return { ...item, kana: String(reply.reply_kana || ''), ipa: String(reply.reply_ipa || ''), ja: String(reply.reply_ja || ''), jaKids: String(reply.reply_ja_kids || ''), hints: Array.isArray(reply.hints) ? reply.hints.slice(0, 3) : [], tip: String(reply.tip_ja || '') }
+        }
+        return { ...item, text: childText || item.text, english: Boolean(reply.spoke_english), lang: reply.child_lang, recast: String(reply.recast || '') }
       }))
-    } else if (childAudio && liveChildText) {
-      setTurns((prev) => prev.map((item) => (item.turnId === turnId && item.who === 'child' ? { ...item, text: liveChildText } : item)))
     }
     if (childText && !adult) {
-      const english = reply ? reply.spoke_english : /[a-z]/i.test(childText)
-      update((prev) => withMemory(withUtterance(prev, { english, text: childText }), reply?.memory || [], persona.id))
+      const english = reply ? Boolean(reply.spoke_english) : /[a-z]/i.test(childText)
+      const memory = Array.isArray(reply?.memory) ? reply.memory : []
+      update((prev) => withMemory(withUtterance(prev, { english, text: childText }), memory, persona.id))
       if (reply?.memory?.length) memoryAdded.current.push(...reply.memory)
     }
     if (reply?.end || (byeBye && turn >= 3)) {
@@ -321,6 +309,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
 
   const createLiveSession = ({ token, model }) => {
     return new LiveSession({
+      muted: Boolean(config.parentReads),
       token,
       model,
       system: buildLiveSystemPrompt(makeContext(0)),
@@ -345,15 +334,13 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         onTurnComplete: (audio) => {
           clearTimeout(waitTimer.current)
           setBusy(false)
-          const { child, partner, start, id, audio: childAudio } = liveTurn.current
+          const { child, partner, start, id } = liveTurn.current
           if (audio.length) liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
           newLiveTurn()
           setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false } : item)))
           if (start && turnsRef.current[0]?.opener) return
           // 声の聞きなおしは、文字起こしが空・化けている・日本語（"ちゃ" など）のときだけ
-          const heard = child.trim()
-          const recheck = childAudio && (!heard || !READABLE.test(heard) || HAS_JAPANESE.test(heard))
-          annotateLive(heard, partner.trim(), id, recheck ? childAudio : null)
+          annotateLive(child.trim(), partner.trim(), id)
         },
         onClose: (event) => {
           if (finished.current) return
@@ -388,14 +375,25 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     } catch (error) {
       reportLiveProblem({ step: 'reconnect', message: String(error?.message || error) })
       if (finished.current) return
-      setEngine('turn')
-      setCaption('つうしんを きりかえたよ。そのまま はなしてね')
+      setEngine('connecting')
+      setStopped('offline')
     }
+  }
+
+  const retryLive = () => {
+    setStopped(null)
+    reconnects.current = 0
+    if (turnsRef.current.some((turn) => turn.who === 'child')) reconnectLive()
+    else startLive().catch(() => { if (!finished.current) setStopped('offline') })
   }
 
   const onLiveConnected = (session, model) => {
     live.current = session
     setEngine('live')
+    if (!annotator.current) {
+      annotator.current = new Annotator({ system: buildLiveAnnotatorPrompt(makeContext(0)), liveModel: stateRef.current.liveModel || 'auto' })
+      annotator.current.ensure().catch(() => {})
+    }
     const first = turnsRef.current[0]
     newLiveTurn(true)
     waitForReply()
@@ -409,9 +407,10 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       recorder.current.onLevel = setMicLevel
       recorder.current.warmUp()
     }
-    if (isMockMode() || config.parentReads) startTurnEngine()
-    else startLive().catch(() => { if (!finished.current) startTurnEngine() })
-    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); clearTimeout(waitTimer.current) }
+    // 会話も読みづくりも、上限のない Live の中だけで行う（確認用の mock だけ1回ずつの方式）
+    if (isMockMode()) startTurnEngine()
+    else startLive().catch(() => { if (!finished.current) setStopped('offline') })
+    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); annotator.current?.close(); clearTimeout(waitTimer.current) }
   }, [])
 
   useEffect(() => {
@@ -474,7 +473,6 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       if (live.current) {
         live.current.endSpeech()
         if (audio.seconds < 0.5) return setCaption('ながめに おしながら はなしてね')
-        liveTurn.current.audio = audio
         setLiveBubble('child', '…')
         setCaption('')
         return waitForReply()
@@ -637,7 +635,13 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         <div className="overlay">
           <div className="card">
             <img src={persona.image} alt="" className="monster-sleep" style={{ width: 140, height: 140, objectFit: 'contain' }} />
-            {stopped === 'exhausted' ? (
+            {stopped === 'offline' ? (
+              <>
+                <p style={{ fontWeight: 900, marginTop: 6 }}>{persona.name}に つながらなかったよ</p>
+                <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>でんぱの いい ところで もういちど ためしてね</p>
+                <button className="press cta" style={{ marginTop: 16, height: 56, fontSize: 18 }} onClick={retryLive}>もういちど</button>
+              </>
+            ) : stopped === 'exhausted' ? (
               <>
                 <div className="en" style={{ fontSize: 22, fontWeight: 800 }}>I'm sleepy… See you tomorrow!</div>
                 <p style={{ fontWeight: 900, marginTop: 6 }}>きょうは おしまい。また あした！</p>
@@ -648,7 +652,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
                 <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>「おうちのひと」→「AIのせつぞく」から mana-evo と同じアカウントでログインできます</p>
               </>
             )}
-            <button className="press cta" style={{ marginTop: 16, height: 56, fontSize: 18 }} onClick={finish}>わかった</button>
+            <button className={stopped === 'offline' ? 'press btn ghost' : 'press cta'} style={{ marginTop: stopped === 'offline' ? 10 : 16, height: 56, fontSize: 18, width: '100%' }} onClick={finish}>{stopped === 'offline' ? 'おわる' : 'わかった'}</button>
           </div>
         </div>
       )}
