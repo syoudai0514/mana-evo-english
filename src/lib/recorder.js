@@ -14,6 +14,7 @@ export class Recorder {
     this.preroll = [] // 押す直前の音（押すと同時に話しはじめても頭が切れないように）
     this.frames = 0
     this.recording = false
+    this.generation = 0 // close するたびに増やす（開いている途中の open を取り消す）
     this.onLevel = null
     this.onChunk = null // Live API：録音中の音声を 16kHz PCM の base64 で順に渡す
   }
@@ -28,14 +29,22 @@ export class Recorder {
   async open() {
     if (this.healthy()) return
     this.close()
-    this.stream = await navigator.mediaDevices.getUserMedia({
+    const generation = this.generation
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     })
+    // 許可を待つ間に画面を離れていたら（close 済み）、マイクを開いたままにしない
+    if (generation !== this.generation) {
+      stream.getTracks().forEach((track) => track.stop())
+      throw new Error('recorder closed')
+    }
+    this.stream = stream
     const Context = window.AudioContext || window.webkitAudioContext
     this.context = new Context()
     this.source = this.context.createMediaStreamSource(this.stream)
     this.processor = this.context.createScriptProcessor(4096, 1, 1)
     this.processor.onaudioprocess = (event) => {
+      if (!this.context) return
       this.frames += 1
       const data = event.inputBuffer.getChannelData(0)
       if (!this.recording) {
@@ -67,6 +76,7 @@ export class Recorder {
       await this.open()
       await this.resume()
     }
+    if (!this.context) throw new Error('recorder closed')
     this.framesAtStart = this.frames
     this.chunks = this.preroll
     this.preroll = []
@@ -86,9 +96,10 @@ export class Recorder {
 
   // suspended だけでなく iOS の interrupted からも戻す。戻らなければ false
   async resume() {
+    if (!this.context) return false
     if (this.context.state === 'running') return true
     await Promise.race([this.context.resume().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 500))])
-    return this.context.state === 'running'
+    return this.context?.state === 'running'
   }
 
   // 押しはじめてしばらくしても音が1つも届かないときに使う（マイクが止まっている）
@@ -114,6 +125,7 @@ export class Recorder {
   }
 
   close() {
+    this.generation += 1
     this.recording = false
     try { this.processor?.disconnect(); this.source?.disconnect() } catch {}
     this.stream?.getTracks().forEach((track) => track.stop())

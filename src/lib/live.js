@@ -31,6 +31,8 @@ export function showCardDeclaration(behavior) {
         hints: { type: 'ARRAY', items: HINT_SCHEMA },
         memory: { type: 'ARRAY', items: { type: 'STRING' } },
         tip_ja: { type: 'STRING' },
+        // 大人だけ：この往復から覚えておきたい言い方（復習カードになる）
+        learn: { type: 'ARRAY', items: { type: 'OBJECT', properties: { en: { type: 'STRING' }, ja: { type: 'STRING' } }, required: ['en', 'ja'] } },
         end: { type: 'BOOLEAN' }
       },
       required: ['reply_en', 'kana', 'ja_kids', 'hints']
@@ -86,8 +88,10 @@ export class LiveSession {
   // asr: true なら文字起こし専用（3.5 Transcribe Live）
   // card: 'nonblocking'（声を止めずにカードを渡す）/ 'blocking' / null
   // resume: 切れても続きからつなぎなおせるようにする（resumeHandle があればその続きから）
-  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, resume = false, resumeHandle = '' }) {
+  // functions：show_card 以外の関数を渡すとき（大人の問題づくりなど）。届いたら handlers.onTool(name, args)
+  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, functions = null, resume = false, resumeHandle = '' }) {
     this.card = card
+    this.functions = functions
     this.resume = resume
     this.resumeHandle = resumeHandle
     this.transcription = transcription
@@ -149,7 +153,9 @@ export class LiveSession {
                   speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } } }
                 },
                 systemInstruction,
-                ...(this.card ? { tools: [{ functionDeclarations: [showCardDeclaration(this.card)] }] } : {}),
+                ...(this.functions
+                  ? { tools: [{ functionDeclarations: this.functions }] }
+                  : this.card ? { tools: [{ functionDeclarations: [showCardDeclaration(this.card)] }] } : {}),
                 inputAudioTranscription: this.transcription,
                 outputAudioTranscription: {},
                 ...(this.resume
@@ -187,6 +193,7 @@ export class LiveSession {
     if (update?.resumable && update.newHandle) this.resumeHandle = update.newHandle
     for (const call of message.toolCall?.functionCalls || []) {
       if (call.name === 'show_card') this.handlers.onCard?.(call.args || {})
+      else this.handlers.onTool?.(call.name, call.args || {})
       // すぐ返事をして、相棒がカードのことで話しださないようにする
       this.send({
         toolResponse: {

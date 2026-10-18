@@ -221,3 +221,74 @@ test('annotator cards for an older line are recognized', async () => {
   assert.equal(sameLine("It really is relaxing isn't it? I love watching the clouds. Do you have a favorite park near your house?", now), true)
   assert.equal(sameLine("It's okay! Sometimes it's hard to catch everything. Are you just enjoying the fresh air?", now), false)
 })
+
+test('adult memory is parsed by category and deduped', async () => {
+  const { newAdult, withAdultMemory, greetingFor } = await import('../src/lib/adult.js')
+  let adult = newAdult({}, new Date('2026-10-18T10:00:00'))
+  adult = withAdultMemory(adult, ['work: the release was pushed back to next month', 'family: wants to take his son to the park', 'work: the release was pushed back to next month'])
+  assert.equal(adult.memory.length, 2)
+  assert.equal(adult.memory[0].cat, 'work')
+  assert.match(greetingFor(adult, new Date('2026-10-18T21:00:00')).en, /^Evening! Last time you told me wants to take/)
+})
+
+test('review cards follow again/hard/good spacing', async () => {
+  const { newAdult, withCards, scheduleCard, dueCards, nextLabel } = await import('../src/lib/adult.js')
+  const now = new Date('2026-10-18T10:00:00')
+  let adult = withCards(newAdult({}, now), [{ en: 'push back', ja: '延期する' }, { en: 'Push back', ja: '重複' }], 'chat', now)
+  assert.equal(adult.cards.length, 1)
+  const card = adult.cards[0]
+  assert.equal(dueCards(adult, now.getTime()).length, 1)
+  assert.equal(nextLabel(card, 'again', now.getTime()), '10分後')
+  assert.equal(nextLabel(card, 'hard', now.getTime()), 'あした')
+  assert.equal(nextLabel(card, 'good', now.getTime()), '4日後')
+  assert.equal(scheduleCard(scheduleCard(card, 'good', 0), 'good', 0).interval, 10)
+})
+
+test('toeic stats predict a score and find weak skills', async () => {
+  const { newAdult, withAnswers, predictScore, weakSkills, practiceSkills } = await import('../src/lib/adult.js')
+  let adult = newAdult()
+  assert.equal(predictScore(adult), null)
+  adult = withAnswers(adult, [
+    { part: 'p2', skill: 'why', correct: false }, { part: 'p2', skill: 'why', correct: false },
+    { part: 'p2', skill: 'when', correct: true }, { part: 'p3', skill: 'mainIdea', correct: true },
+    { part: 'p3', skill: 'nextAction', correct: false }, { part: 'p5', skill: 'tense', correct: true },
+    { part: 'p5', skill: 'partOfSpeech', correct: true }, { part: 'vocab', skill: 'business', correct: false },
+    { part: 'vocab', skill: 'business', correct: true }
+  ])
+  const score = predictScore(adult)
+  assert.ok(score >= 10 && score <= 990 && score % 5 === 0)
+  assert.equal(weakSkills(adult)[0].skill, 'why')
+  assert.equal(practiceSkills(adult).length, 4)
+})
+
+test('shadowing marks words the learner said', async () => {
+  const { compareShadow } = await import('../src/lib/adult.js')
+  const result = compareShadow('They pushed back the release to next month.', 'they push back the release to next')
+  assert.equal(result.score, 75)
+  assert.deepEqual(result.missed, ['pushed', 'month'])
+})
+
+test('today plan adapts to due cards and diagnosis', async () => {
+  const { newAdult, withCards, todayPlan } = await import('../src/lib/adult.js')
+  const fresh = newAdult()
+  assert.deepEqual(todayPlan(fresh).map((step) => step.id), ['chat', 'diagnosis'])
+  const withDue = withCards({ ...fresh, diagnosed: true }, [{ en: 'I\'m swamped.', ja: '手一杯' }], '', new Date(0))
+  assert.deepEqual(todayPlan(withDue).map((step) => step.id), ['review', 'chat', 'toeic'])
+  assert.deepEqual(todayPlan(withDue, { short: true }).map((step) => step.id), ['review', 'chat'])
+})
+
+test('quiz keeps valid made questions and fills the rest from the bank', async () => {
+  const { fillQuestions, parseChoice, validQuestion } = await import('../src/lib/quiz.js')
+  const made = [
+    { part: 'p2', skill: 'why', audio_en: 'Why?', question_en: '', choices: ['a', 'b', 'c'], answer: 1, explain_ja: '' },
+    { part: 'p2', skill: 'when', audio_en: '', question_en: '', choices: ['a'], answer: 3, explain_ja: '' }
+  ]
+  assert.equal(validQuestion(made[1]), false)
+  const items = fillQuestions(['who', 'tense', 'business'], made)
+  assert.equal(items.length, 3)
+  assert.equal(items[0].audio_en, 'Why?') // 同じパートの作った問題を先に使う
+  assert.equal(items[1].skill, 'tense')
+  assert.equal(parseChoice('ビー', ['x', 'y', 'z']), 1)
+  assert.equal(parseChoice('Because the client asked', ['Yesterday.', 'Because the client asked.', 'Yes.']), 1)
+  assert.equal(parseChoice('hmm', ['Yesterday.', 'Because.', 'Yes.']), -1)
+})

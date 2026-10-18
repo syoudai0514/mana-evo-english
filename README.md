@@ -1,6 +1,7 @@
 # mana-evo-english（マナエボ英語）
 
 mana-evo の英語に特化した姉妹アプリ。mana-evo のモンスターと毎日英語でおしゃべりする iPhone 向け PWA。
+起動時の「だれが はなす？」から、パパ・ママ向けの大人モード（Alex との雑談・復習カード・シャドーイング・TOEIC 診断）にも入れる。
 
 公開先：https://mana-evo-english.vercel.app/（main に入ると Vercel が自動で公開）
 
@@ -14,12 +15,13 @@ mana-evo の英語に特化した姉妹アプリ。mana-evo のモンスター�
 |---|---|
 | 画面（Vite + React） | `src/screens/` |
 | 会話のバリエーション（相棒・段階・話題・ごっこ・あてっこ） | `src/data/` |
-| 会話指示の組み立て | `src/data/prompt.js` |
+| 会話指示の組み立て | `src/data/prompt.js`（大人は `src/data/adult.js`） |
+| 大人モードの記録（記憶・復習カード・TOEIC・予想スコア） | `src/lib/adult.js` |
 | 録音（16kHz WAV）・読み上げ・ログイン・状態 | `src/lib/` |
 | Gemini 中継（Supabase Edge Function） | `supabase/functions/english-talk/` |
 
 - 会話は Gemini Live API（リアルタイム音声）。`english-talk` が使い捨て接続キーを発行し、ブラウザが直接つなぐ（`src/lib/live.js`）
-- 読み・ひらがなの意味・ヒント・記憶は、相棒（声の Live）が話すたびに関数 `show_card` で渡す。子どもの声は Gemini 3.5 Transcribe Live で文字にして相棒に渡す（`src/lib/transcriber.js`）。上限のない Live API だけで動く
+- 読み・ひらがなの意味・ヒント・記憶は、音を鳴らさない裏方の Live が関数 `show_card` で渡す（`src/lib/annotator.js`。大人の TOEIC 問題 `make_questions`・発音のコツ `pron_tips` も同じしくみ）。子どもの声は Gemini 3.5 Transcribe Live で文字にして相棒に渡す（`src/lib/transcriber.js`）。上限のない Live API だけで動く
 - Live が切れたらつなぎなおし、だめなら「つながらなかったよ」を出す。1回ずつ送る方式（`sendTurn`）は確認用の `?mock=1` だけで使う
 - `english-talk` はログイン中（mana-evo と同じ app-save-hub アカウント）のユーザーだけが使える
 - 記録は端末内（localStorage）に保存

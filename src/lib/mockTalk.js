@@ -31,7 +31,8 @@ export async function mockReply({ input, context }) {
       reply_ja_kids: end ? 'とっても たのしかった！また あした！' : (isStart ? 'いらっしゃい！なにに する？' : line.ja),
       reply_ja: end ? 'とっても たのしかった！また あした！' : (isStart ? 'いらっしゃい！なにに しますか？' : line.ja),
       hints: end ? [] : line.hints.map(([en, kana, emoji]) => ({ en, kana, emoji, ja: { red: 'あか', blue: 'あお', yellow: 'きいろ', dogs: 'いぬ', cats: 'ねこ', big: 'おおきい', small: 'ちいさい' }[en] || '' })),
-      memory: turn === 2 ? ['likes dinosaurs'] : [],
+      memory: context?.mode === 'adult' ? (turn === 1 ? ['work: the product release was pushed back to next month'] : []) : (turn === 2 ? ['likes dinosaurs'] : []),
+      learn: context?.mode === 'adult' && turn === 1 ? [{ en: 'They pushed back the release.', ja: 'リリースが延期になった。' }, { en: 'I\'m swamped.', ja: '手一杯です。' }] : [],
       tip_ja: context?.mode === 'adult' ? '「I want to」は「I\'d like to」にするとていねいです。' : '',
       end
     }

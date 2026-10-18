@@ -1,9 +1,7 @@
-// 画面カード（読み・ひらがなの意味・ヒント・子どもの言葉の補正）を作る裏方。
-// Live は文字だけの返事ができないので、声の接続（音は鳴らさない）で、関数 show_card だけを呼んでもらう。
-// 会話の相棒とは別の接続にして、相棒は会話だけに集中させる。
+// 音を鳴らさない Live に、関数を1回呼んでもらって結果を受け取る裏方。
+// Live は文字だけの返事ができないので、声の接続（音は鳴らさない）で関数だけを呼んでもらう。
+// 画面カード（読み・ひらがなの意味・ヒント）づくりのほか、大人の問題づくりなどにも使う。
 import { LiveSession, reportLiveProblem, requestLiveToken } from './live.js'
-
-const TIMEOUT_MS = 9000
 
 function words(text) {
   return String(text || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean)
@@ -18,10 +16,16 @@ export function sameLine(a, b) {
   return hit / Math.max(left.length, right.size) >= 0.6
 }
 
-export class Annotator {
+const DEFAULT_WAYS = [['3.8', 'realtime'], ['3.8', 'client'], ['3-flash', 'realtime'], ['3-flash', 'client']]
+
+export class SilentTool {
+  // declaration：呼んでもらう関数（null なら画面カード show_card）
   // ways：使うモデルと送り方の順番（賢い 3.8 Live → 3 Flash Live）。だめなら次を試す
-  constructor({ system, ways = [['3.8', 'realtime'], ['3.8', 'client'], ['3-flash', 'realtime'], ['3-flash', 'client']] }) {
+  constructor({ system, declaration = null, timeoutMs = 9000, step = 'annotate', ways = DEFAULT_WAYS }) {
     this.system = system
+    this.declaration = declaration
+    this.timeoutMs = timeoutMs
+    this.step = step
     this.ways = ways
     this.index = 0
     this.session = null
@@ -30,6 +34,10 @@ export class Annotator {
     this.pending = null
     this.closed = false
     this.lastClose = ''
+  }
+
+  get name() {
+    return this.declaration?.name || 'show_card'
   }
 
   async ensure() {
@@ -43,14 +51,16 @@ export class Annotator {
           system: this.system,
           voiceName: 'Kore',
           muted: true,
-          card: 'blocking',
+          card: this.declaration ? null : 'blocking',
+          functions: this.declaration ? [this.declaration] : null,
           handlers: {
             onCard: (card) => this.pending?.resolve(card),
+            onTool: (name, args) => { if (name === this.name) this.pending?.resolve(args) },
             onTurnComplete: () => this.pending?.noCard(),
             onClose: (event) => {
               this.lastClose = `${event?.code} ${event?.reason || ''}`
               if (this.session === session) this.session = null
-              this.pending?.reject(new Error('annotator closed'))
+              this.pending?.reject(new Error(`${this.step} closed`))
             }
           }
         })
@@ -58,7 +68,7 @@ export class Annotator {
           await session.connect()
         } catch (error) {
           this.index += 1
-          reportLiveProblem({ step: 'annotate-connect', way: way.join('/'), message: String(error?.message || error) })
+          reportLiveProblem({ step: `${this.step}-connect`, way: way.join('/'), message: String(error?.message || error) })
           throw error
         }
         session.probing = false
@@ -70,9 +80,9 @@ export class Annotator {
     return this.connecting
   }
 
-  // 1往復ぶんのカードをもらう。だめなら同じ回のうちに次のモデル・送り方で。全部だめなら null（会話は止めない）
-  // expect：この回の相棒のセリフ。前の回のカードが遅れて届いたら、それは捨てて待ちなおす
-  ask(message, expect = '') {
+  // 1回ぶんの結果をもらう。だめなら同じ回のうちに次のモデル・送り方で。全部だめなら null（画面は止めない）
+  // accept：結果が今回のものか確かめる（前の回の結果が遅れて届いたら捨てて待ちなおす）
+  ask(message, { accept = null, retryText = '' } = {}) {
     const once = async () => {
       let used = null
       try {
@@ -81,30 +91,30 @@ export class Annotator {
         return await new Promise((resolve, reject) => {
           let misses = 0
           let stale = 0
-          const timer = setTimeout(() => reject(new Error('annotator timeout')), TIMEOUT_MS)
+          const timer = setTimeout(() => reject(new Error(`${this.step} timeout`)), this.timeoutMs)
           this.pending = {
-            resolve: (card) => {
-              if (expect && !sameLine(card?.reply_en, expect)) {
+            resolve: (result) => {
+              if (accept && !accept(result)) {
                 stale += 1
-                if (stale === 1) session.sendText(`That card was for an older line. Call show_card for this line: "${expect}"`)
+                if (stale === 1 && retryText) session.sendText(retryText)
                 return
               }
               clearTimeout(timer)
-              resolve(card)
+              resolve(result)
             },
             reject: (error) => { clearTimeout(timer); reject(error) },
             // 関数を呼ばずに返事を終えたら、もう一度だけ頼む
             noCard: () => {
               misses += 1
-              if (misses > 1) { clearTimeout(timer); reject(new Error('no card')); return }
-              session.sendText('Call show_card now for the previous message. Do not speak.')
+              if (misses > 1) { clearTimeout(timer); reject(new Error('no call')); return }
+              session.sendText(`Call ${this.name} now for the previous message. Do not speak.`)
             }
           }
           if (used[1] === 'client') session.sendUserTurn(message)
           else session.sendText(message)
         })
       } catch (error) {
-        reportLiveProblem({ step: 'annotate', way: used?.join('/'), message: `${String(error?.message || error)} ${this.lastClose}` })
+        reportLiveProblem({ step: this.step, way: used?.join('/'), message: `${String(error?.message || error)} ${this.lastClose}` })
         if (used && this.ways[this.index % this.ways.length] === used) this.index += 1
         this.session?.close()
         this.session = null
@@ -132,5 +142,14 @@ export class Annotator {
     this.closed = true
     this.session?.close()
     this.session = null
+  }
+}
+
+// 画面カードづくり。expect：この回の相棒のセリフ（前の回のカードが遅れて届いたら捨てる）
+export class Annotator extends SilentTool {
+  ask(message, expect = '') {
+    return super.ask(message, expect
+      ? { accept: (card) => sameLine(card?.reply_en, expect), retryText: `That card was for an older line. Call show_card for this line: "${expect}"` }
+      : {})
   }
 }

@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react'
 import { LEVELS, levelOf } from '../data/levels.js'
-import { ADULT_SCENES } from '../data/modes.js'
 import { PERSONAS, personaOf } from '../data/personas.js'
 import { pickTopic } from '../data/topics.js'
 import { PIN_KEY, initialState, todaySummary } from '../lib/state.js'
@@ -14,7 +13,7 @@ function storedPin() {
 }
 
 // mana-evo と同じ 4けたの PIN。忘れたときは大人向けの計算で再設定できる
-function PinGate({ onUnlock, onBack }) {
+export function PinGate({ onUnlock, onBack }) {
   const [phase, setPhase] = useState(() => (storedPin() ? 'enter' : 'create'))
   const [pin, setPin] = useState('')
   const [first, setFirst] = useState('')
@@ -157,7 +156,7 @@ function homeCard(state) {
 export default function Parent({ state, update, navigate, showToast, onStart }) {
   const [unlocked, setUnlocked] = useState(false)
   const [detail, setDetail] = useState(null)
-  const [view, setView] = useState('main') // main | adult | settings
+  const [view, setView] = useState('main') // main | settings
   const [nickname, setNickname] = useState(state.profile?.nickname || '')
 
   if (!unlocked) return <PinGate onUnlock={() => setUnlocked(true)} onBack={() => navigate('home')} />
@@ -168,26 +167,6 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
   const card = homeCard(state)
   const kidSessions = [...state.sessions].reverse().filter((session) => session.mode !== 'adult').slice(0, 8)
   const persona = personaOf(state.profile?.partner)
-
-  if (view === 'adult') {
-    return (
-      <div className="screen parent">
-        <div className="top"><button className="icon-btn" onClick={() => setView('main')}>‹</button><div className="title-lg">🧑 大人の練習</div><div style={{ width: 42 }} /></div>
-        <div className="scroll">
-          <p className="muted" style={{ fontSize: 13, fontWeight: 700, padding: '10px 20px 0', lineHeight: 1.6 }}>場面を選んで英会話を練習できます。日本語で答えてもOK。より自然な言い方を 💡 で教えてくれます。</p>
-          <div className="scene-grid">
-            {ADULT_SCENES.map((scene) => (
-              <button key={scene.id} className="press scene-card" style={{ background: '#fff', '--d': '#E3DDF5', minHeight: 120 }}
-                onClick={() => { unlockSpeech(); onStart({ mode: 'adult', partner: persona.id, adultScene: scene }) }}>
-                <div className="big" style={{ fontSize: 40 }}>{scene.emoji}</div>
-                <div className="t">{scene.title}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   if (view === 'settings') {
     return (
@@ -299,7 +278,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
         </div>
 
         <div style={{ display: 'flex', gap: 10, padding: '12px 20px 24px' }}>
-          <button className="press btn primary" style={{ flex: 1, height: 52 }} onClick={() => setView('adult')}>🧑 大人の練習</button>
+          <button className="press btn primary" style={{ flex: 1, height: 52 }} onClick={() => navigate('who')}>🧔 大人モードへ</button>
           <button className="press btn ghost" style={{ flex: 1, height: 52 }} onClick={() => { unlockSpeech(); onStart({ mode: 'free', partner: persona.id, topic: pickTopic({ recentIds: state.recentTopics }), parentReads: true }) }}>👨‍👦 親子モード</button>
         </div>
       </div>
