@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>mana-evo-english mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2B2950; --ink2:#6A6890; --line:#E7E3F5;
+  --coral:#FF6B5B; --coral-d:#E04A3B;
+  --sun:#FFC83D; --sun-d:#E5A400;
+  --mint:#2FC79F; --mint-d:#1BA07D;
+  --sky:#4AA8FF; --sky-d:#2A84DB;
+  --grape:#8B6CF0; --grape-d:#6A4CD0;
+  --pink:#FF8FC0; --pink-d:#E06A9E;
+  --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1d1b33;font-family:"Zen Maru Gothic",sans-serif;color:var(--ink);padding:40px;display:flex;flex-wrap:wrap;gap:40px}
+.en{font-family:"Baloo 2","Zen Maru Gothic",sans-serif}
+.phone{width:390px;height:844px;border-radius:0;overflow:hidden;position:relative;background:linear-gradient(180deg,#FFF4E6 0%,#FFE9F1 45%,#E9F1FF 100%)}
+.status{height:47px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 34px;font:600 16px -apple-system,"Baloo 2",sans-serif}
+.status .r{display:flex;gap:6px;align-items:center;font-size:13px}
+.cloud{position:absolute;background:#fff;border-radius:999px;opacity:.7}
+.top{display:flex;justify-content:space-between;align-items:center;padding:6px 20px 0}
+.pill{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:6px 12px 6px 8px;font-weight:900;font-size:14px;box-shadow:0 3px 0 var(--line)}
+.pill .ic{font-size:18px}
+.press{border-radius:24px;box-shadow:0 6px 0 var(--d,#ddd);}
+.bubble{background:#fff;border-radius:24px;padding:14px 16px;box-shadow:0 4px 0 var(--line),0 10px 24px rgba(80,60,140,.08);position:relative}
+.kana{font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.02em;margin-top:4px}
+.ja{font-size:12.5px;color:#8a7fb8;margin-top:6px;padding-top:6px;border-top:1.5px dashed var(--line);font-weight:700}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #F1EDFA;display:flex;justify-content:space-around;padding-top:10px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:900;color:#B3AECF;gap:2px}
+.tabbar div span{font-size:24px;filter:grayscale(1);opacity:.55}
+.tabbar .on{color:var(--coral)} .tabbar .on span{filter:none;opacity:1}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:#2B2950}
+.sig{display:inline-block;width:18px;height:11px;background:linear-gradient(90deg,currentColor 0 3px,transparent 3px 5px,currentColor 5px 8px,transparent 8px 10px,currentColor 10px 13px,transparent 13px 15px,currentColor 15px 18px);clip-path:polygon(0 100%,100% 0,100% 100%)}
+.bat{display:inline-block;width:24px;height:11px;border:1.5px solid currentColor;border-radius:3.5px;position:relative;opacity:.9}.bat:after{content:"";position:absolute;inset:1.5px;right:4px;background:currentColor;border-radius:1.5px}
+.label{color:#fff;font:800 18px "Zen Maru Gothic";width:390px;margin-bottom:-28px}
+.label small{display:block;font-weight:500;font-size:13px;color:#b9b4df;margin-top:2px}
+.wrap{display:flex;flex-direction:column;gap:12px}
+
+.dk{background:linear-gradient(180deg,#1E2340 0%,#252B4D 55%,#2C2550 100%);color:#EEF0FF}
+.dk .pill{background:#323A63;color:#EEF0FF;box-shadow:0 3px 0 #1A1F38}
+.card2{background:#2F3760;border-radius:20px;padding:14px 16px;box-shadow:0 4px 0 #1A1F38}
+.muted{color:#A9AED8;font-size:12px;font-weight:700}
+.chip{display:inline-block;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px;background:#3D4677;color:#C9CDF5}
+.gold{color:#FFC83D}
+.bub2{background:#343D6B;border-radius:20px;padding:12px 14px;font-size:15px;font-weight:700;line-height:1.35}
+.me2{background:linear-gradient(180deg,#5DB5FF,#4AA8FF);color:#fff;border-radius:20px;border-bottom-right-radius:6px;padding:9px 14px;font-size:15px;font-weight:700;margin-left:auto;max-width:78%}
+.ja2{font-size:12px;color:#A9AED8;margin-top:6px;padding-top:6px;border-top:1.5px dashed #4A5385;font-weight:700}
+.tip2{background:#3A3560;border:1.5px solid #6A5CC0;border-radius:14px;padding:8px 12px;font-size:12px;font-weight:700;color:#DCD5FF}
+.phase{display:flex;gap:6px;margin:10px 20px 0}
+.phase div{flex:1;height:8px;border-radius:9px;background:#3D4677}
+.phase .on{background:#2FC79F}
+.who{width:150px;height:190px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:18px}
+.qopt{background:#343D6B;border-radius:14px;padding:10px 12px;font-size:14px;font-weight:700;display:flex;gap:10px;align-items:center}
+.qopt b{width:26px;height:26px;border-radius:50%;background:#4A5385;display:flex;align-items:center;justify-content:center;font-size:13px}
+.mem{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #3D4677;font-size:13px;font-weight:700}
+.mem .x{margin-left:auto;color:#7D83B5;font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- A -->
+<div class="wrap"><div class="label">Ⓐ 起動したら「だれが はなす？」<small>子どもと大人の入り口を最初に分ける。大人側は色も落ち着いたものに</small></div>
+<div class="phone"><div class="status"><span>7:40</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div style="text-align:center;margin-top:60px"><div class="en" style="font:800 30px 'Baloo 2';color:var(--coral)">Who's talking?</div><div style="font-weight:900;margin-top:4px">だれが はなす？</div></div>
+ <div style="display:flex;gap:20px;justify-content:center;margin-top:40px">
+  <div class="who" style="background:#fff;box-shadow:0 6px 0 var(--line)"><img src="../../public/monsters/m186.webp" style="width:96px"><div>まさき</div><span class="tag" style="background:#FFF1C9;color:#B07A00">🔥 5にち れんぞく</span></div>
+  <div class="who" style="background:#252B4D;color:#EEF0FF;box-shadow:0 6px 0 #14182E"><div style="font-size:60px">🧔</div><div>パパ</div><span class="tag" style="background:#3D4677;color:#C9CDF5">TOEIC 目標 730</span></div>
+ </div>
+ <div style="text-align:center;margin-top:28px;color:var(--ink2);font-size:13px;font-weight:700">＋ ママ・ほかの大人をふやす</div>
+ <div style="margin:40px 28px 0;font-size:12px;color:var(--ink2);font-weight:700;line-height:1.6">・大人の記憶（仕事・家族の話）は子ども側に出さない<br>・大人側に入るときだけ PIN（設定でオフにできる）</div>
+<div class="homebar"></div></div></div>
+
+<!-- B -->
+<div class="wrap"><div class="label">Ⓑ 大人のホーム<small>相棒が前回の話を覚えていて、続きから話しかけてくる</small></div>
+<div class="phone dk"><div class="status"><span>21:30</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill"><span class="ic">🧔</span>パパ</div><div class="pill"><span class="ic">🔥</span>12日</div></div>
+ <div style="display:flex;gap:12px;align-items:flex-end;margin:16px 20px 0">
+  <div style="width:70px;height:70px;border-radius:50%;background:#3D4677;display:flex;align-items:center;justify-content:center;font-size:40px">🧑🏽</div>
+  <div class="bub2" style="flex:1">Hey! Last time you said the deadline was Friday. Did you make it? 😄<div class="ja2">前回、締め切りが金曜って言ってたよね。間に合った？</div></div>
+ </div>
+ <div class="muted" style="margin:6px 20px 0 102px">Alex（ロンドン出身の友だち）</div>
+ <div style="margin:16px 20px 0;display:flex;flex-direction:column;gap:10px">
+  <div class="card2" style="background:linear-gradient(135deg,#2FC79F,#1BA07D);color:#fff"><div style="font-weight:900;font-size:17px">☕→📘 雑談して、最後にお勉強</div><div style="font-size:12px;font-weight:700;opacity:.9;margin-top:3px">雑談 8分 → きょうの言い直し＋TOEIC ミニ問題 4分</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+   <div class="card2"><div style="font-size:22px">☕</div><div style="font-weight:900">雑談だけ</div><div class="muted">仕事・家族・趣味</div></div>
+   <div class="card2"><div style="font-size:22px">📘</div><div style="font-weight:900">TOEIC</div><div class="muted">Part 2・3 を会話で</div></div>
+   <div class="card2"><div style="font-size:22px">💼</div><div style="font-weight:900">仕事の英語</div><div class="muted">会議・メール・雑談</div></div>
+   <div class="card2"><div style="font-size:22px">🧒</div><div style="font-weight:900">子どもへの声かけ</div><div class="muted">おうち英語</div></div>
+  </div>
+  <div class="card2" style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:900">🧠 Alex が覚えていること</div><div class="muted">仕事 6・家族 4・趣味 3</div></div><span class="chip">みる ›</span></div>
+ </div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+<!-- C -->
+<div class="wrap"><div class="label">Ⓒ 会話中（雑談パート）<small>グチもそのまま聞いてくれる。言い方のコツは小さく出すだけで、会話は止めない</small></div>
+<div class="phone dk"><div class="status"><span>21:34</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill">✕</div><div class="pill">☕ 雑談 <span class="muted" style="margin-left:4px">6:12</span></div><div class="pill">訳</div></div>
+ <div class="phase"><div class="on"></div><div class="on"></div><div class="on"></div><div></div><div></div></div>
+ <div class="muted" style="margin:4px 20px 0;display:flex;justify-content:space-between"><span>☕ 雑談</span><span>📘 お勉強</span></div>
+ <div style="margin:12px 16px 0;display:flex;flex-direction:column;gap:10px">
+  <div class="me2">My boss changed the plan again. I'm so tired.</div>
+  <div class="tip2">💡 "again" のあとに "at the last minute" をつけると「土壇場で」のニュアンスに</div>
+  <div class="bub2">Ugh, that's frustrating. Changing plans at the last minute is the worst. What did he change this time?<div class="ja2">うわ、それはイラッとするね。土壇場の変更って最悪だよね。今回は何が変わったの？</div></div>
+  <div class="me2">He moved the release to next month.</div>
+  <div class="bub2">Oh no. So all that overtime... Did your family at least get to see you this weekend?<div class="ja2">えー。じゃあ残業は…。せめて週末は家族と過ごせた？</div></div>
+ </div>
+ <div style="position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center"><div style="width:110px;height:110px;border-radius:50%;background:linear-gradient(180deg,#FF8A7A,#FF6B5B);box-shadow:0 6px 0 var(--coral-d);display:flex;align-items:center;justify-content:center;font-size:44px">🎤</div></div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+<!-- D -->
+<div class="wrap"><div class="label">Ⓓ 最後のお勉強パート<small>きょうの会話から問題を作る。TOEIC Part 2（応答問題）の形で、相棒が声で出題</small></div>
+<div class="phone dk"><div class="status"><span>21:40</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill">✕</div><div class="pill">📘 お勉強 <span class="muted" style="margin-left:4px">2/4</span></div><div class="pill">訳</div></div>
+ <div class="phase"><div class="on"></div><div class="on"></div><div class="on"></div><div class="on"></div><div style="background:#FFC83D"></div></div>
+ <div style="margin:16px 16px 0" class="card2"><div class="chip">きょうの言い直し</div><div style="margin-top:8px;font-size:13px;font-weight:700;color:#A9AED8">あなた：He moved the release to next month.</div><div style="margin-top:4px;font-size:15px;font-weight:900">✨ He <span class="gold">pushed back</span> the release to next month.</div><div class="muted" style="margin-top:4px">push back ＝ 延期する（TOEIC 頻出）</div></div>
+ <div style="margin:12px 16px 0" class="card2"><div class="chip">TOEIC Part 2</div><div style="margin-top:8px;font-size:15px;font-weight:900">🔊 "Why was the product launch postponed?"</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+   <div class="qopt"><b>A</b>At the main office.</div>
+   <div class="qopt" style="background:#1F7A62"><b style="background:#2FC79F">B</b>Because the design wasn't ready.</div>
+   <div class="qopt"><b>C</b>Yes, I launched it.</div>
+  </div><div class="muted" style="margin-top:8px">⭕ Why には理由で答える。C は Yes/No で答えるひっかけ</div></div>
+ <div style="margin:12px 16px 0;font-size:13px;font-weight:700;color:#A9AED8;text-align:center">声で「B」と答えても、タップしてもOK</div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+<!-- E -->
+<div class="wrap"><div class="label">Ⓔ 終わったら「きょうのまとめ」と記憶<small>覚えたことは確認・削除できる。次の会話の話題になる</small></div>
+<div class="phone dk"><div class="status"><span>21:43</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div style="text-align:center;margin-top:14px"><div class="en" style="font:800 28px 'Baloo 2';color:#2FC79F">Great talk!</div><div class="muted">12分 ・ 英語で話した文 18 ・ TOEIC 3/4 正解</div></div>
+ <div style="margin:14px 16px 0" class="card2"><div style="font-weight:900">📝 きょう覚えたい言い方</div>
+  <div style="margin-top:8px;font-size:14px;font-weight:700;line-height:1.7">push back（延期する）<br>at the last minute（土壇場で）<br>I'm swamped.（手一杯）</div><div class="muted" style="margin-top:4px">→ 次回の会話で Alex がさりげなく使ってくる</div></div>
+ <div style="margin:12px 16px 0" class="card2"><div style="font-weight:900">🧠 Alex が覚えたこと</div>
+  <div class="mem"><span>💼</span><span>リリースが来月に延期になった</span><span class="x">けす</span></div>
+  <div class="mem"><span>💼</span><span>上司がよく予定を変える（グチ）</span><span class="x">けす</span></div>
+  <div class="mem" style="border:none"><span>👨‍👩‍👦</span><span>週末は息子と公園に行きたい</span><span class="x">けす</span></div>
+ </div>
+ <div style="margin:12px 16px 0" class="card2" style=""><div style="font-weight:900">📈 TOEIC めやす</div><div class="muted" style="margin-top:4px">Part 2 正答率 72%（先週 65%）・苦手：Why / How long</div></div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+</body>
+</html>
