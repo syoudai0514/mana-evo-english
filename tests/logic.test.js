@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { toHiragana, nextReading, readingText } from '../src/lib/kana.js'
+import { toHiragana, nextReading, readingText, cleanEmoji } from '../src/lib/kana.js'
 import { downsample, encodeWav, rms } from '../src/lib/wav.js'
 import {
   initialState, withStreak, streakCount, withUtterance, withMemory, withSessionEnd,
@@ -200,4 +200,12 @@ test('pcm helpers round-trip 16-bit audio', async () => {
   const back = pcm16Base64ToFloat(floatToPcm16Base64(input))
   assert.equal(back.length, 4)
   for (let i = 0; i < 4; i += 1) assert.ok(Math.abs(back[i] - input[i]) < 1e-3)
+})
+
+test('broken hint emoji is rebuilt from its code point or hidden', () => {
+  assert.equal(cleanEmoji('🛝', ''), '🛝')
+  assert.equal(cleanEmoji('����', '1F6DD'), '🛝')
+  assert.equal(cleanEmoji('��', 'U+1F3A0'), '🎠')
+  assert.equal(cleanEmoji('��', ''), '')
+  assert.equal(cleanEmoji('', '0041'), '')
 })

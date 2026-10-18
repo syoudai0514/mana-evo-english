@@ -199,7 +199,7 @@ export function buildAnnotatorPrompt(ctx) {
     'ja: natural Japanese translation (for parents).',
     adult ? '' : 'child_said: what the child really said (the line comes from speech recognition and may be wrong; katakana English like "チーズ" means "cheese"). English words in English letters, Japanese in kana.',
     'spoke_english: true if the child used English words. recast: the natural English sentence for what the child meant.',
-    `hints: 2-3 short easy answers the child could say next (fit this stage: ${level.label}), each with en, kana, ja (hiragana/katakana only) and one emoji.`,
+    `hints: 2-3 short easy answers the child could say next (fit this stage: ${level.label}), each with en, kana, ja (hiragana/katakana only), one emoji and emoji_code (its Unicode code point in hex, e.g. "1F6DD").`,
     'memory: new lasting facts about the child (likes, pets, wishes) as short English phrases, [] if none. end: true only if the partner line is a goodbye.',
     adult ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "".' : 'tip_ja: "".'
   ].filter(Boolean).join('\n')

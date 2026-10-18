@@ -4,7 +4,7 @@ import { levelOf } from '../data/levels.js'
 import { MODES } from '../data/modes.js'
 import { annotatorMessage, buildAnnotatorPrompt, buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
 import { modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
-import { nextReading } from '../lib/kana.js'
+import { nextReading, cleanHint } from '../lib/kana.js'
 import { Recorder, micSupported } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
@@ -284,7 +284,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     setTurns((prev) => prev.map((item) => {
       if (item.turnId !== turnId) return item
       if (item.who === 'partner') {
-        return { ...item, kana: String(card.kana || ''), ja: String(card.ja || card.ja_kids || ''), jaKids: String(card.ja_kids || ''), hints: Array.isArray(card.hints) ? card.hints.slice(0, 3) : [], tip: String(card.tip_ja || '') }
+        return { ...item, kana: String(card.kana || ''), ja: String(card.ja || card.ja_kids || ''), jaKids: String(card.ja_kids || ''), hints: Array.isArray(card.hints) ? card.hints.slice(0, 3).map(cleanHint) : [], tip: String(card.tip_ja || '') }
       }
       return { ...item, text: childSaid || item.text, english: card.spoke_english ?? item.english, recast: String(card.recast || '') }
     }))
@@ -694,7 +694,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
             {latest.hints.map((hint) => (
               <button key={hint.en} className={`press hint ${pickedHint?.en === hint.en ? 'on' : ''}`} onClick={() => tapHint(hint)}>
                 {pickedHint?.en === hint.en && <span className="tag send">これで こたえる</span>}
-                <div className="e">{hint.emoji}</div>
+                {hint.emoji && <div className="e">{hint.emoji}</div>}
                 <div className="w">{hint.en}</div>
                 <div className="k">{hint.kana}</div>
                 {!adult && showJa && hint.ja && <div className="m">{hint.ja}</div>}

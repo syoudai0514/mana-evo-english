@@ -7,8 +7,12 @@ import { PcmPlayer, sampleRateOf } from './player.js'
 // 画面カード（読み・ひらがなの意味・ヒントなど）を相棒から受け取る関数
 const HINT_SCHEMA = {
   type: 'OBJECT',
-  properties: { en: { type: 'STRING' }, kana: { type: 'STRING' }, ja: { type: 'STRING' }, emoji: { type: 'STRING' } },
-  required: ['en', 'kana', 'ja', 'emoji']
+  properties: {
+    en: { type: 'STRING' }, kana: { type: 'STRING' }, ja: { type: 'STRING' }, emoji: { type: 'STRING' },
+    // 絵文字が途中で壊れて届くことがあるので、Unicode の番号（例 1F6DD）でも受け取る
+    emoji_code: { type: 'STRING', description: 'Unicode code point of the emoji in hex, e.g. "1F6DD" for 🛝' }
+  },
+  required: ['en', 'kana', 'ja', 'emoji_code']
 }
 export function showCardDeclaration(behavior) {
   const declaration = {

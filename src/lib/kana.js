@@ -14,3 +14,20 @@ export function readingText(kana, mode) {
   if (mode === 'none' || !kana) return ''
   return mode === 'hira' ? toHiragana(kana) : kana
 }
+
+// 画面カードのヒントの絵文字。壊れた文字（�）は捨て、番号（emoji_code）から作りなおす。どちらもだめなら出さない
+const PICTO = /\p{Extended_Pictographic}/u
+export function cleanEmoji(emoji, code) {
+  const text = String(emoji || '')
+  if (text && !text.includes('�') && PICTO.test(text)) return text
+  const points = String(code || '').toUpperCase().match(/[0-9A-F]{4,6}/g) || []
+  try {
+    const made = String.fromCodePoint(...points.map((hex) => parseInt(hex, 16)))
+    if (PICTO.test(made)) return made
+  } catch {}
+  return ''
+}
+
+export function cleanHint(hint) {
+  return { ...hint, emoji: cleanEmoji(hint?.emoji, hint?.emoji_code) }
+}
