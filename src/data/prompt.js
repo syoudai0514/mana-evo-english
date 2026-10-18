@@ -162,9 +162,17 @@ export function buildLiveSystemPrompt(ctx) {
   ].filter(Boolean).join('\n\n')
 }
 
-export function buildAnnotatePrompt(ctx) {
+export function buildAnnotatePrompt(ctx, exchange = null) {
   const level = levelOf(ctx.level)
   const adult = ctx.mode === 'adult'
+  // 子どもの声（音声）も一緒に渡すとき：Live の文字起こしは言語をまちがえやすいので、ここで聞きなおす
+  const audioRules = exchange ? [
+    `The audio is what the ${adult ? 'learner' : 'child'} just said. Transcribe it into child_said.`,
+    adult ? '' : 'The speaker is a Japanese 5-6 year old. They usually say English words (often with Japanese pronunciation, e.g. "キャット" means "cat") or short Japanese. Prefer the English word when it fits the question. Write English in English letters and Japanese in kana. Never output other languages.',
+    `The partner had just asked: "${exchange.previousPartner || ''}"`,
+    `The partner then replied (this is reply_en): "${exchange.partnerText || ''}"`,
+    `This is child turn ${exchange.turn} of about ${exchange.maxTurns}.`
+  ].filter(Boolean).join('\n') : ''
   return [
     `You annotate ONE exchange of a voice chat for the app screen. ${adult ? 'The learner is a Japanese adult practicing English.' : 'A Japanese child (5-6) talks with an English-speaking monster.'}`,
     'Do NOT write a new reply. reply_en must be EXACTLY the partner line you are given (fix only obvious transcription spacing).',
@@ -174,8 +182,9 @@ export function buildAnnotatePrompt(ctx) {
       : 'tip_ja: "".',
     'end: true only if the partner line is a goodbye that ends the chat.',
     'heard: false only if the child line is empty or meaningless noise.',
+    audioRules,
     OUTPUT_RULES
-  ].join('\n\n')
+  ].filter(Boolean).join('\n\n')
 }
 
 export function annotateInput({ childText, partnerText, turn, maxTurns }) {

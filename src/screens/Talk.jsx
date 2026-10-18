@@ -65,6 +65,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
 
   const recorder = useRef(null)
   const pressing = useRef(false)
+  const stopping = useRef(false) // 離したあとの録り足し中
   const logRef = useRef(null)
   const startedAt = useRef(new Date().toISOString())
   const turnsRef = useRef(turns)
@@ -222,16 +223,21 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     waitTimer.current = setTimeout(() => { setBusy(false); setCaption('もういちど はなしてみてね') }, 15000)
   }
 
-  const annotateLive = async (childText, partnerText, turnId) => {
+  const annotateLive = async (liveChildText, partnerText, turnId, childAudio) => {
     const turn = childCount()
     const context = makeContext(turn)
     const byeBye = /bye[- ]?bye|see you/i.test(partnerText)
+    const previousPartner = [...turnsRef.current].reverse().find((item) => item.who === 'partner' && item.turnId !== turnId)?.text || ''
     let reply = null
     try {
       const result = await sendTurn({
-        system: buildAnnotatePrompt(context),
+        system: childAudio
+          ? buildAnnotatePrompt(context, { previousPartner, partnerText, turn, maxTurns: mode.maxTurns })
+          : buildAnnotatePrompt(context),
         history: [],
-        input: { text: annotateInput({ childText, partnerText, turn, maxTurns: mode.maxTurns }) },
+        input: childAudio
+          ? { audio: { mime: childAudio.mime, data: childAudio.base64 } }
+          : { text: annotateInput({ childText: liveChildText, partnerText, turn, maxTurns: mode.maxTurns }) },
         startModel: modelToday(stateRef.current).startIndex,
         context
       })
@@ -239,12 +245,16 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     } catch {
       reply = null // 読みや訳が出せなくても、会話はそのまま続ける
     }
+    // 子どもの言葉は、聞きなおした結果を優先（だめなら Live の文字起こし）
+    const childText = (childAudio && reply?.child_said) || liveChildText
     if (reply) {
       setTurns((prev) => prev.map((item) => {
         if (item.turnId !== turnId) return item
         if (item.who === 'partner') return { ...item, kana: reply.reply_kana, ipa: reply.reply_ipa, ja: reply.reply_ja, hints: (reply.hints || []).slice(0, 3), tip: reply.tip_ja || '' }
-        return { ...item, english: Boolean(reply.spoke_english), lang: reply.child_lang, recast: reply.recast || '' }
+        return { ...item, text: childText || item.text, english: Boolean(reply.spoke_english), lang: reply.child_lang, recast: reply.recast || '' }
       }))
+    } else if (childAudio && liveChildText) {
+      setTurns((prev) => prev.map((item) => (item.turnId === turnId && item.who === 'child' ? { ...item, text: liveChildText } : item)))
     }
     if (childText && !adult) {
       const english = reply ? reply.spoke_english : /[a-z]/i.test(childText)
@@ -317,8 +327,8 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         },
         onChildText: (text) => {
           if (liveTurn.current.typed) return
+          // 画面には出さない（言語をまちがえやすい）。聞きなおしに失敗したときの予備にとっておく
           liveTurn.current.child += text
-          setLiveBubble('child', liveTurn.current.child.trim())
         },
         onSpeaking: (speaking) => {
           setTalkingIndex(speaking ? 'latest' : -1)
@@ -327,12 +337,12 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         onTurnComplete: (audio) => {
           clearTimeout(waitTimer.current)
           setBusy(false)
-          const { child, partner, start, id } = liveTurn.current
+          const { child, partner, start, id, audio: childAudio } = liveTurn.current
           if (audio.length) liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
           newLiveTurn()
           setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false } : item)))
           if (start && turnsRef.current[0]?.opener) return
-          annotateLive(child.trim(), partner.trim(), id)
+          annotateLive(child.trim(), partner.trim(), id, childAudio)
         },
         onClose: (event) => {
           if (finished.current) return
@@ -357,6 +367,11 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
 
   // はじめのひとこと。Live につながればリアルタイム、だめなら1回ずつ送る方式
   useEffect(() => {
+    if (micSupported()) {
+      recorder.current = new Recorder()
+      recorder.current.onLevel = setMicLevel
+      recorder.current.warmUp()
+    }
     if (isMockMode() || config.parentReads) startTurnEngine()
     else startLive().catch(() => { if (!finished.current) startTurnEngine() })
     return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); clearTimeout(waitTimer.current) }
@@ -368,7 +383,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
 
   const startRecording = async (event) => {
     event.preventDefault()
-    if (busy || recording || stopped) return
+    if (busy || recording || stopped || stopping.current) return
     pressing.current = true
     unlockSpeech()
     stopSpeech()
@@ -412,17 +427,25 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     if (!recording) return
     setRecording(false)
     setMicLevel(0)
-    const audio = recorder.current.stop()
-    if (live.current) {
-      live.current.endSpeech()
-      if (audio.seconds < 0.4) return setCaption('ながめに おしながら はなしてね')
-      if (!liveTurn.current.child) setLiveBubble('child', '…')
-      setCaption('')
-      return waitForReply()
-    }
-    if (audio.seconds < 0.4) return setCaption('ながめに おしながら はなしてね')
-    if (audio.loudness < 0.004) return setCaption('こえが きこえなかったよ。もういちど！')
-    send({ audio: { mime: audio.mime, data: audio.base64 } })
+    // 指を離したあとも少しだけ録りつづける（言い終わりが切れないように）
+    const rec = recorder.current
+    stopping.current = true
+    setTimeout(() => {
+      stopping.current = false
+      if (!rec.isRecording) return
+      const audio = rec.stop()
+      if (live.current) {
+        live.current.endSpeech()
+        if (audio.seconds < 0.5) return setCaption('ながめに おしながら はなしてね')
+        liveTurn.current.audio = audio
+        setLiveBubble('child', '…')
+        setCaption('')
+        return waitForReply()
+      }
+      if (audio.seconds < 0.5) return setCaption('ながめに おしながら はなしてね')
+      if (audio.loudness < 0.004) return setCaption('こえが きこえなかったよ。もういちど！')
+      send({ audio: { mime: audio.mime, data: audio.base64 } })
+    }, 300)
   }
 
   const tapHint = (hint) => {

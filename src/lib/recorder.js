@@ -1,6 +1,7 @@
 import { bytesToBase64, downsample, encodeWav, floatToPcm16Base64, rms } from './wav.js'
 
 const MAX_SECONDS = 15
+const PREROLL_SECONDS = 0.5
 
 // おしながら はなす 録音。マイクは会話画面にいる間だけ開いておく。
 export class Recorder {
@@ -10,6 +11,7 @@ export class Recorder {
     this.source = null
     this.processor = null
     this.chunks = []
+    this.preroll = [] // 押す直前の音（押すと同時に話しはじめても頭が切れないように）
     this.frames = 0
     this.recording = false
     this.onLevel = null
@@ -35,8 +37,13 @@ export class Recorder {
     this.processor = this.context.createScriptProcessor(4096, 1, 1)
     this.processor.onaudioprocess = (event) => {
       this.frames += 1
-      if (!this.recording) return
       const data = event.inputBuffer.getChannelData(0)
+      if (!this.recording) {
+        this.preroll.push(new Float32Array(data))
+        const keep = Math.ceil((PREROLL_SECONDS * this.context.sampleRate) / data.length)
+        if (this.preroll.length > keep) this.preroll.splice(0, this.preroll.length - keep)
+        return
+      }
       this.chunks.push(new Float32Array(data))
       this.onLevel?.(Math.min(1, rms(data) * 6))
       if (this.onChunk) this.onChunk(floatToPcm16Base64(downsample(data, this.context.sampleRate, 16000)))
@@ -60,8 +67,21 @@ export class Recorder {
       await this.open()
       await this.resume()
     }
-    this.chunks = []
+    this.framesAtStart = this.frames
+    this.chunks = this.preroll
+    this.preroll = []
+    if (this.onChunk) {
+      for (const chunk of this.chunks) this.onChunk(floatToPcm16Base64(downsample(chunk, this.context.sampleRate, 16000)))
+    }
     this.recording = true
+  }
+
+  // 会話画面に入ったら先にマイクを開いておく（押す直前の音をためられるように）
+  async warmUp() {
+    try {
+      await this.open()
+      await this.resume()
+    } catch {}
   }
 
   // suspended だけでなく iOS の interrupted からも戻す。戻らなければ false
@@ -73,7 +93,11 @@ export class Recorder {
 
   // 押しはじめてしばらくしても音が1つも届かないときに使う（マイクが止まっている）
   get silentSinceStart() {
-    return this.recording && this.chunks.length === 0
+    return this.recording && this.frames === this.framesAtStart
+  }
+
+  get isRecording() {
+    return this.recording
   }
 
   stop() {
