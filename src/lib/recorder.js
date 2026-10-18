@@ -1,4 +1,5 @@
 import { bytesToBase64, downsample, encodeWav, floatToPcm16Base64, rms } from './wav.js'
+import { resetSharedContext, resumeShared, sharedContext } from './audio.js'
 
 const MAX_SECONDS = 15
 const PREROLL_SECONDS = 0.5
@@ -23,7 +24,7 @@ export class Recorder {
   // そうなっていたら、マイクごと作りなおす。
   healthy() {
     const track = this.stream?.getAudioTracks()[0]
-    return Boolean(track && track.readyState === 'live' && this.context && this.context.state !== 'closed')
+    return Boolean(track && track.readyState === 'live' && this.context && this.context === sharedContext() && this.context.state !== 'closed')
   }
 
   async open() {
@@ -39,8 +40,8 @@ export class Recorder {
       throw new Error('recorder closed')
     }
     this.stream = stream
-    const Context = window.AudioContext || window.webkitAudioContext
-    this.context = new Context()
+    // 相棒の声と同じ AudioContext を使う（複数あると iPhone で音がブツブツ切れる）
+    this.context = sharedContext()
     this.source = this.context.createMediaStreamSource(this.stream)
     this.processor = this.context.createScriptProcessor(4096, 1, 1)
     this.processor.onaudioprocess = (event) => {
@@ -72,7 +73,9 @@ export class Recorder {
     try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record' } catch {}
     await this.open()
     if (!(await this.resume())) {
+      // "interrupted" から戻らない：AudioContext ごと作りなおす（相棒の声も次から新しいほうで鳴る）
       this.close()
+      resetSharedContext()
       await this.open()
       await this.resume()
     }
@@ -97,9 +100,7 @@ export class Recorder {
   // suspended だけでなく iOS の interrupted からも戻す。戻らなければ false
   async resume() {
     if (!this.context) return false
-    if (this.context.state === 'running') return true
-    await Promise.race([this.context.resume().catch(() => {}), new Promise((resolve) => setTimeout(resolve, 500))])
-    return this.context?.state === 'running'
+    return resumeShared()
   }
 
   // 押しはじめてしばらくしても音が1つも届かないときに使う（マイクが止まっている）
@@ -129,7 +130,9 @@ export class Recorder {
     this.recording = false
     try { this.processor?.disconnect(); this.source?.disconnect() } catch {}
     this.stream?.getTracks().forEach((track) => track.stop())
-    this.context?.close().catch(() => {})
+    // AudioContext は相棒の声と共有なので閉じない（つなぎをはずすだけ）
+    this.processor = null
+    this.source = null
     this.stream = null
     this.context = null
   }

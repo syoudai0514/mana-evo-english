@@ -108,6 +108,10 @@ export class LiveSession {
     this.player = new PcmPlayer()
     this.player.onStart = () => this.handlers.onSpeaking?.(true)
     this.player.onIdle = () => this.handlers.onSpeaking?.(false)
+    // 声がとぎれた回数（届くのが間に合わなかった）。原因調べのために、1往復ごとにログへ
+    this.gaps = 0
+    this.chunks = 0
+    this.player.onUnderrun = () => { this.gaps += 1 }
     this.ws = null
     this.ready = false
     this.closedByUs = false
@@ -212,12 +216,18 @@ export class LiveSession {
       if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted && !this.dropAudio) {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])
+        this.chunks += 1
         this.player.push(part.inlineData.data, rate)
       }
     }
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
     if (content.outputTranscription?.text) this.handlers.onPartnerText?.(content.outputTranscription.text)
     if (content.turnComplete) {
+      if (this.gaps) {
+        reportLiveProblem({ step: 'audio-gaps', model: this.model, message: `gaps=${this.gaps} chunks=${this.chunks} worklet=${!this.player.fallback} rate=${this.player.context?.sampleRate}` })
+      }
+      this.gaps = 0
+      this.chunks = 0
       this.dropAudio = false
       this.firstTurnDone()
       const audio = this.turnAudio
