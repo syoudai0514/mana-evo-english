@@ -124,6 +124,13 @@ export class Recorder {
     return { seconds, loudness, base64: bytesToBase64(encodeWav(pcm, 16000)), mime: 'audio/wav' }
   }
 
+  // 話し終わったらマイクを手放す。iPhone はマイクを開いている間、スピーカーの音も通話用の音質になり、
+  // 相棒の声がブツブツしたり鳴らなくなったりするため。音を鳴らすモードにもどしておく
+  release() {
+    this.close()
+    setPlaybackSession()
+  }
+
   close() {
     this.generation += 1
     this.recording = false
@@ -133,6 +140,11 @@ export class Recorder {
     this.stream = null
     this.context = null
   }
+}
+
+// iPhone の音の使い方：鳴らすだけ（playback）のときは音楽と同じ音質で、マナーモードでも鳴る
+export function setPlaybackSession() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback' } catch {}
 }
 
 export function micSupported() {

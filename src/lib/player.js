@@ -45,24 +45,14 @@ export class PcmPlayer {
   // タップの中で呼ぶ（iOS は操作の中でないと音を鳴らせない）
   ensure() {
     let context = playbackContext()
-    // 読み上げなどで "interrupted" にされたら、すぐ作りなおす（タップの中なら、そのまま鳴らせる）
-    if (context.state === 'interrupted') {
+    // iPhone はタップの中でないと新しい AudioContext を鳴らせない。作りなおすのはタップの中だけ
+    const inTap = navigator.userActivation ? navigator.userActivation.isActive : false
+    if (context.state === 'interrupted' && inTap) {
       resetPlaybackContext()
       context = playbackContext()
       if (this.node) this.reattach()
     }
-    if (context.state !== 'running') {
-      context.resume().catch(() => {})
-      // iPhone で止められたまま戻らないときは、少し待って作りなおす（次の声から新しいほうで鳴る）
-      clearTimeout(this.healTimer)
-      this.healTimer = setTimeout(() => {
-        if (context === playbackContext() && context.state !== 'running') {
-          resetPlaybackContext()
-          playbackContext().resume().catch(() => {})
-          if (this.active) this.reattach()
-        }
-      }, 600)
-    }
+    if (context.state !== 'running') context.resume().catch(() => {})
     return context
   }
 

@@ -1,7 +1,7 @@
 // 「おしながら話す」→ 文字にする（3.5 Transcribe Live）。復習カード・シャドーイング・TOEIC の声の答えで使う。
 // 文字起こしにつながっていなければ、つながるまでの声をためておいて、つながったら送る。
 import { useEffect, useRef, useState } from 'react'
-import { Recorder, micSupported } from './recorder.js'
+import { Recorder, micSupported, setPlaybackSession } from './recorder.js'
 import { Transcriber } from './transcriber.js'
 import { isMockMode } from './config.js'
 import { stopSpeech, unlockSpeech } from './tts.js'
@@ -25,7 +25,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     transcriber.current.ensure()
     recorder.current = new Recorder()
     recorder.current.onLevel = setLevel
-    recorder.current.warmUp()
+    setPlaybackSession() // マイクは押している間だけ開く
     return () => { recorder.current?.close(); transcriber.current?.close() }
   }, [])
 
@@ -68,6 +68,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     setTimeout(async () => {
       if (!rec.isRecording) return
       const audio = rec.stop()
+      rec.release()
       if (audio.seconds < 0.4) return
       setBusy(true)
       // 押している間につながらなかったときは、少し待ってからためた声を送る

@@ -5,7 +5,7 @@ import { MODES } from '../data/modes.js'
 import { annotatorMessage, buildAnnotatorPrompt, buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
 import { modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
 import { nextReading, cleanHint, tidyKidsJa } from '../lib/kana.js'
-import { Recorder, micSupported } from '../lib/recorder.js'
+import { Recorder, micSupported, setPlaybackSession } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
 import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js'
@@ -586,7 +586,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     if (micSupported()) {
       recorder.current = new Recorder()
       recorder.current.onLevel = setMicLevel
-      recorder.current.warmUp()
+      // マイクは押している間だけ開く（開きっぱなしだと iPhone で相棒の声がブツブツになる）
+      setPlaybackSession()
     }
     // 会話も読みづくりも、上限のない Live の中だけで行う（確認用の mock だけ1回ずつの方式）
     if (isMockMode()) startTurnEngine()
@@ -619,6 +620,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     pressing.current = true
     unlockSpeech()
     stopSpeech()
+    live.current?.wake() // タップの中で、相棒の声の AudioContext を起こしておく
     try {
       if (!recorder.current) {
         recorder.current = new Recorder()
@@ -669,6 +671,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     event?.preventDefault()
     pressing.current = false
     if (!recording) return
+    live.current?.wake()
     setRecording(false)
     setMicLevel(0)
     // 指を離したあとも少しだけ録りつづける（言い終わりが切れないように）
@@ -678,6 +681,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       stopping.current = false
       if (!rec.isRecording) return
       const audio = rec.stop()
+      rec.release()
       if (live.current && usingAsr.current) {
         if (audio.seconds < 0.5) { transcriber.current?.end(); return setCaption(say2('ながめに おしながら はなしてね', '少し長めに押しながら話してください')) }
         setLiveBubble('child', '…')
