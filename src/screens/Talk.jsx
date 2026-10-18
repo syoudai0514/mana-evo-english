@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { levelOf } from '../data/levels.js'
 import { MODES } from '../data/modes.js'
-import { buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
+import { annotatorMessage, buildAnnotatorPrompt, buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
 import { modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
 import { nextReading } from '../lib/kana.js'
 import { Recorder, micSupported } from '../lib/recorder.js'
@@ -10,6 +10,7 @@ import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
 import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js'
 import { Transcriber } from '../lib/transcriber.js'
+import { Annotator } from '../lib/annotator.js'
 import { isMockMode } from '../lib/config.js'
 import { Reading } from '../components/ui.jsx'
 
@@ -80,6 +81,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const finished = useRef(false)
   const live = useRef(null)
   const lastTurnId = useRef(0) // 最後に終わった往復（カードが遅れて届いたとき用）
+  const annotator = useRef(null) // 画面カードづくりの裏方（音を鳴らさない Live）
   const transcriber = useRef(null) // 子どもの声の文字起こし（3.5 Transcribe Live）
   const usingAsr = useRef(false) // この発話を文字起こし経由で相棒に渡すか
   const heldChunks = useRef([]) // 文字起こしが空だったとき、相棒に声をそのまま送りなおす用
@@ -124,6 +126,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     recorder.current?.close()
     live.current?.close()
     transcriber.current?.close()
+    annotator.current?.close()
     clearTimeout(waitTimer.current)
     onFinish({
       id: `s${Date.now()}`,
@@ -208,8 +211,24 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const childCount = () => turnsRef.current.filter((turn) => turn.who === 'child' && !turn.pending).length
 
   // Live の文字起こしは少しずつ届くので、その往復（turnId）の吹き出しを書きかえていく
+  // 文字が少しずつ届くたびに描きなおすと iPhone が重くなり音がとぎれるので、まとめて描く
+  const bubbleQueue = useRef({})
+  const bubbleTimer = useRef(null)
   const setLiveBubble = (who, text) => {
-    const turnId = liveTurn.current.id
+    bubbleQueue.current[who] = { text, turnId: liveTurn.current.id }
+    if (bubbleTimer.current) return
+    bubbleTimer.current = setTimeout(flushBubbles, 150)
+  }
+
+  const flushBubbles = () => {
+    clearTimeout(bubbleTimer.current)
+    bubbleTimer.current = null
+    const queued = bubbleQueue.current
+    bubbleQueue.current = {}
+    for (const key of ['child', 'partner']) if (queued[key]) writeLiveBubble(key, queued[key].text, queued[key].turnId)
+  }
+
+  const writeLiveBubble = (who, text, turnId) => {
     setTurns((prev) => {
       const next = [...prev]
       const index = next.findLastIndex((turn) => turn.turnId === turnId && turn.who === who)
@@ -248,11 +267,19 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     }
   }
 
+  // 裏方に、この往復の画面カードを頼む
+  const annotateTurn = async (childText, partnerText, turnId) => {
+    if (!annotator.current || !partnerText) return
+    const previousPartner = [...turnsRef.current].reverse().find((item) => item.who === 'partner' && item.turnId !== turnId)?.text || ''
+    const card = await annotator.current.ask(annotatorMessage({ previousPartner, childText, partnerText }))
+    if (card && !finished.current) applyCard(card, turnId)
+  }
+
   // 相棒から届いた画面カード（読み・ひらがなの意味・ヒント・子どもの言葉の補正）を、その往復の吹き出しに付ける
-  const applyCard = (card) => {
+  const applyCard = (card, explicitTurnId) => {
     const current = liveTurn.current
-    if (current.start && turnsRef.current[0]?.opener) return
-    const turnId = current.partner || current.child ? current.id : lastTurnId.current
+    if (!explicitTurnId && current.start && turnsRef.current[0]?.opener) return
+    const turnId = explicitTurnId || (current.partner || current.child ? current.id : lastTurnId.current)
     const childSaid = String(card.child_said || '').trim()
     setTurns((prev) => prev.map((item) => {
       if (item.turnId !== turnId) return item
@@ -288,10 +315,9 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     let lastError = null
     for (const attempt of attempts) {
       // 受けつけない設定があれば外していく：聞き取りの言語指定・画面カード（声を止めない→止める→なし）
+      // 相棒は会話だけに集中させる（画面カードは裏方が作る）
       const setups = [
-        { hints: true, card: 'nonblocking' },
-        { hints: true, card: 'blocking' },
-        { hints: false, card: 'blocking' },
+        { hints: true, card: null },
         { hints: false, card: null }
       ]
       for (const setup of setups) {
@@ -373,6 +399,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
           setBusy(false)
           const { child, partner, start, id } = liveTurn.current
           if (audio.length) liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
+          flushBubbles()
           newLiveTurn()
           setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false } : item)))
           if (start && turnsRef.current[0]?.opener) return
@@ -380,6 +407,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
           lastTurnId.current = id
           reconnects.current = 0 // 1往復できたら、つなぎなおしの回数をもどす
           recordTurn(child.trim(), partner.trim())
+          annotateTurn(child.trim(), partner.trim(), id)
         },
         onClose: (event) => {
           if (finished.current) return
@@ -402,7 +430,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       if (reconnects.current > 2) throw new Error('too many reconnects')
       const granted = await requestLiveToken(stateRef.current.liveModel || 'auto', 'voice')
       if (finished.current) return
-      const session = createLiveSession({ ...granted, ...(workingSetup.current ?? { transcription: transcriptionHints(), card: 'blocking' }) })
+      const session = createLiveSession({ ...granted, ...(workingSetup.current ?? { transcription: transcriptionHints(), card: null }) })
       await session.connect()
       session.probing = false
       live.current = session
@@ -433,6 +461,10 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       transcriber.current = new Transcriber({ transcription: transcriptionHints() })
       transcriber.current.ensure()
     }
+    if (!annotator.current) {
+      annotator.current = new Annotator({ system: buildAnnotatorPrompt(makeContext(0)) })
+      annotator.current.ensure().catch(() => {})
+    }
     const first = turnsRef.current[0]
     newLiveTurn(true)
     waitForReply()
@@ -449,7 +481,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     // 会話も読みづくりも、上限のない Live の中だけで行う（確認用の mock だけ1回ずつの方式）
     if (isMockMode()) startTurnEngine()
     else startLive().catch(() => { if (!finished.current) setStopped('offline') })
-    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); transcriber.current?.close(); clearTimeout(waitTimer.current) }
+    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); transcriber.current?.close(); annotator.current?.close(); clearTimeout(waitTimer.current) }
   }, [])
 
   useEffect(() => {
@@ -471,6 +503,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         newLiveTurn()
         heldChunks.current = []
         const asr = transcriber.current?.ready ? transcriber.current : null
+        if (transcriber.current && !asr) transcriber.current.ensure() // 切れていたら、次に押すときのためにつなぎなおす
         usingAsr.current = Boolean(asr)
         if (asr) {
           // 声は文字起こし専用モデルへ。相棒には確定した文字を渡す（聞きまちがいが少ない）

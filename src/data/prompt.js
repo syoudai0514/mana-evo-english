@@ -184,3 +184,31 @@ export function buildLiveSystemPrompt(ctx) {
 
 
 
+
+// ---------- 画面カードづくりの裏方（音は鳴らさず、関数 show_card だけを呼ぶ） ----------
+
+export function buildAnnotatorPrompt(ctx) {
+  const level = levelOf(ctx.level)
+  const adult = ctx.mode === 'adult'
+  return [
+    `You are a silent helper for an English-talk app for ${adult ? 'a Japanese adult learner' : 'a Japanese child (5-6 years old)'}.`,
+    'Each message describes one exchange of the conversation. NEVER speak. Your only job: call the function show_card exactly once for each message, then stop.',
+    'reply_en: exactly the partner line you are given.',
+    'kana: katakana reading of reply_en with spaces between words.',
+    'ja_kids: the meaning of reply_en in very simple Japanese a 5-year-old can read, ONLY hiragana and katakana (no kanji), with spaces between phrases.',
+    'ja: natural Japanese translation (for parents).',
+    adult ? '' : 'child_said: what the child really said (the line comes from speech recognition and may be wrong; katakana English like "チーズ" means "cheese"). English words in English letters, Japanese in kana.',
+    'spoke_english: true if the child used English words. recast: the natural English sentence for what the child meant.',
+    `hints: 2-3 short easy answers the child could say next (fit this stage: ${level.label}), each with en, kana, ja (hiragana/katakana only) and one emoji.`,
+    'memory: new lasting facts about the child (likes, pets, wishes) as short English phrases, [] if none. end: true only if the partner line is a goodbye.',
+    adult ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "".' : 'tip_ja: "".'
+  ].filter(Boolean).join('\n')
+}
+
+export function annotatorMessage({ previousPartner, childText, partnerText }) {
+  return [
+    `Partner had asked: "${previousPartner || ''}"`,
+    `Child said: "${childText || ''}"`,
+    `Partner replied: "${partnerText || ''}"`
+  ].join('\n')
+}

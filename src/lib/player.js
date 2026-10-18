@@ -32,7 +32,10 @@ export class PcmPlayer {
     const source = context.createBufferSource()
     source.buffer = buffer
     source.connect(context.destination)
-    const startAt = Math.max(context.currentTime + 0.03, this.nextTime)
+    // 話しはじめと、音が足りなくなったとき（通信のゆれ）は、少しためてから鳴らす（プツプツ防止）
+    const underrun = this.nextTime < context.currentTime + 0.02
+    const lead = !this.sources.size ? 0.25 : underrun ? 0.15 : 0
+    const startAt = underrun ? context.currentTime + lead : this.nextTime
     source.start(startAt)
     this.nextTime = startAt + buffer.duration
     if (!this.sources.size) this.onStart?.()
