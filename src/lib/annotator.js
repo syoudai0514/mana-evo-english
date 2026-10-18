@@ -5,6 +5,19 @@ import { LiveSession, reportLiveProblem, requestLiveToken } from './live.js'
 
 const TIMEOUT_MS = 9000
 
+function words(text) {
+  return String(text || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean)
+}
+
+// カードの reply_en が、この回のセリフとほぼ同じか（語の6割以上が重なる）
+export function sameLine(a, b) {
+  const left = words(a)
+  const right = new Set(words(b))
+  if (!left.length || !right.size) return false
+  const hit = left.filter((word) => right.has(word)).length
+  return hit / Math.max(left.length, right.size) >= 0.6
+}
+
 export class Annotator {
   // ways：使うモデルと送り方の順番（賢い 3.8 Live → 3 Flash Live）。だめなら次を試す
   constructor({ system, ways = [['3.8', 'realtime'], ['3.8', 'client'], ['3-flash', 'realtime'], ['3-flash', 'client']] }) {
@@ -58,7 +71,8 @@ export class Annotator {
   }
 
   // 1往復ぶんのカードをもらう。だめなら同じ回のうちに次のモデル・送り方で。全部だめなら null（会話は止めない）
-  ask(message) {
+  // expect：この回の相棒のセリフ。前の回のカードが遅れて届いたら、それは捨てて待ちなおす
+  ask(message, expect = '') {
     const once = async () => {
       let used = null
       try {
@@ -66,9 +80,18 @@ export class Annotator {
         used = session.way
         return await new Promise((resolve, reject) => {
           let misses = 0
+          let stale = 0
           const timer = setTimeout(() => reject(new Error('annotator timeout')), TIMEOUT_MS)
           this.pending = {
-            resolve: (card) => { clearTimeout(timer); resolve(card) },
+            resolve: (card) => {
+              if (expect && !sameLine(card?.reply_en, expect)) {
+                stale += 1
+                if (stale === 1) session.sendText(`That card was for an older line. Call show_card for this line: "${expect}"`)
+                return
+              }
+              clearTimeout(timer)
+              resolve(card)
+            },
             reject: (error) => { clearTimeout(timer); reject(error) },
             // 関数を呼ばずに返事を終えたら、もう一度だけ頼む
             noCard: () => {

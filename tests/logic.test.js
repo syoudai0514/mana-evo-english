@@ -213,3 +213,11 @@ test('broken hint emoji is rebuilt from its code point or hidden', () => {
 test('kid Japanese drops spaces before punctuation', () => {
   assert.equal(tidyKidsJa('なあに マサキ 。 おはな の ゆめ かな ？ おしえて ！'), 'なあに マサキ。 おはな の ゆめ かな？ おしえて！')
 })
+
+test('annotator cards for an older line are recognized', async () => {
+  const { sameLine } = await import('../src/lib/annotator.js')
+  const now = "It really is relaxing, isn't it? I love just watching the clouds. Do you have a favorite park near your house?"
+  assert.equal(sameLine(now, now), true)
+  assert.equal(sameLine("It really is relaxing isn't it? I love watching the clouds. Do you have a favorite park near your house?", now), true)
+  assert.equal(sameLine("It's okay! Sometimes it's hard to catch everything. Are you just enjoying the fresh air?", now), false)
+})

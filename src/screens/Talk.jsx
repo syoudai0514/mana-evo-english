@@ -271,7 +271,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const annotateTurn = async (childText, partnerText, turnId) => {
     if (!annotator.current || !partnerText) return
     const previousPartner = [...turnsRef.current].reverse().find((item) => item.who === 'partner' && item.turnId !== turnId)?.text || ''
-    const card = await annotator.current.ask(annotatorMessage({ previousPartner, childText, partnerText }))
+    const card = await annotator.current.ask(annotatorMessage({ previousPartner, childText, partnerText }), partnerText)
     if (card && !finished.current) applyCard(card, turnId)
   }
 

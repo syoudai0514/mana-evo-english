@@ -13,7 +13,8 @@ export class PcmPlayer {
   ensure() {
     if (!this.context) {
       const Context = window.AudioContext || window.webkitAudioContext
-      this.context = new Context()
+      // 声と同じ 24kHz で鳴らす。iPhone は細切れの音を1つずつ変換するので、つなぎ目でプツッと鳴る
+      try { this.context = new Context({ sampleRate: 24000 }) } catch { this.context = new Context() }
     }
     if (this.context.state === 'suspended') this.context.resume().catch(() => {})
     return this.context
@@ -27,15 +28,17 @@ export class PcmPlayer {
     const context = this.ensure()
     const samples = pcm16Base64ToFloat(base64)
     if (!samples.length) return
+    // 話しはじめと、音が足りなくなったとき（通信のゆれ）は、少しためてから鳴らす（プツプツ防止）
+    const underrun = this.nextTime < context.currentTime + 0.02
+    const lead = !this.sources.size ? 0.25 : underrun ? 0.15 : 0
+    const startAt = underrun ? context.currentTime + lead : this.nextTime
+    // 無音のあとから鳴りはじめるときは、少しずつ大きくしてプツッという音を消す
+    if (underrun) fadeIn(samples, Math.round(sampleRate * 0.004))
     const buffer = context.createBuffer(1, samples.length, sampleRate)
     buffer.copyToChannel(samples, 0)
     const source = context.createBufferSource()
     source.buffer = buffer
     source.connect(context.destination)
-    // 話しはじめと、音が足りなくなったとき（通信のゆれ）は、少しためてから鳴らす（プツプツ防止）
-    const underrun = this.nextTime < context.currentTime + 0.02
-    const lead = !this.sources.size ? 0.25 : underrun ? 0.15 : 0
-    const startAt = underrun ? context.currentTime + lead : this.nextTime
     source.start(startAt)
     this.nextTime = startAt + buffer.duration
     if (!this.sources.size) this.onStart?.()
@@ -60,6 +63,11 @@ export class PcmPlayer {
     this.context?.close().catch(() => {})
     this.context = null
   }
+}
+
+function fadeIn(samples, length) {
+  const n = Math.min(length, samples.length)
+  for (let i = 0; i < n; i += 1) samples[i] *= i / n
 }
 
 export function sampleRateOf(mimeType) {
