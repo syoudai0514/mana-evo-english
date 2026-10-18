@@ -176,6 +176,7 @@ export class LiveSession {
         try { message = JSON.parse(await messageText(event.data)) } catch { return }
         if (message.setupComplete && !this.ready) {
           this.ready = true
+          this.connectedAt = Date.now()
           clearTimeout(timer)
           resolve()
           this.handlers.onReady?.()
@@ -209,6 +210,15 @@ export class LiveSession {
     }
     const content = message.serverContent
     if (!content) return
+    // 返事の途中で何も届かなくなったら（接続が止まった）、その往復を終わったことにして画面を止めない
+    clearTimeout(this.stallTimer)
+    if (!content.turnComplete && !content.interrupted && !this.asr) {
+      this.stallTimer = setTimeout(() => {
+        if (this.closedByUs) return
+        reportLiveProblem({ step: 'stall', model: this.model, message: `no turnComplete for 8s (age ${Math.round(this.age / 1000)}s)` })
+        this.handle({ serverContent: { turnComplete: true } })
+      }, 8000)
+    }
     if (content.interrupted) {
       this.player.stop()
       this.handlers.onInterrupted?.()
@@ -316,12 +326,18 @@ export class LiveSession {
     for (const [data, rate] of audio) this.player.push(data, rate)
   }
 
+  // つないでからの時間（ms）。Live は2〜3分で向こうから切られるので、その前につなぎなおす目安
+  get age() {
+    return this.connectedAt ? Date.now() - this.connectedAt : 0
+  }
+
   get speaking() {
     return this.player.playing
   }
 
   close() {
     this.closedByUs = true
+    clearTimeout(this.stallTimer)
     this.player.close()
     try { this.ws?.close() } catch {}
   }

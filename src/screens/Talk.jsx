@@ -518,6 +518,45 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     }
   }
 
+  // Live は2〜3分で向こうから切られる（返事の途中で切れると止まる）。
+  // 話していないすきに、続きの目印を使って新しい接続に入れかえておく
+  const refreshing = useRef(false)
+  const refreshLive = async () => {
+    const old = live.current
+    if (!old || refreshing.current || finished.current) return
+    refreshing.current = true
+    const setup = workingSetup.current ?? { transcription: transcriptionHints(), card: null, resume: false }
+    const handle = setup.resume ? old.resumeHandle : ''
+    try {
+      const granted = await requestLiveToken(liveModelId(old.model) || stateRef.current.liveModel || 'auto', 'voice')
+      const fresh = createLiveSession({ ...granted, ...setup, resumeHandle: handle })
+      await fresh.connect()
+      fresh.probing = false
+      // つないでいる間に話しはじめていたら、今回はやめる（次のすきに）
+      if (finished.current || live.current !== old || pressing.current || stopping.current || busyRef.current || old.speaking) { fresh.close(); return }
+      if (!handle) {
+        const history = buildHistory(turnsRef.current.filter((turn) => !turn.pending && turn.text && turn.text !== '…'), 12)
+          .map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] }))
+        fresh.sendHistory(history)
+      }
+      live.current = fresh
+      old.close()
+    } catch (error) {
+      reportLiveProblem({ step: 'refresh', message: String(error?.message || error) })
+    } finally {
+      refreshing.current = false
+    }
+  }
+  const busyRef = useRef(false)
+  busyRef.current = busy
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const session = live.current
+      if (session && session.age > 100000 && !pressing.current && !stopping.current && !busyRef.current && !session.speaking) refreshLive()
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
+
   const retryLive = () => {
     setStopped(null)
     reconnects.current = 0

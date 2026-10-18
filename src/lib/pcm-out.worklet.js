@@ -11,7 +11,7 @@ class PcmOut extends AudioWorkletProcessor {
     this.gain = 0
     this.idleFrames = 0
     this.sinceInput = 0
-    this.need = 0.25 * 24000
+    this.need = 0.5 * 24000
     this.underruns = 0
     this.maybeGap = false
     this.last = 0
@@ -38,7 +38,7 @@ class PcmOut extends AudioWorkletProcessor {
         this.maybeGap = false
         this.playing = false
         this.gain = 0
-        this.need = 0.25 * 24000
+        this.need = 0.5 * 24000
       }
     }
   }
@@ -49,8 +49,8 @@ class PcmOut extends AudioWorkletProcessor {
     const available = this.write - this.read
     this.sinceInput += out.length
     if (!this.playing) {
-      // 話しはじめは 0.25 秒、とぎれたあとは 0.15 秒ためてから。届くのが止まっていたら残りを鳴らす
-      if (available > 1 && (available >= this.need || this.sinceInput > 0.3 * sampleRate)) {
+      // 話しはじめは 0.5 秒、とぎれたあとは 0.4 秒ためてから（声は 0.3 秒ほどの細切れで届く）。届くのが止まっていたら残りを鳴らす
+      if (available > 1 && (available >= this.need || this.sinceInput > 0.45 * sampleRate)) {
         this.playing = true
         this.port.postMessage({ type: 'start' })
       } else {
@@ -71,7 +71,7 @@ class PcmOut extends AudioWorkletProcessor {
           for (let j = i + 1; j < out.length; j += 1) out[j] = 0
           this.fading = false
           this.playing = false
-          this.need = 0.15 * 24000
+          this.need = 0.4 * 24000
           this.port.postMessage({ type: 'drained', underruns: this.underruns, jumps: this.jumps })
           return true
         }

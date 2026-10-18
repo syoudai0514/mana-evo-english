@@ -41,6 +41,11 @@ export class SilentTool {
   }
 
   async ensure() {
+    // 古くなった接続（2〜3分で向こうから切られる）は、頼む前に新しくする
+    if (this.session?.ws?.readyState === WebSocket.OPEN && this.session.age > 100000) {
+      this.session.close()
+      this.session = null
+    }
     if (this.session?.ws?.readyState === WebSocket.OPEN) return this.session
     if (!this.connecting) {
       this.connecting = (async () => {

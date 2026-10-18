@@ -4,6 +4,7 @@ import { LiveSession, reportLiveProblem, requestLiveToken } from './live.js'
 
 const SETTLE_MS = 450 // 文字がこの時間ふえなければ確定とみなす
 const MAX_WAIT_MS = 1600
+const REFRESH_AFTER_MS = 100000 // 100秒たったら入れかえる
 
 export class Transcriber {
   constructor({ transcription }) {
@@ -20,35 +21,70 @@ export class Transcriber {
     return this.session?.ws?.readyState === WebSocket.OPEN
   }
 
+  // Live は2〜3分で向こうから切られる（切れた瞬間に話すと聞きとれない）。
+  // 話していないときに、古くなった接続を新しいものに入れかえておく
+  startRefresh() {
+    if (this.refreshTimer) return
+    this.refreshTimer = setInterval(() => {
+      if (!this.active && this.ready && this.session.age > REFRESH_AFTER_MS) this.refresh()
+    }, 10000)
+  }
+
+  async refresh() {
+    if (this.refreshing) return
+    this.refreshing = true
+    const old = this.session
+    try {
+      const fresh = await this.open()
+      if (this.active || this.closed) { fresh.close(); return } // 話しはじめていたら、次の機会に
+      this.session = fresh
+      old?.close()
+    } catch {
+      // だめなら今の接続のまま（切れたら次に押したときにつなぐ）
+    } finally {
+      this.refreshing = false
+    }
+  }
+
+  async open() {
+    const granted = await requestLiveToken('auto', 'asr')
+    const session = new LiveSession({
+      ...granted,
+      system: 'Transcribe the speaker exactly.',
+      asr: true,
+      transcription: this.transcription,
+      handlers: {
+        onChildText: (text) => { if (this.session === session) { this.text += text; this.changedAt = Date.now() } },
+        onTurnComplete: (_audio, text) => {
+          if (this.session !== session) return
+          if (text && !this.text) { this.text = text; this.changedAt = Date.now() }
+          this.completed = true
+        },
+        onClose: (event) => {
+          if (this.session === session) this.session = null
+          reportLiveProblem({ step: 'asr-closed', model: granted.model, message: `${event?.code} ${event?.reason || ''} age=${Math.round(session.age / 1000)}s` })
+        }
+      }
+    })
+    await session.connect()
+    session.probing = false
+    return session
+  }
+
   async ensure() {
-    if (this.ready || this.failed) return this.session
+    this.startRefresh()
+    if (this.ready || (this.failed && Date.now() - this.failedAt < 30000)) return this.session
     if (!this.connecting) {
       this.connecting = (async () => {
         try {
-          const granted = await requestLiveToken('auto', 'asr')
-          const session = new LiveSession({
-            ...granted,
-            system: 'Transcribe the speaker exactly.',
-            asr: true,
-            transcription: this.transcription,
-            handlers: {
-              onChildText: (text) => { this.text += text; this.changedAt = Date.now() },
-              onTurnComplete: (_audio, text) => {
-                if (text && !this.text) { this.text = text; this.changedAt = Date.now() }
-                this.completed = true
-              },
-              onClose: (event) => {
-                if (this.session === session) this.session = null
-                reportLiveProblem({ step: 'asr-closed', model: granted.model, message: `${event?.code} ${event?.reason || ''}` })
-              }
-            }
-          })
-          await session.connect()
-          session.probing = false
+          const session = await this.open()
           this.session = session
+          this.failed = false
           return session
         } catch (error) {
-          this.failed = true // 使えなければ、相棒に声をそのまま送るやり方にもどす
+          // 使えなければ、しばらくは相棒に声をそのまま送るやり方にもどす（30秒たったら、またつないでみる）
+          this.failed = true
+          this.failedAt = Date.now()
           reportLiveProblem({ step: 'asr', message: String(error?.message || error) })
           return null
         } finally {
@@ -60,6 +96,7 @@ export class Transcriber {
   }
 
   begin() {
+    this.active = true
     this.text = ''
     this.completed = false
     this.changedAt = Date.now()
@@ -72,8 +109,7 @@ export class Transcriber {
 
   // 離したあと、確定した文字を待つ（空なら ''）
   async end() {
-    if (!this.ready) return ''
-    if (!this.session.endSpeech()) return '' // 音が届いていない
+    if (!this.ready || !this.session.endSpeech()) { this.active = false; return '' } // つながっていない・音が届いていない
     const started = Date.now()
     await new Promise((resolve) => {
       const check = () => {
@@ -83,10 +119,13 @@ export class Transcriber {
       }
       check()
     })
+    this.active = false
     return this.text.trim()
   }
 
   close() {
+    this.closed = true
+    clearInterval(this.refreshTimer)
     this.session?.close()
     this.session = null
   }
