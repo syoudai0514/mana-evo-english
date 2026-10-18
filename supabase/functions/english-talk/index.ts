@@ -1,7 +1,7 @@
 // english-talk: マナエボ英語の Gemini Live 接続を用意する。
 // - ログイン中のユーザー（app-save-hub の Supabase Auth）だけが使える
 // - Gemini の API キーは secret（GEMINI_API_KEY）に置き、アプリには渡さない
-// - 使うのは無料枠で上限のない Live モデルだけ（Gemini 3 Flash Live / 3.8 Live / 2.5 Flash Native Audio Dialog）。
+// - 使うのは無料枠で上限のない Live モデルだけ（Gemini 3 Flash Live / 3.8 Live / 2.5 Flash Native Audio Dialog / 3.5 Transcribe Live）。
 //   それ以外のモデル（Flash-Lite など上限のあるもの）は呼ばない
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -12,12 +12,14 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const LIVE_ALLOWED: Record<string, RegExp> = {
   '3-flash': /^gemini-3(\.1)?-flash-live(-preview)?$/,
   '3.8': /^gemini-3\.8-live$/,
-  '2.5-audio': /^gemini-2\.5-flash-native-audio/
+  '2.5-audio': /^gemini-2\.5-flash-native-audio/,
+  '3.5-transcribe': /^gemini-3\.5-transcribe-live/
 }
 // おまかせの順番。会話（声）は速さ優先、読みづくり（文字）は賢さ優先
 const AUTO_ORDER: Record<string, string[]> = {
   voice: ['3-flash', '3.8', '2.5-audio'],
-  text: ['3.8', '3-flash']
+  text: ['3.8', '3-flash'],
+  asr: ['3.5-transcribe'] // 子どもの声の文字起こし専用
 }
 let liveModelsCache: { names: string[]; at: number } | null = null
 
@@ -109,10 +111,10 @@ Deno.serve(async (req) => {
   }
 
   if (body?.action === 'live-token') {
-    const purpose = body.purpose === 'text' ? 'text' : 'voice'
+    const purpose = ['text', 'asr'].includes(body.purpose ?? '') ? body.purpose as string : 'voice'
     const model = await pickLiveModel(body.liveModel, purpose)
     console.log('live token', purpose, body.liveModel ?? 'auto', '->', model)
-    if (!model) return json({ code: 'no_live_model', message: 'Gemini 3 Flash Live / 3.8 Live が見つかりません' }, 503)
+    if (!model) return json({ code: 'no_live_model', message: `${purpose} 用の Live モデルが見つかりません` }, 503)
     const token = await createLiveToken()
     if (!token) return json({ code: 'live_token', message: 'Live に接続できませんでした' }, 502)
     return json({ token, model })

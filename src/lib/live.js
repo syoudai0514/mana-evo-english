@@ -47,8 +47,11 @@ async function messageText(data) {
 export class LiveSession {
   // text: true なら文字だけで返す接続（読み・意味・ヒントづくり用）。muted: true なら声を鳴らさない（親子モード）
   // transcription: 子どもの声の聞き取り設定（languageCodes で英語・日本語に限定、customVocabulary でよく出る単語を優先）
-  constructor({ token, model, system, voiceName, handlers, text = false, muted = false, transcription = {} }) {
+  // asr: true なら文字起こし専用（3.5 Transcribe Live）
+  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {} }) {
     this.transcription = transcription
+    this.asr = asr
+    this.dropAudio = false
     this.token = token
     this.model = model
     this.system = system
@@ -79,7 +82,16 @@ export class LiveSession {
       ws.onopen = () => {
         const model = this.model.startsWith('models/') ? this.model : `models/${this.model}`
         const systemInstruction = { parts: [{ text: this.system }] }
-        ws.send(JSON.stringify(this.textMode
+        ws.send(JSON.stringify(this.asr
+          ? {
+              setup: {
+                model,
+                generationConfig: { responseModalities: ['TEXT'] },
+                inputAudioTranscription: this.transcription,
+                realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
+              }
+            }
+          : this.textMode
           ? {
               setup: {
                 model,
@@ -134,7 +146,7 @@ export class LiveSession {
     }
     for (const part of content.modelTurn?.parts || []) {
       if (typeof part.text === 'string' && !part.thought) this.textBuffer += part.text
-      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted) {
+      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted && !this.dropAudio) {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])
         this.player.push(part.inlineData.data, rate)
@@ -143,6 +155,7 @@ export class LiveSession {
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
     if (content.outputTranscription?.text) this.handlers.onPartnerText?.(content.outputTranscription.text)
     if (content.turnComplete) {
+      this.dropAudio = false
       this.firstTurnDone()
       const audio = this.turnAudio
       const text = this.textBuffer
@@ -182,6 +195,17 @@ export class LiveSession {
   sendHistory(turns) {
     if (!turns.length) return
     this.send({ clientContent: { turns, turnComplete: false } })
+  }
+
+  // 子どもが話しはじめたら、いま流れている相棒の声を止めて、この返事の残りは鳴らさない
+  silenceCurrentTurn() {
+    if (this.player.playing) this.dropAudio = true
+    this.player.stop()
+  }
+
+  // 文字だけの接続で、1つの質問として送る
+  sendUserTurn(text) {
+    this.send({ clientContent: { turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true } })
   }
 
   // 会話の途中の文字（ヒントや文字入力）

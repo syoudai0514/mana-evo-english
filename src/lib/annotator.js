@@ -17,11 +17,13 @@ export function parseJsonReply(text) {
 }
 
 export class Annotator {
-  // candidates：読みづくりに使う Live モデルの順番（賢い 3.8 Live → 3 Flash Live）
-  constructor({ system, candidates = ['3.8', '3-flash'] }) {
+  // ways：読みづくりに使う Live モデルと送り方の順番（賢い 3.8 Live → 3 Flash Live）。
+  // モデルによって受けつける送り方がちがうので、だめなら次を試す
+  constructor({ system, ways = [['3.8', 'client'], ['3.8', 'realtime'], ['3-flash', 'realtime'], ['3-flash', 'client']] }) {
     this.system = system
-    this.candidates = candidates
+    this.ways = ways
     this.index = 0
+    this.lastClose = ''
     this.session = null
     this.connecting = null
     this.queue = Promise.resolve()
@@ -33,14 +35,16 @@ export class Annotator {
     if (this.session?.ws?.readyState === WebSocket.OPEN) return this.session
     if (!this.connecting) {
       this.connecting = (async () => {
-        const granted = await requestLiveToken(this.candidates[this.index % this.candidates.length], 'text')
+        const way = this.ways[this.index % this.ways.length]
+        const granted = await requestLiveToken(way[0], 'text')
         const session = new LiveSession({
           ...granted,
           system: this.system,
           text: true,
           handlers: {
             onTurnComplete: (_audio, text) => this.pending?.resolve(text),
-            onClose: () => {
+            onClose: (event) => {
+              this.lastClose = `${event?.code} ${event?.reason || ''}`
               if (this.session === session) this.session = null
               this.pending?.reject(new Error('annotator closed'))
             }
@@ -50,9 +54,11 @@ export class Annotator {
           await session.connect()
         } catch (error) {
           this.index += 1 // このモデルが文字だけの接続を受けつけなければ、次のモデルへ
+          reportLiveProblem({ step: 'annotate-connect', way: way.join('/'), message: String(error?.message || error) })
           throw error
         }
         session.probing = false
+        session.way = way
         this.session = session
         return session
       })().finally(() => { this.connecting = null })
@@ -60,30 +66,44 @@ export class Annotator {
     return this.connecting
   }
 
-  // 1往復ぶんを聞く。失敗したら null（会話は止めない）
+  // 1往復ぶんを聞く。だめなら同じ回のうちに次の送り方・モデルで聞きなおす。全部だめなら null（会話は止めない）
   ask(message) {
-    const run = async () => {
-      if (this.closed) return null
+    const once = async () => {
+      let used = null
       try {
         const session = await this.ensure()
+        used = session.way
         const text = await new Promise((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error('annotator timeout')), TIMEOUT_MS)
           this.pending = {
             resolve: (value) => { clearTimeout(timer); resolve(value) },
             reject: (error) => { clearTimeout(timer); reject(error) }
           }
-          session.sendText(message)
+          if (session.way[1] === 'client') session.sendUserTurn(message)
+          else session.sendText(message)
         })
-        return parseJsonReply(text)
+        const reply = parseJsonReply(text)
+        if (!reply) throw new Error('not json')
+        return reply
       } catch (error) {
-        reportLiveProblem({ step: 'annotate', model: this.session?.model, message: String(error?.message || error) })
-        if (this.session) this.index += 1 // つながったのに返事がだめなら、次は別のモデルで
+        reportLiveProblem({ step: 'annotate', way: used?.join('/'), message: `${String(error?.message || error)} ${this.lastClose}` })
+        if (used && this.ways[this.index % this.ways.length] === used) this.index += 1
         this.session?.close()
         this.session = null
-        return null
+        throw error
       } finally {
         this.pending = null
       }
+    }
+    const run = async () => {
+      for (let attempt = 0; attempt < this.ways.length && !this.closed; attempt += 1) {
+        try {
+          return await once()
+        } catch {
+          // 次の送り方・モデルで
+        }
+      }
+      return null
     }
     const result = this.queue.then(run)
     this.queue = result.catch(() => null)

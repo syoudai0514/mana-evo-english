@@ -99,8 +99,11 @@
 |---|---|---|---|---|
 | 相棒との会話（声） | Gemini 3 Flash Live | Gemini 3.8 Live | Gemini 2.5 Flash Native Audio Dialog | 会話は速さが一番。3.8 は賢いが遅い可能性、2.5 は声の会話専用の最後の予備 |
 | 読み・ひらがなの意味・ヒント・言い直し・記憶（文字だけ） | Gemini 3.8 Live | Gemini 3 Flash Live | – | 声を出さない裏方なので、少し遅くても賢い方がよい |
-| 子どもの言葉の聞き取り | 会話中の Live の聞き取りを英語・日本語に限定＋よく出る単語を優先 | （次の段階）Gemini 3.5 Transcribe Live | – | 自動判定だとスペイン語などに化けるため |
+| 子どもの言葉の聞き取り | Gemini 3.5 Transcribe Live（文字起こし専用。確定した文字を相棒に渡す） | 会話中の Live に声をそのまま送る（英語・日本語に限定＋よく出る単語を優先） | – | 子どものカタカナ英語（チーズ）を相棒が聞きまちがえる（chili）のを防ぐ |
 | 使わない | Gemini 3.8 Live Extended Thinking | Gemini 3.5 Live Translate | – | 会話には遅すぎる／通訳専用。Extended Thinking は保護者向けのまとめに使う余地あり |
+
+- 読みづくりは「3.8 Live（clientContent）→ 3.8 Live（realtimeInput）→ 3 Flash Live」の順に、受けつける送り方とモデルを同じ回のうちに試す
+- 相棒には「カタカナ英語として聞く」「自信がなければ『Cheese? Or chili?』と聞き返す」と指示する
 
 ### Live（リアルタイム会話）のしくみ
 

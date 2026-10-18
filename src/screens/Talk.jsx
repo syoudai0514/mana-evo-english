@@ -10,6 +10,7 @@ import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
 import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js'
 import { Annotator } from '../lib/annotator.js'
+import { Transcriber } from '../lib/transcriber.js'
 import { isMockMode } from '../lib/config.js'
 import { Reading } from '../components/ui.jsx'
 
@@ -80,6 +81,9 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const finished = useRef(false)
   const live = useRef(null)
   const annotator = useRef(null) // 読み・意味・ヒントづくり（Live の文字だけの接続）
+  const transcriber = useRef(null) // 子どもの声の文字起こし（3.5 Transcribe Live）
+  const usingAsr = useRef(false) // この発話を文字起こし経由で相棒に渡すか
+  const heldChunks = useRef([]) // 文字起こしが空だったとき、相棒に声をそのまま送りなおす用
   const workingTranscription = useRef(null) // つながったときの聞き取り設定（つなぎなおしでも同じものを使う）
   const liveTurn = useRef({ child: '', partner: '', start: false, id: 0 })
   const pendingEnd = useRef(false)
@@ -121,6 +125,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     recorder.current?.close()
     live.current?.close()
     annotator.current?.close()
+    transcriber.current?.close()
     clearTimeout(waitTimer.current)
     onFinish({
       id: `s${Date.now()}`,
@@ -414,6 +419,10 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       annotator.current = new Annotator({ system: buildLiveAnnotatorPrompt(makeContext(0)) })
       annotator.current.ensure().catch(() => {})
     }
+    if (!transcriber.current) {
+      transcriber.current = new Transcriber({ transcription: transcriptionHints() })
+      transcriber.current.ensure()
+    }
     const first = turnsRef.current[0]
     newLiveTurn(true)
     waitForReply()
@@ -430,7 +439,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     // 会話も読みづくりも、上限のない Live の中だけで行う（確認用の mock だけ1回ずつの方式）
     if (isMockMode()) startTurnEngine()
     else startLive().catch(() => { if (!finished.current) setStopped('offline') })
-    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); annotator.current?.close(); clearTimeout(waitTimer.current) }
+    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); annotator.current?.close(); transcriber.current?.close(); clearTimeout(waitTimer.current) }
   }, [])
 
   useEffect(() => {
@@ -449,9 +458,19 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         recorder.current.onLevel = setMicLevel
       }
       if (live.current) {
-        live.current.beginSpeech()
         newLiveTurn()
-        recorder.current.onChunk = (chunk) => live.current?.sendAudio(chunk)
+        heldChunks.current = []
+        const asr = transcriber.current?.ready ? transcriber.current : null
+        usingAsr.current = Boolean(asr)
+        if (asr) {
+          // 声は文字起こし専用モデルへ。相棒には確定した文字を渡す（聞きまちがいが少ない）
+          live.current.silenceCurrentTurn()
+          asr.begin()
+          recorder.current.onChunk = (chunk) => { heldChunks.current.push(chunk); asr.sendAudio(chunk) }
+        } else {
+          live.current.beginSpeech()
+          recorder.current.onChunk = (chunk) => live.current?.sendAudio(chunk)
+        }
       } else {
         recorder.current.onChunk = null
       }
@@ -466,7 +485,8 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         if (rec !== recorder.current || !rec.silentSinceStart) return
         rec.recording = false
         rec.close()
-        if (live.current) live.current.endSpeech()
+        if (live.current && !usingAsr.current) live.current.endSpeech()
+        if (usingAsr.current) transcriber.current?.end()
         pressing.current = false
         setRecording(false)
         setCaption('マイクを じゅんびしたよ。もういちど おしてね')
@@ -486,10 +506,30 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     // 指を離したあとも少しだけ録りつづける（言い終わりが切れないように）
     const rec = recorder.current
     stopping.current = true
-    setTimeout(() => {
+    setTimeout(async () => {
       stopping.current = false
       if (!rec.isRecording) return
       const audio = rec.stop()
+      if (live.current && usingAsr.current) {
+        if (audio.seconds < 0.5) { transcriber.current?.end(); return setCaption('ながめに おしながら はなしてね') }
+        setLiveBubble('child', '…')
+        setCaption('')
+        waitForReply()
+        const text = await transcriber.current.end()
+        if (!live.current || finished.current) return
+        if (text) {
+          liveTurn.current.child = text
+          liveTurn.current.typed = true
+          setLiveBubble('child', text)
+          live.current.sendText(text)
+        } else {
+          // 文字にならなかったときは、相棒に声をそのまま送る
+          live.current.beginSpeech()
+          for (const chunk of heldChunks.current) live.current.sendAudio(chunk)
+          live.current.endSpeech()
+        }
+        return
+      }
       if (live.current) {
         live.current.endSpeech()
         if (audio.seconds < 0.5) return setCaption('ながめに おしながら はなしてね')
