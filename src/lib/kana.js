@@ -31,3 +31,8 @@ export function cleanEmoji(emoji, code) {
 export function cleanHint(hint) {
   return { ...hint, emoji: cleanEmoji(hint?.emoji, hint?.emoji_code) }
 }
+
+// 子ども向けの日本語：句読点や！？の前の空白を詰める（「マサキ 。」→「マサキ。」）
+export function tidyKidsJa(text) {
+  return String(text || '').replace(/\s+([。、！？!?）」])/g, '$1').replace(/([「（])\s+/g, '$1').trim()
+}
