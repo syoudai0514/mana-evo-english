@@ -181,3 +181,23 @@ export class LiveSession {
     try { this.ws?.close() } catch {}
   }
 }
+
+// 声の試し聞き：その声で相棒にひとこと言ってもらう
+export async function previewVoice({ voiceName, line, style }) {
+  const granted = await requestLiveToken('auto')
+  const session = new LiveSession({
+    ...granted,
+    system: `${style}\nWhen you get a line in quotes, say exactly that line out loud and nothing else.`,
+    voiceName,
+    handlers: {}
+  })
+  await session.connect()
+  session.sendStart(`"${line}"`)
+  await Promise.race([session.firstTurn, new Promise((resolve) => setTimeout(resolve, 10000))])
+  // 声が鳴り終わるまで待ってから閉じる
+  await new Promise((resolve) => {
+    const check = () => (session.speaking ? setTimeout(check, 200) : resolve())
+    setTimeout(check, 300)
+  })
+  session.close()
+}

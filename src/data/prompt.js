@@ -149,6 +149,7 @@ export function buildLiveSystemPrompt(ctx) {
 
   return [
     persona.personality,
+    persona.voiceStyle,
     `You are chatting in English with a Japanese child (about 5-6 years old) whose nickname is "${nickname}". ` +
       'Your goal: make the child feel "English is easy and fun, I want to talk with people from other countries!"',
     level.prompt,

@@ -318,7 +318,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
       token,
       model,
       system: buildLiveSystemPrompt(makeContext(0)),
-      voiceName: persona.liveVoice,
+      voiceName: stateRef.current.voices?.[persona.id] || persona.liveVoice,
       handlers: {
         onPartnerText: (text) => {
           liveTurn.current.partner += text
