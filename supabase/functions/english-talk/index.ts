@@ -6,7 +6,8 @@
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
-const MODELS = (Deno.env.get('GEMINI_MODELS') ?? 'gemini-3.1-flash-lite,gemini-3.5-flash')
+// 無料枠はモデルごとに別なので、上限や混雑なら次のモデルへ
+const MODELS = (Deno.env.get('GEMINI_MODELS') ?? 'gemini-3.1-flash-lite,gemini-2.5-flash-lite,gemini-3.5-flash,gemini-2.5-flash')
   .split(',').map((model) => model.trim()).filter(Boolean)
 
 // Live（リアルタイム会話）のモデル。GEMINI_LIVE_MODEL があればそれ、なければ使えるものから選ぶ
@@ -27,8 +28,8 @@ const CORS = {
 
 const HINT = {
   type: 'OBJECT',
-  properties: { en: { type: 'STRING' }, kana: { type: 'STRING' }, emoji: { type: 'STRING' } },
-  required: ['en', 'kana', 'emoji']
+  properties: { en: { type: 'STRING' }, kana: { type: 'STRING' }, ja: { type: 'STRING' }, emoji: { type: 'STRING' } },
+  required: ['en', 'kana', 'ja', 'emoji']
 }
 
 const RESPONSE_SCHEMA = {
@@ -43,12 +44,13 @@ const RESPONSE_SCHEMA = {
     reply_kana: { type: 'STRING' },
     reply_ipa: { type: 'STRING' },
     reply_ja: { type: 'STRING' },
+    reply_ja_kids: { type: 'STRING' },
     hints: { type: 'ARRAY', items: HINT },
     memory: { type: 'ARRAY', items: { type: 'STRING' } },
     tip_ja: { type: 'STRING' },
     end: { type: 'BOOLEAN' }
   },
-  required: ['child_said', 'heard', 'child_lang', 'spoke_english', 'recast', 'reply_en', 'reply_kana', 'reply_ipa', 'reply_ja', 'hints', 'memory', 'tip_ja', 'end']
+  required: ['child_said', 'heard', 'child_lang', 'spoke_english', 'recast', 'reply_en', 'reply_kana', 'reply_ipa', 'reply_ja', 'reply_ja_kids', 'hints', 'memory', 'tip_ja', 'end']
 }
 
 function json(body: unknown, status = 200) {
@@ -200,6 +202,7 @@ function parseReply(data: any) {
     reply_kana: String(reply.reply_kana ?? ''),
     reply_ipa: String(reply.reply_ipa ?? ''),
     reply_ja: String(reply.reply_ja ?? ''),
+    reply_ja_kids: String(reply.reply_ja_kids ?? ''),
     hints: Array.isArray(reply.hints) ? reply.hints.slice(0, 3) : [],
     memory: Array.isArray(reply.memory) ? reply.memory.slice(0, 3).map(String) : [],
     tip_ja: String(reply.tip_ja ?? ''),

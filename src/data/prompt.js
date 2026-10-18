@@ -15,7 +15,8 @@ Output: reply ONLY with JSON matching the schema.
 - reply_kana: Japanese katakana reading of reply_en, words separated by spaces (e.g. "アイ ライク ドッグズ"). Keep punctuation.
 - reply_ipa: IPA transcription of reply_en ONLY at stage 5, otherwise "".
 - reply_ja: natural Japanese translation of reply_en (shown to parents).
-- hints: 2-3 short things the child could say next (fit the stage), each with en, kana (katakana reading) and one emoji.
+- reply_ja_kids: the meaning of reply_en in very simple Japanese a 5-year-old can read: ONLY hiragana and katakana (NO kanji), short, with spaces between phrases (e.g. "いぬと ねこ、どっちが すき？").
+- hints: 2-3 short things the child could say next (fit the stage), each with en, kana (katakana reading), ja (its meaning in hiragana/katakana only, e.g. "はい！") and one emoji.
 - memory: NEW lasting facts about the child worth remembering next time (likes, wishes, pets, recent events), short English phrases. [] if none.
 - tip_ja: "" (only used in adult practice).
 - end: true when the conversation should end now (see turn budget). Then reply_en is a warm goodbye that mentions something you talked about, and hints is [].`

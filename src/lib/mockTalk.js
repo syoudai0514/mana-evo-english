@@ -28,8 +28,9 @@ export async function mockReply({ input, context }) {
       reply_en: end ? 'That was so fun! See you tomorrow!' : (isStart ? 'Hello! Welcome! What would you like?' : line.en),
       reply_kana: end ? 'ザット ワズ ソー ファン！ シー ユー トゥモロー！' : (isStart ? 'ハロー！ ウェルカム！ ワット ウッド ユー ライク？' : line.kana),
       reply_ipa: '',
+      reply_ja_kids: end ? 'とっても たのしかった！また あした！' : (isStart ? 'いらっしゃい！なにに する？' : line.ja),
       reply_ja: end ? 'とっても たのしかった！また あした！' : (isStart ? 'いらっしゃい！なにに しますか？' : line.ja),
-      hints: end ? [] : line.hints.map(([en, kana, emoji]) => ({ en, kana, emoji })),
+      hints: end ? [] : line.hints.map(([en, kana, emoji]) => ({ en, kana, emoji, ja: { red: 'あか', blue: 'あお', yellow: 'きいろ', dogs: 'いぬ', cats: 'ねこ', big: 'おおきい', small: 'ちいさい' }[en] || '' })),
       memory: turn === 2 ? ['likes dinosaurs'] : [],
       tip_ja: context?.mode === 'adult' ? '「I want to」は「I\'d like to」にするとていねいです。' : '',
       end

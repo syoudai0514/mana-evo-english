@@ -74,6 +74,7 @@ export default function Home({ state, update, navigate, showToast, topic, onStar
                   mode={state.reading}
                   onCycle={() => update((prev) => ({ ...prev, reading: nextReading(prev.reading) }))}
                 />
+                {level.japanese !== 'english-only' && <div className="ja kids">{topic.opener.ja}</div>}
               </>
             )}
           </div>

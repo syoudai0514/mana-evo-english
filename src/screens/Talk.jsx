@@ -27,7 +27,7 @@ function titleOf(config) {
 function openerTurn(config) {
   if (config.mode === 'free' && config.topic) {
     const { en, kana, ja } = config.topic.opener
-    return { who: 'partner', text: en, kana, ja, hints: [], opener: true }
+    return { who: 'partner', text: en, kana, ja, jaKids: ja, hints: [], opener: true }
   }
   if (config.mode === 'adult') return { who: 'partner', text: config.adultScene.opener, kana: '', ja: '', hints: [] }
   return null
@@ -40,6 +40,7 @@ function partnerTurnFrom(reply) {
     kana: reply.reply_kana,
     ipa: reply.reply_ipa,
     ja: reply.reply_ja,
+    jaKids: reply.reply_ja_kids,
     hints: (reply.hints || []).slice(0, 3),
     tip: reply.tip_ja || '',
     recastOf: reply.recast || ''
@@ -58,7 +59,8 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
   const [micLevel, setMicLevel] = useState(0)
-  const [showJa, setShowJa] = useState(adult)
+  // 日本語の意味：子どもは段階4まで最初から出す（段階5は全部英語）。大人の練習も出す
+  const [showJa, setShowJa] = useState(adult || levelOf(state.level).japanese !== 'english-only')
   const [typing, setTyping] = useState(adult || !micSupported())
   const [text, setText] = useState('')
   const [pickedHint, setPickedHint] = useState(null)
@@ -254,7 +256,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     if (reply) {
       setTurns((prev) => prev.map((item) => {
         if (item.turnId !== turnId) return item
-        if (item.who === 'partner') return { ...item, kana: reply.reply_kana, ipa: reply.reply_ipa, ja: reply.reply_ja, hints: (reply.hints || []).slice(0, 3), tip: reply.tip_ja || '' }
+        if (item.who === 'partner') return { ...item, kana: reply.reply_kana, ipa: reply.reply_ipa, ja: reply.reply_ja, jaKids: reply.reply_ja_kids, hints: (reply.hints || []).slice(0, 3), tip: reply.tip_ja || '' }
         return { ...item, text: childText || item.text, english: Boolean(reply.spoke_english), lang: reply.child_lang, recast: reply.recast || '' }
       }))
     } else if (childAudio && liveChildText) {
@@ -561,7 +563,9 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
                   <Highlight text={turn.text} mark={turns[index - 1]?.recast} />
                 </div>
                 <Reading kana={turn.kana} ipa={turn.ipa} policy={readingPolicy} mode={state.reading} onCycle={cycleReading} />
-                {showJa && turn.ja && <div className="ja">{turn.ja}</div>}
+                {showJa && (adult ? turn.ja : (turn.jaKids || turn.ja)) && (
+                  <div className={adult ? 'ja' : 'ja kids'}>{adult ? turn.ja : (turn.jaKids || turn.ja)}</div>
+                )}
                 {!turn.live && <button className="speak" aria-label="もういちど きく" onClick={() => replay(turn, index)}>🔊</button>}
               </div>
             </div>
@@ -592,6 +596,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
                 <div className="e">{hint.emoji}</div>
                 <div className="w">{hint.en}</div>
                 <div className="k">{hint.kana}</div>
+                {!adult && showJa && hint.ja && <div className="m">{hint.ja}</div>}
               </button>
             ))}
           </div>
