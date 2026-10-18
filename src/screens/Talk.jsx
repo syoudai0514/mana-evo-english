@@ -80,6 +80,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   const finished = useRef(false)
   const live = useRef(null)
   const annotator = useRef(null) // 読み・意味・ヒントづくり（Live の文字だけの接続）
+  const workingTranscription = useRef(null) // つながったときの聞き取り設定（つなぎなおしでも同じものを使う）
   const liveTurn = useRef({ child: '', partner: '', start: false, id: 0 })
   const pendingEnd = useRef(false)
   const waitTimer = useRef(null)
@@ -273,44 +274,61 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
   // 選んだ Live モデルでだめなら、もう1つの Live モデルで試してから予備の方式へ
   const startLive = async () => {
     const choice = stateRef.current.liveModel || 'auto'
-    const attempts = choice === '3.8' ? ['3.8', '3-flash'] : choice === '3-flash' ? ['3-flash', '3.8'] : ['auto', '3.8']
+    const order = ['3-flash', '3.8', '2.5-audio']
+    const attempts = choice === 'auto' ? order : [choice, ...order.filter((id) => id !== choice)]
     const tried = new Set()
     let lastError = null
     for (const attempt of attempts) {
-      if (finished.current) return
-      let model = ''
-      try {
-        const granted = await requestLiveToken(attempt)
-        model = granted.model
-        if (tried.has(model)) continue
-        tried.add(model)
-        const session = createLiveSession(granted)
-        await session.connect()
-        onLiveConnected(session, model)
+      // 聞き取りを英語・日本語に限定する設定を受けつけないモデルなら、設定なしでもう一度
+      for (const withHints of [true, false]) {
+        if (finished.current) return
+        let model = ''
         try {
-          await Promise.race([session.firstTurn, new Promise((_, reject) => setTimeout(() => reject(new Error('live first reply timeout')), 12000))])
+          const granted = await requestLiveToken(attempt, 'voice')
+          model = granted.model
+          if (tried.has(`${model}:${withHints}`)) break
+          tried.add(`${model}:${withHints}`)
+          const transcription = withHints ? transcriptionHints() : {}
+          const session = createLiveSession({ ...granted, transcription })
+          await session.connect()
+          onLiveConnected(session, model)
+          try {
+            await Promise.race([session.firstTurn, new Promise((_, reject) => setTimeout(() => reject(new Error('live first reply timeout')), 12000))])
+          } catch (error) {
+            if (live.current === session) live.current = null
+            session.close()
+            clearTimeout(waitTimer.current)
+            setBusy(false)
+            throw error
+          }
+          session.probing = false
+          workingTranscription.current = transcription
+          update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model, liveError: null }))
+          return
         } catch (error) {
-          if (live.current === session) live.current = null
-          session.close()
-          clearTimeout(waitTimer.current)
-          setBusy(false)
-          throw error
+          lastError = error
+          const info = { step: model ? 'connect' : 'token', choice: attempt, model, hints: withHints, message: String(error?.message || error) }
+          update((prev) => ({ ...prev, liveError: { ...info, at: new Date().toISOString() } }))
+          reportLiveProblem(info)
+          if (!model) break
         }
-        session.probing = false
-        update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model, liveError: null }))
-        return
-      } catch (error) {
-        lastError = error
-        const info = { step: model ? 'connect' : 'token', choice: attempt, model, message: String(error?.message || error) }
-        update((prev) => ({ ...prev, liveError: { ...info, at: new Date().toISOString() } }))
-        reportLiveProblem(info)
       }
     }
     throw lastError || new Error('live unavailable')
   }
 
-  const createLiveSession = ({ token, model }) => {
+  // 子どもの声の聞き取り：英語と日本語だけにしぼり、この会話で出そうな単語を優先させる
+  const transcriptionHints = () => {
+    const words = new Set(['yes', 'no', 'hello', 'hi', 'cat', 'dog', 'I like', 'I want', 'red', 'blue', 'yellow', 'green', 'big', 'small', 'thank you', 'bye-bye', persona.nameEn])
+    for (const phrase of config.play?.scene?.phrases || []) words.add(phrase.replace(/_+/g, '').trim())
+    if (config.secret?.en) words.add(config.secret.en.replace(/^(a|an) /, ''))
+    for (const word of (config.topic?.about || '').split(/[,\s]+/)) if (word.length > 2) words.add(word)
+    return { languageCodes: ['en-US', 'ja-JP'], customVocabulary: [...words].filter(Boolean).slice(0, 40) }
+  }
+
+  const createLiveSession = ({ token, model, transcription = {} }) => {
     return new LiveSession({
+      transcription,
       muted: Boolean(config.parentReads),
       token,
       model,
@@ -363,9 +381,9 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     setCaption('つなぎなおしてるよ…')
     try {
       if (reconnects.current > 2) throw new Error('too many reconnects')
-      const granted = await requestLiveToken(stateRef.current.liveModel || 'auto')
+      const granted = await requestLiveToken(stateRef.current.liveModel || 'auto', 'voice')
       if (finished.current) return
-      const session = createLiveSession(granted)
+      const session = createLiveSession({ ...granted, transcription: workingTranscription.current ?? transcriptionHints() })
       await session.connect()
       session.probing = false
       live.current = session
@@ -393,7 +411,7 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     live.current = session
     setEngine('live')
     if (!annotator.current) {
-      annotator.current = new Annotator({ system: buildLiveAnnotatorPrompt(makeContext(0)), liveModel: stateRef.current.liveModel || 'auto' })
+      annotator.current = new Annotator({ system: buildLiveAnnotatorPrompt(makeContext(0)) })
       annotator.current.ensure().catch(() => {})
     }
     const first = turnsRef.current[0]

@@ -19,13 +19,14 @@ export async function reportLiveProblem(info) {
   } catch {}
 }
 
-export async function requestLiveToken(liveModel = 'auto') {
+// purpose: 'voice'（会話・速さ優先）/ 'text'（読みづくり・賢さ優先）
+export async function requestLiveToken(liveModel = 'auto', purpose = 'voice') {
   const token = await getAccessToken().catch(() => null)
   if (!token) throw Object.assign(new Error('auth'), { code: 'auth' })
   const response = await fetch(TALK_ENDPOINT, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'live-token', liveModel })
+    body: JSON.stringify({ action: 'live-token', liveModel, purpose })
   })
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.token || !data?.model) {
@@ -45,7 +46,9 @@ async function messageText(data) {
 // 子どもの声と相棒の声が混ざって勝手に割り込まれることがない。
 export class LiveSession {
   // text: true なら文字だけで返す接続（読み・意味・ヒントづくり用）。muted: true なら声を鳴らさない（親子モード）
-  constructor({ token, model, system, voiceName, handlers, text = false, muted = false }) {
+  // transcription: 子どもの声の聞き取り設定（languageCodes で英語・日本語に限定、customVocabulary でよく出る単語を優先）
+  constructor({ token, model, system, voiceName, handlers, text = false, muted = false, transcription = {} }) {
+    this.transcription = transcription
     this.token = token
     this.model = model
     this.system = system
@@ -93,7 +96,7 @@ export class LiveSession {
                   speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } } }
                 },
                 systemInstruction,
-                inputAudioTranscription: {},
+                inputAudioTranscription: this.transcription,
                 outputAudioTranscription: {},
                 realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
               }

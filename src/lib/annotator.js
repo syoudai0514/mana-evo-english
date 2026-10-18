@@ -17,9 +17,11 @@ export function parseJsonReply(text) {
 }
 
 export class Annotator {
-  constructor({ system, liveModel = 'auto' }) {
+  // candidates：読みづくりに使う Live モデルの順番（賢い 3.8 Live → 3 Flash Live）
+  constructor({ system, candidates = ['3.8', '3-flash'] }) {
     this.system = system
-    this.liveModel = liveModel
+    this.candidates = candidates
+    this.index = 0
     this.session = null
     this.connecting = null
     this.queue = Promise.resolve()
@@ -31,7 +33,7 @@ export class Annotator {
     if (this.session?.ws?.readyState === WebSocket.OPEN) return this.session
     if (!this.connecting) {
       this.connecting = (async () => {
-        const granted = await requestLiveToken(this.liveModel)
+        const granted = await requestLiveToken(this.candidates[this.index % this.candidates.length], 'text')
         const session = new LiveSession({
           ...granted,
           system: this.system,
@@ -44,7 +46,12 @@ export class Annotator {
             }
           }
         })
-        await session.connect()
+        try {
+          await session.connect()
+        } catch (error) {
+          this.index += 1 // このモデルが文字だけの接続を受けつけなければ、次のモデルへ
+          throw error
+        }
         session.probing = false
         this.session = session
         return session
@@ -69,7 +76,8 @@ export class Annotator {
         })
         return parseJsonReply(text)
       } catch (error) {
-        reportLiveProblem({ step: 'annotate', message: String(error?.message || error) })
+        reportLiveProblem({ step: 'annotate', model: this.session?.model, message: String(error?.message || error) })
+        if (this.session) this.index += 1 // つながったのに返事がだめなら、次は別のモデルで
         this.session?.close()
         this.session = null
         return null

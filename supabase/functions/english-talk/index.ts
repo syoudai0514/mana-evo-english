@@ -1,20 +1,24 @@
 // english-talk: マナエボ英語の Gemini Live 接続を用意する。
 // - ログイン中のユーザー（app-save-hub の Supabase Auth）だけが使える
 // - Gemini の API キーは secret（GEMINI_API_KEY）に置き、アプリには渡さない
-// - 使うのは無料枠で上限のない Live モデル2つだけ（Gemini 3 Flash Live / Gemini 3.8 Live）。
+// - 使うのは無料枠で上限のない Live モデルだけ（Gemini 3 Flash Live / 3.8 Live / 2.5 Flash Native Audio Dialog）。
 //   それ以外のモデル（Flash-Lite など上限のあるもの）は呼ばない
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 
-// 許可するモデル（この2つ以外は選ばない）
+// 許可するモデル（無料枠で上限のない Live モデルだけ。これ以外は選ばない）
 const LIVE_ALLOWED: Record<string, RegExp> = {
   '3-flash': /^gemini-3(\.1)?-flash-live(-preview)?$/,
-  '3.8': /^gemini-3\.8-live$/
+  '3.8': /^gemini-3\.8-live$/,
+  '2.5-audio': /^gemini-2\.5-flash-native-audio/
 }
-// おまかせの順番（速い 3 Flash Live を優先）
-const AUTO_ORDER = ['3-flash', '3.8']
+// おまかせの順番。会話（声）は速さ優先、読みづくり（文字）は賢さ優先
+const AUTO_ORDER: Record<string, string[]> = {
+  voice: ['3-flash', '3.8', '2.5-audio'],
+  text: ['3.8', '3-flash']
+}
 let liveModelsCache: { names: string[]; at: number } | null = null
 
 const CORS = {
@@ -58,12 +62,14 @@ async function listAllowedLiveModels(): Promise<string[]> {
   return names
 }
 
-async function pickLiveModel(choice?: string): Promise<string | null> {
+async function pickLiveModel(choice?: string, purpose = 'voice'): Promise<string | null> {
   const names = await listAllowedLiveModels()
-  const order = choice && LIVE_ALLOWED[choice] ? [choice, ...AUTO_ORDER.filter((id) => id !== choice)] : AUTO_ORDER
+  const auto = AUTO_ORDER[purpose] ?? AUTO_ORDER.voice
+  const order = choice && LIVE_ALLOWED[choice] ? [choice, ...auto.filter((id) => id !== choice)] : auto
   for (const id of order) {
-    const hit = names.find((name) => LIVE_ALLOWED[id].test(name))
-    if (hit) return hit
+    // 2.5 は名前ちがいがいくつかあるので latest を優先
+    const hits = names.filter((name) => LIVE_ALLOWED[id].test(name)).sort((a, b) => Number(b.endsWith('latest')) - Number(a.endsWith('latest')))
+    if (hits.length) return hits[0]
   }
   return null
 }
@@ -94,7 +100,7 @@ Deno.serve(async (req) => {
   if (!GEMINI_API_KEY) return json({ code: 'config', message: 'GEMINI_API_KEY が設定されていません' }, 500)
   if (!(await verifyUser(req))) return json({ code: 'auth', message: 'ログインが必要です' }, 401)
 
-  let body: { action?: string; liveModel?: string; info?: unknown }
+  let body: { action?: string; liveModel?: string; purpose?: string; info?: unknown }
   try { body = await req.json() } catch { return json({ code: 'bad_request', message: 'invalid json' }, 400) }
 
   if (body?.action === 'live-log') {
@@ -103,8 +109,9 @@ Deno.serve(async (req) => {
   }
 
   if (body?.action === 'live-token') {
-    const model = await pickLiveModel(body.liveModel)
-    console.log('live token', body.liveModel ?? 'auto', '->', model)
+    const purpose = body.purpose === 'text' ? 'text' : 'voice'
+    const model = await pickLiveModel(body.liveModel, purpose)
+    console.log('live token', purpose, body.liveModel ?? 'auto', '->', model)
     if (!model) return json({ code: 'no_live_model', message: 'Gemini 3 Flash Live / 3.8 Live が見つかりません' }, 503)
     const token = await createLiveToken()
     if (!token) return json({ code: 'live_token', message: 'Live に接続できませんでした' }, 502)

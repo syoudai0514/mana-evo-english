@@ -209,7 +209,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
           </div>
           <div className="card">
             <h3>会話のAI（Live）</h3>
-            {[['auto', 'おまかせ（速い 3 Flash Live を優先）'], ['3-flash', 'Gemini 3 Flash Live（速い）'], ['3.8', 'Gemini 3.8 Live（かしこい）']].map(([id, label]) => (
+            {[['auto', 'おまかせ（3 Flash Live → 3.8 Live → 2.5 Native Audio）'], ['3-flash', 'Gemini 3 Flash Live（速い）'], ['3.8', 'Gemini 3.8 Live（かしこい）'], ['2.5-audio', 'Gemini 2.5 Flash Native Audio Dialog']].map(([id, label]) => (
               <button key={id} className="list-btn" onClick={() => { update((prev) => ({ ...prev, liveModel: id })); showToast(`${label} にしました`) }}>
                 <span>{label}</span><span>{(state.liveModel || 'auto') === id ? '✅' : ''}</span>
               </button>
