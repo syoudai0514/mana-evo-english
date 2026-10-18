@@ -25,12 +25,20 @@ function titleOf(config) {
   return { emoji: '🎤', text: 'おしゃべり' }
 }
 
+// Gemini のモデル名 → english-talk に頼むときの名前（続きからつなぎなおすときは同じモデルが必要）
+function liveModelId(name) {
+  if (/3\.8-live/.test(name)) return '3.8'
+  if (/flash-live/.test(name)) return '3-flash'
+  if (/2\.5-flash-native-audio/.test(name)) return '2.5-audio'
+  return ''
+}
+
 function openerTurn(config) {
   if (config.mode === 'free' && config.topic) {
     const { en, kana, ja } = config.topic.opener
     return { who: 'partner', text: en, kana, ja, jaKids: ja, hints: [], opener: true }
   }
-  if (config.mode === 'adult') return { who: 'partner', text: config.adultScene.opener, kana: '', ja: '', hints: [] }
+  if (config.mode === 'adult') return { who: 'partner', text: config.adultScene.opener, kana: '', ja: '', hints: [], opener: true }
   return null
 }
 
@@ -316,9 +324,11 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     for (const attempt of attempts) {
       // 受けつけない設定があれば外していく：聞き取りの言語指定・画面カード（声を止めない→止める→なし）
       // 相棒は会話だけに集中させる（画面カードは裏方が作る）
+      // resume：切れても続きからつなぎなおせる設定。受けつけないモデルでは外す
       const setups = [
-        { hints: true, card: null },
-        { hints: false, card: null }
+        { hints: true, card: null, resume: true },
+        { hints: true, card: null, resume: false },
+        { hints: false, card: null, resume: false }
       ]
       for (const setup of setups) {
         if (finished.current) return
@@ -326,11 +336,11 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         try {
           const granted = await requestLiveToken(attempt, 'voice')
           model = granted.model
-          const key = `${model}:${setup.hints}:${setup.card}`
+          const key = `${model}:${setup.hints}:${setup.resume}`
           if (tried.has(key)) continue
           tried.add(key)
           const transcription = setup.hints ? transcriptionHints() : {}
-          const session = createLiveSession({ ...granted, transcription, card: setup.card })
+          const session = createLiveSession({ ...granted, transcription, card: setup.card, resume: setup.resume })
           await session.connect()
           onLiveConnected(session, model)
           try {
@@ -343,12 +353,12 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
             throw error
           }
           session.probing = false
-          workingSetup.current = { transcription, card: setup.card }
+          workingSetup.current = { transcription, card: setup.card, resume: setup.resume }
           update((prev) => ({ ...prev, liveDate: todayKey(), liveModelName: model, liveError: null }))
           return
         } catch (error) {
           lastError = error
-          const info = { step: model ? 'connect' : 'token', choice: attempt, model, setup: `${setup.hints}/${setup.card}`, message: String(error?.message || error) }
+          const info = { step: model ? 'connect' : 'token', choice: attempt, model, setup: `${setup.hints}/${setup.resume}`, message: String(error?.message || error) }
           update((prev) => ({ ...prev, liveError: { ...info, at: new Date().toISOString() } }))
           reportLiveProblem(info)
           if (!model) break
@@ -367,10 +377,12 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
     return { languageCodes: ['en-US', 'ja-JP'], customVocabulary: [...words].filter(Boolean).slice(0, 40) }
   }
 
-  const createLiveSession = ({ token, model, transcription = {}, card = null }) => {
+  const createLiveSession = ({ token, model, transcription = {}, card = null, resume = false, resumeHandle = '' }) => {
     return new LiveSession({
       transcription,
       card,
+      resume,
+      resumeHandle,
       muted: Boolean(config.parentReads),
       token,
       model,
@@ -412,6 +424,8 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
         onClose: (event) => {
           if (finished.current) return
           reportLiveProblem({ step: 'closed', model, message: `${event?.code} ${event?.reason || ''}` })
+          resumeRef.current = live.current?.resumeHandle || ''
+          resumeModel.current = live.current?.model || ''
           live.current = null
           setBusy(false)
           reconnectLive()
@@ -422,22 +436,44 @@ export default function Talk({ state, update, config, onFinish, showToast }) {
 
   // 会話の途中で Live が切れたら、Live のままつなぎなおして続きから話す。2回だめなら予備の方式へ
   const reconnects = useRef(0)
+  const resumeRef = useRef('')
+  const resumeModel = useRef('')
   const reconnectLive = async () => {
     reconnects.current += 1
     setEngine('connecting')
     setCaption('つなぎなおしてるよ…')
     try {
       if (reconnects.current > 2) throw new Error('too many reconnects')
-      const granted = await requestLiveToken(stateRef.current.liveModel || 'auto', 'voice')
-      if (finished.current) return
-      const session = createLiveSession({ ...granted, ...(workingSetup.current ?? { transcription: transcriptionHints(), card: null }) })
-      await session.connect()
+      const setup = workingSetup.current ?? { transcription: transcriptionHints(), card: null, resume: false }
+      // 続きの目印があれば、同じモデルでその続きから（会話の流れがそのまま残る）。だめなら会話を渡して新しく
+      const handle = setup.resume ? resumeRef.current : ''
+      let session = null
+      if (handle && liveModelId(resumeModel.current)) {
+        try {
+          const granted = await requestLiveToken(liveModelId(resumeModel.current), 'voice')
+          if (finished.current) return
+          session = createLiveSession({ ...granted, ...setup, resumeHandle: handle })
+          await session.connect()
+        } catch (error) {
+          reportLiveProblem({ step: 'resume', message: String(error?.message || error) })
+          session = null
+        }
+      }
+      const resumed = Boolean(session)
+      if (!session) {
+        const granted = await requestLiveToken(stateRef.current.liveModel || 'auto', 'voice')
+        if (finished.current) return
+        session = createLiveSession({ ...granted, ...setup })
+        await session.connect()
+      }
       session.probing = false
       live.current = session
       setEngine('live')
-      const history = buildHistory(turnsRef.current.filter((turn) => !turn.pending && turn.text && turn.text !== '…'), 12)
-        .map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] }))
-      session.sendHistory(history)
+      if (!resumed) {
+        const history = buildHistory(turnsRef.current.filter((turn) => !turn.pending && turn.text && turn.text !== '…'), 12)
+          .map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] }))
+        session.sendHistory(history)
+      }
       setCaption('')
     } catch (error) {
       reportLiveProblem({ step: 'reconnect', message: String(error?.message || error) })

@@ -85,8 +85,11 @@ export class LiveSession {
   // transcription: 子どもの声の聞き取り設定（languageCodes で英語・日本語に限定、customVocabulary でよく出る単語を優先）
   // asr: true なら文字起こし専用（3.5 Transcribe Live）
   // card: 'nonblocking'（声を止めずにカードを渡す）/ 'blocking' / null
-  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null }) {
+  // resume: 切れても続きからつなぎなおせるようにする（resumeHandle があればその続きから）
+  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, resume = false, resumeHandle = '' }) {
     this.card = card
+    this.resume = resume
+    this.resumeHandle = resumeHandle
     this.transcription = transcription
     this.asr = asr
     this.dropAudio = false
@@ -149,6 +152,9 @@ export class LiveSession {
                 ...(this.card ? { tools: [{ functionDeclarations: [showCardDeclaration(this.card)] }] } : {}),
                 inputAudioTranscription: this.transcription,
                 outputAudioTranscription: {},
+                ...(this.resume
+                  ? { sessionResumption: this.resumeHandle ? { handle: this.resumeHandle } : {}, contextWindowCompression: { slidingWindow: {} } }
+                  : {}),
                 realtimeInputConfig: { automaticActivityDetection: { disabled: true } }
               }
             }))
@@ -177,6 +183,8 @@ export class LiveSession {
   }
 
   handle(message) {
+    const update = message.sessionResumptionUpdate
+    if (update?.resumable && update.newHandle) this.resumeHandle = update.newHandle
     for (const call of message.toolCall?.functionCalls || []) {
       if (call.name === 'show_card') this.handlers.onCard?.(call.args || {})
       // すぐ返事をして、相棒がカードのことで話しださないようにする
