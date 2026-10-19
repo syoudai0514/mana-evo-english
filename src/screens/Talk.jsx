@@ -206,7 +206,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       })
 
       if (!special && heard && adult) {
-        const learn = Array.isArray(reply.learn) ? reply.learn : []
+        const learn = Array.isArray(reply.learn) ? reply.learn.filter((item) => item?.en && item?.ja) : []
         if (reply.tip_ja) setTurns((prev) => { const next = [...prev]; const i = next.findLastIndex((turn) => turn.who === 'child'); if (i >= 0) next[i] = { ...next[i], tip: reply.tip_ja }; return next })
         if (reply.memory?.length || learn.length) onAdultCard?.((current) => withCards(withAdultMemory(current, reply.memory || []), learn, config.adultScene?.title || ''))
         memoryAdded.current.push(...(reply.memory || []))
@@ -277,8 +277,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     })
   }
 
+  const turnSeq = useRef(0)
   const newLiveTurn = (start = false) => {
-    liveTurn.current = { child: '', partner: '', start, id: Date.now() }
+    turnSeq.current += 1
+    liveTurn.current = { child: '', partner: '', start, id: turnSeq.current }
   }
 
   const waitForReply = () => {
@@ -371,6 +373,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           const transcription = setup.hints ? transcriptionHints() : {}
           const session = createLiveSession({ ...granted, transcription, card: setup.card, resume: setup.resume })
           await session.connect()
+          if (finished.current) { session.close(); return } // つないでいる間に画面を閉じていた
           onLiveConnected(session, model)
           try {
             await Promise.race([session.firstTurn, new Promise((_, reject) => setTimeout(() => reject(new Error('live first reply timeout')), 12000))])
@@ -379,6 +382,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
             session.close()
             clearTimeout(waitTimer.current)
             setBusy(false)
+            // 失敗した回の書きかけの吹き出しを消す（次の回のはじめのひとことと重ならないように）
+            const failedId = liveTurn.current.id
+            bubbleQueue.current = {}
+            setTurns((prev) => prev.filter((turn) => turn.turnId !== failedId))
             throw error
           }
           session.probing = false
@@ -458,13 +465,26 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         },
         onClose: (event) => {
           if (finished.current) return
-          reportLiveProblem({ step: 'closed', model, message: `${event?.code} ${event?.reason || ''}` })
-          resumeRef.current = live.current?.resumeHandle || ''
-          resumeModel.current = live.current?.model || ''
+          const closing = live.current
+          // 入れかえ済みの古い接続が閉じたのなら、何もしない
+          if (closing && closing.ws && closing.ws.readyState === WebSocket.OPEN) return
+          reportLiveProblem({ step: 'closed', model, message: `${event?.code} ${event?.reason || ''} age=${Math.round((closing?.age || 0) / 1000)}s` })
+          resumeRef.current = closing?.resumeHandle || ''
+          resumeModel.current = closing?.model || ''
           live.current = null
+          // 途中だった往復を片づける（書きかけの吹き出しを確定し、待つのをやめる）
+          clearTimeout(waitTimer.current)
+          flushBubbles()
+          const brokenId = liveTurn.current.id
+          setTurns((prev) => prev
+            .filter((turn) => !(turn.turnId === brokenId && turn.who === 'child' && (!turn.text || turn.text === '…')))
+            .map((turn) => (turn.turnId === brokenId ? { ...turn, live: false, pending: false } : turn)))
+          newLiveTurn()
           setBusy(false)
           reconnectLive()
-        }
+        },
+        // サーバーが「もうすぐ切る」と知らせてきたら、話していないすきに入れかえる
+        onGoAway: () => { goAwaySoon.current = true }
       }
     })
   }
@@ -489,6 +509,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           if (finished.current) return
           session = createLiveSession({ ...granted, ...setup, resumeHandle: handle })
           await session.connect()
+          if (finished.current) { session.close(); return }
         } catch (error) {
           reportLiveProblem({ step: 'resume', message: String(error?.message || error) })
           session = null
@@ -500,6 +521,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         if (finished.current) return
         session = createLiveSession({ ...granted, ...setup })
         await session.connect()
+        if (finished.current) { session.close(); return }
       }
       session.probing = false
       live.current = session
@@ -527,13 +549,15 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     refreshing.current = true
     const setup = workingSetup.current ?? { transcription: transcriptionHints(), card: null, resume: false }
     const handle = setup.resume ? old.resumeHandle : ''
+    const turnAtStart = lastTurnId.current
     try {
       const granted = await requestLiveToken(liveModelId(old.model) || stateRef.current.liveModel || 'auto', 'voice')
       const fresh = createLiveSession({ ...granted, ...setup, resumeHandle: handle })
       await fresh.connect()
       fresh.probing = false
       // つないでいる間に話しはじめていたら、今回はやめる（次のすきに）
-      if (finished.current || live.current !== old || pressing.current || stopping.current || busyRef.current || old.speaking) { fresh.close(); return }
+      if (finished.current || live.current !== old || pressing.current || stopping.current || busyRef.current || old.speaking || lastTurnId.current !== turnAtStart) { fresh.close(); return }
+      goAwaySoon.current = false
       if (!handle) {
         const history = buildHistory(turnsRef.current.filter((turn) => !turn.pending && turn.text && turn.text !== '…'), 12)
           .map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] }))
@@ -547,13 +571,15 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       refreshing.current = false
     }
   }
+  const goAwaySoon = useRef(false)
   const busyRef = useRef(false)
   busyRef.current = busy
   useEffect(() => {
     const timer = setInterval(() => {
       const session = live.current
-      if (session && session.age > 100000 && !pressing.current && !stopping.current && !busyRef.current && !session.speaking) refreshLive()
-    }, 5000)
+      const due = session && (session.age > 100000 || goAwaySoon.current)
+      if (due && !pressing.current && !stopping.current && !busyRef.current && !session.speaking) refreshLive()
+    }, 3000)
     return () => clearInterval(timer)
   }, [])
 
@@ -565,6 +591,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   }
 
   const onLiveConnected = (session, model) => {
+    if (finished.current) { session.close(); return }
     live.current = session
     setEngine('live')
     if (!transcriber.current) {
@@ -592,7 +619,11 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     // 会話も読みづくりも、上限のない Live の中だけで行う（確認用の mock だけ1回ずつの方式）
     if (isMockMode()) startTurnEngine()
     else startLive().catch(() => { if (!finished.current) setStopped('offline') })
-    return () => { stopSpeech(); recorder.current?.close(); live.current?.close(); transcriber.current?.close(); annotator.current?.close(); clearTimeout(waitTimer.current) }
+    return () => {
+      finished.current = true // 画面を離れたら、つないでいる途中のものも使わない
+      stopSpeech(); recorder.current?.release(); live.current?.close(); transcriber.current?.close(); annotator.current?.close()
+      clearTimeout(waitTimer.current); clearTimeout(bubbleTimer.current)
+    }
   }, [])
 
   // 大人：時間を決めた会話。時間が来たら相棒にまとめてもらい、「お勉強へ」を出す
@@ -602,22 +633,41 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     return () => clearInterval(timer)
   }, [])
   const timeUp = Boolean(config.minutes) && elapsed >= config.minutes
+  // まとめを頼むのは、相棒が話し終わり、ボタンも押していないときだけ（話の途中で切らない）
   useEffect(() => {
-    if (!timeUp || wrapped.current || busy || !live.current || childCount() < 2) return
-    wrapped.current = true
-    newLiveTurn()
-    live.current.sendText('[WRAP_UP]')
-    waitForReply()
-  }, [timeUp, busy])
+    if (!timeUp) return undefined
+    const timer = setInterval(() => {
+      const session = live.current
+      if (wrapped.current || busyRef.current || !session || session.speaking || pressing.current || stopping.current || childCount() < 2) return
+      wrapped.current = true
+      newLiveTurn()
+      session.sendText('[WRAP_UP]')
+      waitForReply()
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [timeUp])
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' })
   }, [turns.length, busy])
 
+  // 1回押すごとの番号。前の押した回のタイマーや遅れた処理が、今の回をこわさないように
+  const pressId = useRef(0)
+  const handledPress = useRef(0)
+
+  // 送らずに、この発話を閉じる（相棒・文字起こしに「話しはじめ」だけ残さない）
+  const abandonTake = () => {
+    if (usingAsr.current) transcriber.current?.end()
+    else live.current?.endSpeech()
+  }
+
   const startRecording = async (event) => {
     event.preventDefault()
     if (busy || recording || stopped || stopping.current) return
+    // つないでいる途中・つなぎなおし中は待ってもらう（1回ずつ送る方式に流れないように）
+    if (!live.current && !isMockMode()) return setCaption(say2(`${persona.name}に つないでるよ… ちょっと まってね`, `${persona.name}に接続中です。少し待ってください`))
     pressing.current = true
+    const id = ++pressId.current
     unlockSpeech()
     stopSpeech()
     live.current?.wake() // タップの中で、相棒の声の AudioContext を起こしておく
@@ -626,6 +676,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         recorder.current = new Recorder()
         recorder.current.onLevel = setMicLevel
       }
+      recorder.current.onMax = () => { if (pressId.current === id) finishTake(id) } // 長く押しすぎたら、そこで送る
       if (live.current) {
         newLiveTurn()
         heldChunks.current = []
@@ -644,24 +695,25 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       } else {
         recorder.current.onChunk = null
       }
-      await recorder.current.start()
-      // はじめてのマイク許可ダイアログの間に指を離していたら、録音しない
-      if (!pressing.current) { recorder.current.stop(); return }
+      const rec = recorder.current
+      await rec.start()
+      // マイクが開くまでに指を離していたら、録音しない（マイクも、話しはじめも閉じる）
+      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); abandonTake(); return }
       setRecording(true)
       setCaption(say2('はなしてね… はなしたら ゆびを はなす', '話し終わったら指を離してください'))
       // 0.8秒たっても音が届かなければ、マイクが止まっている。作りなおして、もういちど押してもらう
-      const rec = recorder.current
       setTimeout(() => {
-        if (rec !== recorder.current || !rec.silentSinceStart) return
-        rec.recording = false
-        rec.close()
-        if (live.current && !usingAsr.current) live.current.endSpeech()
-        if (usingAsr.current) transcriber.current?.end()
+        if (pressId.current !== id || handledPress.current === id || !rec.silentSinceStart) return
+        handledPress.current = id
+        rec.stop()
+        rec.release()
+        abandonTake()
         pressing.current = false
         setRecording(false)
         setCaption(say2('マイクを じゅんびしたよ。もういちど おしてね', 'マイクを準備しました。もう一度押してください'))
       }, 800)
     } catch {
+      abandonTake()
       setTyping(true)
       setCaption(say2('マイクが つかえないよ。おうちのひとに きいてね', 'マイクが使えません。文字で入力してください'))
     }
@@ -671,6 +723,13 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     event?.preventDefault()
     pressing.current = false
     if (!recording) return
+    finishTake(pressId.current)
+  }
+
+  // 話し終わり（指を離した・長すぎて自動で止まった）。1回押すごとに1度だけ
+  const finishTake = (id) => {
+    if (handledPress.current === id) return
+    handledPress.current = id
     live.current?.wake()
     setRecording(false)
     setMicLevel(0)
@@ -679,7 +738,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     stopping.current = true
     setTimeout(async () => {
       stopping.current = false
-      if (!rec.isRecording) return
+      if (!rec.hasTake) { rec.release(); abandonTake(); return }
       const audio = rec.stop()
       rec.release()
       if (live.current && usingAsr.current) {
@@ -749,7 +808,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   // 文字やヒントで答えたとき
   function sendTyped(display, message) {
     setPickedHint(null)
-    if (!live.current) return send({ text: message }, display)
+    if (!live.current) return isMockMode() ? send({ text: message }, display) : setCaption(say2('つないでるよ… ちょっと まってね', '接続中です。少し待ってください'))
     if (busy) return
     newLiveTurn()
     liveTurn.current.child = display
@@ -761,7 +820,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
   const dontKnow = () => {
     unlockSpeech()
-    if (!live.current) return send({ text: '[DONT_KNOW]' })
+    if (!live.current) return isMockMode() ? send({ text: '[DONT_KNOW]' }) : setCaption(say2('つないでるよ… ちょっと まってね', '接続中です。少し待ってください'))
     if (busy) return
     newLiveTurn()
     live.current.sendText('[DONT_KNOW]')

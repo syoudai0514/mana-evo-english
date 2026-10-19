@@ -6,6 +6,8 @@ import {
 } from './lib/adult.js'
 import { ADULT_COURSES, ADULT_PARTNERS } from './data/adult.js'
 import { pickTopic } from './data/topics.js'
+import { primePlayback } from './lib/audio.js'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Setup from './screens/Setup.jsx'
 import Home from './screens/Home.jsx'
 import Talk from './screens/Talk.jsx'
@@ -70,6 +72,7 @@ export default function App() {
   }, [])
 
   const startTalk = useCallback((config) => {
+    primePlayback() // タップの中で、相棒の声を鳴らせる状態にしておく（iPhone）
     setTalkConfig({ ...config, key: Date.now() })
     setScreen('talk')
   }, [])
@@ -113,6 +116,7 @@ export default function App() {
   }
 
   const startAdult = useCallback((kind, plan) => {
+    primePlayback()
     const steps = stepsFor(kind, adultRef.current, plan)
     if (!steps.length) return
     const fresh = { steps, index: 0, results: {}, startedAt: new Date().toISOString() }
@@ -155,7 +159,7 @@ export default function App() {
             chatContext: session.turns.map((turn) => `${turn.who === 'partner' ? 'Alex' : 'Me'}: ${turn.text}`).join('\n').slice(-1200)
           }
         : {}
-      finishStep(chat, { stop: stopped && !childTurns.length })
+      finishStep(chat, { stop: stopped }) // ✕ でやめたら、学習はそこまで（「お勉強へ」なら次へ進む）
       return
     }
     if (!childTurns.length) { setScreen('home'); return }
@@ -179,6 +183,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <ErrorBoundary key={screen} onReset={() => { setRun(null); setScreen(adult && adultStore.current ? 'adultHome' : 'home') }}>
       {screen === 'setup' && (
         <Setup
           onDone={(profile) => {
@@ -215,6 +220,7 @@ export default function App() {
         <Quiz key={`q${run.startedAt}${run.index}`} {...adultCommon} kind={step.id} recasts={run.results.recasts || []} context={run.results.chatContext || ''} onDone={finishStep} />
       )}
       {screen === 'adultResult' && adult && run && <AdultResult key={run.startedAt} {...adultCommon} run={run} onHome={() => { setRun(null); setScreen('adultHome') }} />}
+      </ErrorBoundary>
       <Toast message={toast} />
     </div>
   )

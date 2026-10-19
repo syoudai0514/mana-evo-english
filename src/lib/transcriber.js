@@ -9,6 +9,8 @@ const REFRESH_AFTER_MS = 100000 // 100秒たったら入れかえる
 export class Transcriber {
   constructor({ transcription }) {
     this.transcription = transcription
+    this.utter = 0
+    this.done = 0
     this.session = null
     this.connecting = null
     this.text = ''
@@ -26,7 +28,10 @@ export class Transcriber {
   startRefresh() {
     if (this.refreshTimer) return
     this.refreshTimer = setInterval(() => {
-      if (!this.active && this.ready && this.session.age > REFRESH_AFTER_MS) this.refresh()
+      if (this.active || this.closed) return
+      if (this.ready && this.session.age > REFRESH_AFTER_MS) this.refresh()
+      // 切れたままなら、押される前につなぎなおしておく（切れたまま押すと、相棒が声から推測して聞きまちがえる）
+      else if (!this.ready && !this.connecting && !this.refreshing) this.ensure()
     }, 10000)
   }
 
@@ -38,6 +43,7 @@ export class Transcriber {
       const fresh = await this.open()
       if (this.active || this.closed) { fresh.close(); return } // 話しはじめていたら、次の機会に
       this.session = fresh
+      this.resetCounts()
       old?.close()
     } catch {
       // だめなら今の接続のまま（切れたら次に押したときにつなぐ）
@@ -54,9 +60,16 @@ export class Transcriber {
       asr: true,
       transcription: this.transcription,
       handlers: {
-        onChildText: (text) => { if (this.session === session) { this.text += text; this.changedAt = Date.now() } },
+        // 文字や「終わり」の知らせは、いま話している回のものだけ使う（前の回の遅れて届いた分は捨てる）
+        onChildText: (text) => {
+          if (this.session !== session || this.done + 1 !== this.utter) return
+          this.text += text
+          this.changedAt = Date.now()
+        },
         onTurnComplete: (_audio, text) => {
           if (this.session !== session) return
+          this.done += 1
+          if (this.done !== this.utter) return
           if (text && !this.text) { this.text = text; this.changedAt = Date.now() }
           this.completed = true
         },
@@ -71,14 +84,22 @@ export class Transcriber {
     return session
   }
 
+  resetCounts() {
+    this.utter = 0 // 送った発話の数
+    this.done = 0 // 終わったと知らせが来た発話の数
+  }
+
   async ensure() {
     this.startRefresh()
+    if (this.closed) return null
     if (this.ready || (this.failed && Date.now() - this.failedAt < 30000)) return this.session
     if (!this.connecting) {
       this.connecting = (async () => {
         try {
           const session = await this.open()
+          if (this.closed) { session.close(); return null }
           this.session = session
+          this.resetCounts()
           this.failed = false
           return session
         } catch (error) {
@@ -100,7 +121,9 @@ export class Transcriber {
     this.text = ''
     this.completed = false
     this.changedAt = Date.now()
-    this.session?.beginSpeech()
+    if (!this.session) return
+    this.utter = (this.utter || 0) + 1
+    this.session.beginSpeech()
   }
 
   sendAudio(base64) {
@@ -109,7 +132,8 @@ export class Transcriber {
 
   // 離したあと、確定した文字を待つ（空なら ''）
   async end() {
-    if (!this.ready || !this.session.endSpeech()) { this.active = false; return '' } // つながっていない・音が届いていない
+    if (!this.ready) { this.active = false; return this.text.trim() } // 途中で切れたら、届いていた分だけ
+    if (!this.session.endSpeech()) { this.utter -= 1; this.active = false; return '' } // 音が届いていない（相手は何も返さない）
     const started = Date.now()
     await new Promise((resolve) => {
       const check = () => {

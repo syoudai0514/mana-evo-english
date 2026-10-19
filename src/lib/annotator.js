@@ -41,8 +41,8 @@ export class SilentTool {
   }
 
   async ensure() {
-    // 古くなった接続（2〜3分で向こうから切られる）は、頼む前に新しくする
-    if (this.session?.ws?.readyState === WebSocket.OPEN && this.session.age > 100000) {
+    // 古くなった接続（約150秒で向こうから切られる）は、頼む前に新しくする（答えを待つ時間も見こむ）
+    if (this.session?.ws?.readyState === WebSocket.OPEN && this.session.age > 130000 - this.timeoutMs) {
       this.session.close()
       this.session = null
     }
@@ -71,6 +71,7 @@ export class SilentTool {
         })
         try {
           await session.connect()
+          if (this.closed) { session.close(); throw new Error('closed') }
         } catch (error) {
           this.index += 1
           reportLiveProblem({ step: `${this.step}-connect`, way: way.join('/'), message: String(error?.message || error) })
@@ -96,31 +97,44 @@ export class SilentTool {
         return await new Promise((resolve, reject) => {
           let misses = 0
           let stale = 0
-          const timer = setTimeout(() => reject(new Error(`${this.step} timeout`)), this.timeoutMs)
+          let result = null
+          let turns = 0 // この頼みごとで始まった相手の返事の数（終わりを待ってから次へ進む）
+          let settleTimer = null
+          const timer = setTimeout(() => (result ? done() : reject(new Error(`${this.step} timeout`))), this.timeoutMs)
+          const done = () => { clearTimeout(timer); clearTimeout(settleTimer); resolve(result) }
           this.pending = {
-            resolve: (result) => {
-              if (accept && !accept(result)) {
+            resolve: (value) => {
+              if (result) return
+              if (accept && !accept(value)) {
                 stale += 1
-                if (stale === 1 && retryText) session.sendText(retryText)
+                if (stale === 1 && retryText) { turns += 1; session.sendText(retryText) }
                 return
               }
-              clearTimeout(timer)
-              resolve(result)
+              result = value
+              // 関数のあとに続く相手の返事の「終わり」を待ってから次へ（次の頼みごとに混ざらないように）。来なくても2.5秒で進む
+              settleTimer = setTimeout(done, 2500)
             },
-            reject: (error) => { clearTimeout(timer); reject(error) },
-            // 関数を呼ばずに返事を終えたら、もう一度だけ頼む
+            reject: (error) => { clearTimeout(timer); clearTimeout(settleTimer); result ? resolve(result) : reject(error) },
             noCard: () => {
+              turns -= 1
+              if (turns > 0) return // 前に送った分の「終わり」
+              if (result) { done(); return }
+              // 関数を呼ばずに返事を終えたら、もう一度だけ頼む
               misses += 1
               if (misses > 1) { clearTimeout(timer); reject(new Error('no call')); return }
+              turns += 1
               session.sendText(`Call ${this.name} now for the previous message. Do not speak.`)
             }
           }
+          turns += 1
           if (used[1] === 'client') session.sendUserTurn(message)
           else session.sendText(message)
         })
       } catch (error) {
         reportLiveProblem({ step: this.step, way: used?.join('/'), message: `${String(error?.message || error)} ${this.lastClose}` })
-        if (used && this.ways[this.index % this.ways.length] === used) this.index += 1
+        // 古くなって向こうから切られただけなら、モデルのせいにしない（次のモデルへ移らない）
+        const aged = (this.session?.age || 0) > 120000 || /closed/.test(String(error?.message))
+        if (used && !aged && this.ways[this.index % this.ways.length] === used) this.index += 1
         this.session?.close()
         this.session = null
         throw error
@@ -145,6 +159,7 @@ export class SilentTool {
 
   close() {
     this.closed = true
+    this.pending?.reject(new Error('closed'))
     this.session?.close()
     this.session = null
   }

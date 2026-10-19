@@ -5,8 +5,9 @@ import { compareShadow } from './adult.js'
 // 作ってもらった問題が使えるか
 export function validQuestion(item) {
   if (!item || !TOEIC_PARTS[item.part] || !Array.isArray(item.choices)) return false
-  const choices = item.choices.map((choice) => String(choice || '').trim()).filter(Boolean)
-  if (choices.length < 3 || choices.length > 4) return false
+  const choices = item.choices.map((choice) => String(choice || '').trim())
+  if (choices.length < 3 || choices.length > 4 || choices.some((choice) => !choice)) return false
+  if (TOEIC_SKILLS[item.skill] && TOEIC_SKILLS[item.skill].part !== item.part) return false
   if (!Number.isInteger(item.answer) || item.answer < 0 || item.answer >= choices.length) return false
   if ((item.part === 'p2' || item.part === 'p3') && !String(item.audio_en || '').trim()) return false
   if (item.part !== 'p2' && !String(item.question_en || '').trim()) return false
@@ -14,9 +15,14 @@ export function validQuestion(item) {
 }
 
 // 足りない分は予備の問題から（同じ分野 → 同じパート → なんでも）
+// 選択肢の空白を取りのぞいた形にそろえる（画面と正解の番号がずれないように）
+function cleanQuestion(item) {
+  return { ...item, choices: item.choices.map((choice) => String(choice || '').trim()) }
+}
+
 export function fillQuestions(skills, made, bank = QUESTION_BANK) {
   const used = new Set()
-  const pool = (made || []).filter(validQuestion)
+  const pool = (made || []).filter(validQuestion).map(cleanQuestion)
   return skills.map((skill) => {
     const part = TOEIC_SKILLS[skill]?.part
     const take = (list, prefix, test) => list.find((item, i) => !used.has(`${prefix}${i}`) && test(item) && used.add(`${prefix}${i}`))

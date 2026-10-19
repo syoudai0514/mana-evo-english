@@ -292,3 +292,24 @@ test('quiz keeps valid made questions and fills the rest from the bank', async (
   assert.equal(parseChoice('Because the client asked', ['Yesterday.', 'Because the client asked.', 'Yes.']), 1)
   assert.equal(parseChoice('hmm', ['Yesterday.', 'Because.', 'Yes.']), -1)
 })
+
+test('review "hard" keeps growing and old saved adults get new fields', async () => {
+  const { scheduleCard, loadAdultStore, ADULT_KEY } = await import('../src/lib/adult.js')
+  let card = { interval: 0, reps: 0, lapses: 0, due: 0 }
+  const seen = []
+  for (let i = 0; i < 4; i += 1) { card = scheduleCard(card, 'hard', 0); seen.push(card.interval) }
+  assert.deepEqual(seen, [1, 2, 3, 4])
+  const storage = { getItem: (key) => (key === ADULT_KEY ? JSON.stringify({ current: 'a1', order: ['a1', 'gone'], adults: { a1: { id: 'a1', name: 'パパ' } } }) : null) }
+  const store = loadAdultStore(storage)
+  assert.deepEqual(store.order, ['a1'])
+  assert.ok(Array.isArray(store.adults.a1.cards) && Array.isArray(store.adults.a1.shadows))
+  assert.equal(store.adults.a1.name, 'パパ')
+})
+
+test('made questions whose skill does not match the part are rejected', async () => {
+  const { validQuestion } = await import('../src/lib/quiz.js')
+  const base = { part: 'p5', skill: 'tense', audio_en: '', question_en: 'He ------- here.', choices: ['is', 'are', 'be'], answer: 0, explain_ja: '' }
+  assert.equal(validQuestion(base), true)
+  assert.equal(validQuestion({ ...base, skill: 'why' }), false)
+  assert.equal(validQuestion({ ...base, choices: ['is', ' ', 'be'] }), false)
+})

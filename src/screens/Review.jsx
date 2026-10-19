@@ -1,5 +1,5 @@
 // 言い方の復習カード：日本語を見て英語で言ってみる → 答えを見て「わからない／あやしい／言えた」
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { compareShadow, dueCards, nextLabel, withGrade } from '../lib/adult.js'
 import { useHoldToSpeak } from '../lib/useHoldToSpeak.js'
 import { prepareReader, readAloud } from '../lib/reader.js'
@@ -22,11 +22,14 @@ export default function Review({ adult, updateAdult, onDone }) {
   const [said, setSaid] = useState(null) // { text, score }
   const [done, setDone] = useState(0)
   const card = cards[index]
+  const indexRef = useRef(0)
+  indexRef.current = index
+  const pressedAt = useRef(-1) // 押した時のカード（遅れて届いた声の答えを次のカードに使わない）
   useEffect(() => { prepareReader() }, [])
   const hold = useHoldToSpeak({
     vocabulary: cards.map((item) => item.en),
     onText: (text) => {
-      if (!card) return
+      if (!card || revealed || pressedAt.current !== indexRef.current) return
       setSaid({ text, score: text ? compareShadow(card.en, text).score : 0 })
       setRevealed(true)
       readAloud(card.en)
@@ -78,7 +81,7 @@ export default function Review({ adult, updateAdult, onDone }) {
         {!revealed ? (
           <div style={{ padding: '0 16px' }}>
             <button className="press btn ghost dark-ghost" style={{ width: '100%', height: 54 }} onClick={() => { setRevealed(true); readAloud(card.en) }}>答えを見る</button>
-            <HoldMic hold={hold} label="押しながら英語で言う" />
+            <div onPointerDown={() => { pressedAt.current = index }}><HoldMic hold={hold} label="押しながら英語で言う" /></div>
           </div>
         ) : (
           <>

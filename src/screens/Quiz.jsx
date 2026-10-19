@@ -18,6 +18,10 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
   const [chosen, setChosen] = useState(null)
   const [showText, setShowText] = useState(false)
   const answers = useRef([])
+  const makerRef = useRef(null)
+  const indexRef = useRef(0)
+  indexRef.current = index
+  const pressedAt = useRef(-1)
   const item = items?.[index]
 
   useEffect(() => {
@@ -30,15 +34,17 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
     const load = async () => {
       let made = []
       if (!isMockMode()) {
-        const maker = new SilentTool({ system: QUESTION_MAKER_PROMPT, declaration: MAKE_QUESTIONS, step: 'questions', timeoutMs: 45000, ways: [['3.8', 'realtime'], ['3-flash', 'realtime']] })
-        const reply = await maker.ask(questionRequest({ skills, context: kind === 'study' ? context : '' }))
+        const maker = new SilentTool({ system: QUESTION_MAKER_PROMPT, declaration: MAKE_QUESTIONS, step: 'questions', timeoutMs: 30000, ways: [['3.8', 'realtime'], ['3-flash', 'realtime']] })
+        makerRef.current = maker
+        // 35秒で作れなければ、予備の問題で始める（待たせすぎない）
+        const reply = await Promise.race([maker.ask(questionRequest({ skills, context: kind === 'study' ? context : '' })), new Promise((resolve) => setTimeout(() => resolve(null), 35000))])
         maker.close()
         made = Array.isArray(reply?.questions) ? reply.questions.map((row) => ({ ...row, choices: (row.choices || []).map(String) })) : []
       }
       if (alive) setItems([...lead, ...fillQuestions(skills, made).map((row) => ({ type: 'question', ...row }))])
     }
     load()
-    return () => { alive = false; stopSpeech() }
+    return () => { alive = false; stopSpeech(); makerRef.current?.close() }
   }, [])
 
   // 問題が出たら音声を流す（Part 2 は選択肢も読む）
@@ -66,13 +72,15 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
 
   const hold = useHoldToSpeak({
     vocabulary: ['A', 'B', 'C', 'D'],
-    onText: (text) => { if (item?.type === 'question') { const i = parseChoice(text, item.choices); if (i >= 0) choose(i) } }
+    // 押した時の問題と同じときだけ答えにする（遅れて届いた声の答えを次の問題に使わない）
+    onText: (text) => { if (item?.type === 'question' && indexRef.current === pressedAt.current) { const i = parseChoice(text, item.choices); if (i >= 0) choose(i) } }
   })
 
   const finish = (stop = false) => {
     stopSpeech()
     const rows = answers.current
-    if (rows.length) updateAdult((current) => ({ ...withAnswers(current, rows), diagnosed: current.diagnosed || kind === 'diagnosis' }))
+    // 診断は、ほぼ全部（8問以上）といたときだけ「診断ずみ」にする
+    if (rows.length) updateAdult((current) => ({ ...withAnswers(current, rows), diagnosed: current.diagnosed || (kind === 'diagnosis' && rows.length >= 8) }))
     onDone(rows.length ? { answers: rows } : {}, { stop })
   }
 
@@ -98,7 +106,7 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
     )
   }
 
-  if (!item) return null
+  if (!item) return <div className="screen adult-dark"><AdultTop onBack={() => finish(true)} backLabel="✕" title={title} /><div className="center" style={{ marginTop: 80 }}><button className="press cta" style={{ height: 52, width: 'auto', padding: '0 24px', margin: '0 auto' }} onClick={() => finish()}>つぎへ ▶</button></div></div>
 
   if (item.type === 'recast') {
     return (
@@ -149,7 +157,7 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
           {chosen !== null && <div className="explain">{chosen === item.answer ? '⭕ 正解！ ' : '❌ '}{item.explain_ja}</div>}
         </div>
         {chosen === null
-          ? <HoldMic hold={hold} size={80} label="声で「B」と答えてもOK" />
+          ? <div onPointerDown={() => { pressedAt.current = index }}><HoldMic hold={hold} size={80} label="声で「B」と答えてもOK" /></div>
           : <div style={{ padding: '16px' }}><button className="press cta" style={{ height: 52, fontSize: 17 }} onClick={next}>{index + 1 >= items.length ? 'おわり ▶' : 'つぎへ ▶'}</button></div>}
       </div>
     </div>

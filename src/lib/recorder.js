@@ -56,7 +56,8 @@ export class Recorder {
       this.chunks.push(new Float32Array(data))
       this.onLevel?.(Math.min(1, rms(data) * 6))
       if (this.onChunk) this.onChunk(floatToPcm16Base64(downsample(data, this.context.sampleRate, 16000)))
-      if (this.duration() > MAX_SECONDS) this.recording = false
+      // 長すぎるときは録音を止めて知らせる（呼んだ側がふつうの「話し終わり」の処理をする）
+      if (this.duration() > MAX_SECONDS) { this.recording = false; this.chunksDone = true; setTimeout(() => this.onMax?.(), 0) }
     }
     this.source.connect(this.processor)
     this.processor.connect(this.context.destination)
@@ -70,7 +71,12 @@ export class Recorder {
   async start() {
     // iOS：録音中も相棒の声がスピーカーから出るようにする（対応ブラウザのみ）
     try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record' } catch {}
-    await this.open()
+    try {
+      await this.open()
+    } catch (error) {
+      setPlaybackSession() // マイクが開けなかったら、音を鳴らすモードにもどす
+      throw error
+    }
     if (!(await this.resume())) {
       this.close()
       await this.open()
@@ -109,6 +115,11 @@ export class Recorder {
 
   get isRecording() {
     return this.recording
+  }
+
+  // まだ受けとっていない録音が残っているか（長すぎて自動で止まった場合も true）
+  get hasTake() {
+    return this.recording || this.chunks.length > 0
   }
 
   stop() {

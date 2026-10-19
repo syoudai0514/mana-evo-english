@@ -28,17 +28,25 @@ class PcmOut extends AudioWorkletProcessor {
         // 空になったあと、すぐ続きが届いた＝とぎれた（話し終わりで空になったのは数えない）
         if (this.maybeGap && this.sinceInput < sampleRate) {
           this.underruns += 1
+          // とぎれたら、次からは少し多めにためる（最大 +0.6 秒）
+          this.boost = Math.min(0.6, (this.boost || 0) + 0.2)
           this.port.postMessage({ type: 'gap', underruns: this.underruns })
         }
         this.maybeGap = false
         this.sinceInput = 0
       } else if (data.type === 'clear') {
-        this.read = this.write
-        this.fading = false
+        // 止めるときも、いきなり 0 にせず 4ms で小さくしてから捨てる（止めるたびのプツッを防ぐ）
         this.maybeGap = false
-        this.playing = false
-        this.gain = 0
-        this.need = 0.5 * 24000
+        this.need = (0.5 + (this.boost || 0)) * 24000
+        if (this.playing && this.gain > 0) {
+          this.clearTo = this.write
+          this.fading = true
+        } else {
+          this.read = this.write
+          this.playing = false
+          this.fading = false
+          this.gain = 0
+        }
       }
     }
   }
@@ -62,16 +70,29 @@ class PcmOut extends AudioWorkletProcessor {
     for (let i = 0; i < out.length; i += 1) {
       const left = this.write - this.read
       // 足りなくなったら、続きが届いても途中でもどさず最後まで小さくする（もどすと音が飛ぶ）
-      if (left < 2 && !this.fading) { this.fading = true; this.maybeGap = true }
+      if (left < 2 && !this.fading) { this.fading = true; this.maybeGap = true; this.need = (0.4 + (this.boost || 0)) * 24000 }
       if (this.fading) {
-        // 足りない：直前の音から小さくしていく（プツッと切れないように）
+        // 足りない・止める：直前の音から小さくしていく（プツッと切れないように）
         this.gain = Math.max(0, this.gain - fade)
+        if (left >= 2 && this.clearTo == null) {
+          // 小さくしている間も届いている音は読み進める（読む位置が止まって音が飛ばないように）
+          const base = Math.floor(this.read)
+          const a = this.ring[base % this.size]
+          const b = this.ring[(base + 1) % this.size]
+          this.last = a + (b - a) * (this.read - base)
+          this.read += this.rate
+        }
         out[i] = this.last * this.gain
         if (this.gain === 0) {
           for (let j = i + 1; j < out.length; j += 1) out[j] = 0
           this.fading = false
           this.playing = false
-          this.need = 0.4 * 24000
+          if (this.clearTo != null) {
+            // 止めた分を捨てる（止めたあとに届いた新しい返事は残す）
+            this.read = Math.max(this.read, this.clearTo)
+            this.clearTo = null
+            this.maybeGap = false
+          }
           this.port.postMessage({ type: 'drained', underruns: this.underruns, jumps: this.jumps })
           return true
         }

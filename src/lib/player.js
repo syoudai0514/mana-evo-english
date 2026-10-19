@@ -1,5 +1,5 @@
 import { pcm16Base64ToFloat } from './wav.js'
-import { playbackContext, resetPlaybackContext } from './audio.js'
+import { playbackContext, primePlayback } from './audio.js'
 
 // Live API の声（24kHz PCM）を途切れずに鳴らす。
 // 細切れの音を1つずつ鳴らすとつなぎ目でプツッと鳴るので、AudioWorklet の中に「ためる場所」を作り、
@@ -44,14 +44,11 @@ export class PcmPlayer {
 
   // タップの中で呼ぶ（iOS は操作の中でないと音を鳴らせない）
   ensure() {
-    let context = playbackContext()
-    // iPhone はタップの中でないと新しい AudioContext を鳴らせない。作りなおすのはタップの中だけ
+    // タップの中なら、鳴らせる状態にしておく（一度も鳴っていない止まったものは作りなおす）
     const inTap = navigator.userActivation ? navigator.userActivation.isActive : false
-    if (context.state === 'interrupted' && inTap) {
-      resetPlaybackContext()
-      context = playbackContext()
-      if (this.node) this.reattach()
-    }
+    if (inTap) primePlayback()
+    const context = playbackContext()
+    if (this.node && this.context !== context) this.reattach()
     if (context.state !== 'running') context.resume().catch(() => {})
     return context
   }
@@ -114,6 +111,14 @@ export class PcmPlayer {
     this.ensure()
     if (!this.active) { this.active = true; this.onStart?.() }
     clearTimeout(this.idleTimer)
+    // AudioContext が止まったまま鳴らないときは、「話している」のままにしない（次のタップで鳴るようになる）
+    if (playbackContext().state !== 'running' && !this.silentTimer) {
+      this.silentTimer = setTimeout(() => {
+        this.silentTimer = null
+        const state = playbackContext().state
+        if (state !== 'running') { this.onSilent?.(state); this.stop() }
+      }, 1500)
+    }
     if (this.fallback) return this.pushFallback(samples, sampleRate)
     if (this.node && this.context === playbackContext()) {
       this.node.port.postMessage({ type: 'push', samples, rate: sampleRate }, [samples.buffer])
@@ -151,6 +156,7 @@ export class PcmPlayer {
 
   pushFallback(samples, sampleRate) {
     const context = playbackContext()
+    if (this.fallbackContext !== context) { this.fallbackContext = context; this.nextTime = 0; this.resampler = null }
     // 端末の周波数に自分で変換する（つなぎ目で位置を引きつぐので、細切れでも音が飛ばない）
     const step = sampleRate / context.sampleRate
     // p：この細切れの中での位置（samples[i] が p=i、前の細切れの最後の音が p=-1）

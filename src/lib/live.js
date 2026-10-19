@@ -60,14 +60,27 @@ export async function reportLiveProblem(info) {
 }
 
 // purpose: 'voice'（会話・速さ優先）/ 'text'（読みづくり・賢さ優先）
-export async function requestLiveToken(liveModel = 'auto', purpose = 'voice') {
-  const token = await getAccessToken().catch(() => null)
+export async function requestLiveToken(liveModel = 'auto', purpose = 'voice', retried = false) {
+  const token = await getAccessToken({ force: retried }).catch(() => null)
   if (!token) throw Object.assign(new Error('auth'), { code: 'auth' })
-  const response = await fetch(TALK_ENDPOINT, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'live-token', liveModel, purpose })
-  })
+  // 通信が止まったままにならないよう、10秒で打ち切る
+  const abort = new AbortController()
+  const timer = setTimeout(() => abort.abort(), 10000)
+  let response
+  try {
+    response = await fetch(TALK_ENDPOINT, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'live-token', liveModel, purpose }),
+      signal: abort.signal
+    })
+  } catch (error) {
+    throw Object.assign(new Error(`network ${error?.name || ''}`), { code: 'network' })
+  } finally {
+    clearTimeout(timer)
+  }
+  // ログインの期限切れ（端末の時計のずれなど）なら、1回だけ取りなおして再挑戦
+  if (response.status === 401 && !retried) return requestLiveToken(liveModel, purpose, true)
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.token || !data?.model) {
     throw Object.assign(new Error(data?.message || 'live unavailable'), { code: data?.code || 'live' })
@@ -114,6 +127,7 @@ export class LiveSession {
     this.gaps = 0
     this.chunks = 0
     this.player.onUnderrun = () => { this.gaps += 1 }
+    this.player.onSilent = (state) => reportLiveProblem({ step: 'audio-silent', model: this.model, message: `context ${state}` })
     this.ws = null
     this.ready = false
     this.closedByUs = false
@@ -174,6 +188,7 @@ export class LiveSession {
       ws.onmessage = async (event) => {
         let message
         try { message = JSON.parse(await messageText(event.data)) } catch { return }
+        if (this.closedByUs || this.dead) return // 閉じたあとに遅れて届いたものは使わない
         if (message.setupComplete && !this.ready) {
           this.ready = true
           this.connectedAt = Date.now()
@@ -188,6 +203,8 @@ export class LiveSession {
       ws.onerror = () => {}
       ws.onclose = (event) => {
         clearTimeout(timer)
+        clearTimeout(this.stallTimer)
+        this.dead = true
         if (!this.ready) reject(new Error(`live closed ${event.code} ${event.reason}`))
         if (this.ready) this.firstTurnFailed(new Error(`live closed ${event.code} ${event.reason}`))
         if (this.ready && !this.closedByUs && !this.probing) this.handlers.onClose?.(event)
@@ -196,6 +213,7 @@ export class LiveSession {
   }
 
   handle(message) {
+    if (message.goAway) this.handlers.onGoAway?.(message.goAway.timeLeft)
     const update = message.sessionResumptionUpdate
     if (update?.resumable && update.newHandle) this.resumeHandle = update.newHandle
     for (const call of message.toolCall?.functionCalls || []) {
@@ -204,22 +222,28 @@ export class LiveSession {
       // すぐ返事をして、相棒がカードのことで話しださないようにする
       this.send({
         toolResponse: {
-          functionResponses: [{ id: call.id, name: call.name, response: { ok: true }, ...(this.card === 'nonblocking' ? { scheduling: 'SILENT' } : {}) }]
+          functionResponses: [{ id: call.id, name: call.name, response: { ok: true }, ...(this.card === 'nonblocking' && call.name === 'show_card' ? { scheduling: 'SILENT' } : {}) }]
         }
       })
     }
     const content = message.serverContent
     if (!content) return
-    // 返事の途中で何も届かなくなったら（接続が止まった）、その往復を終わったことにして画面を止めない
+    // 相棒が返事を作っている途中か（声や文字が届きはじめてから turnComplete まで）
+    if (content.modelTurn?.parts?.length) this.generating = true
+    // 返事の途中で8秒なにも届かなくなったら、接続が止まったとみなして閉じる（つなぎなおしで続ける）
     clearTimeout(this.stallTimer)
-    if (!content.turnComplete && !content.interrupted && !this.asr) {
+    if (this.generating && !content.turnComplete && !content.interrupted && !this.asr && !this.muted) {
       this.stallTimer = setTimeout(() => {
-        if (this.closedByUs) return
+        if (this.closedByUs || this.dead) return
         reportLiveProblem({ step: 'stall', model: this.model, message: `no turnComplete for 8s (age ${Math.round(this.age / 1000)}s)` })
-        this.handle({ serverContent: { turnComplete: true } })
+        this.dead = true
+        try { this.ws?.close() } catch {}
+        if (!this.probing) this.handlers.onClose?.({ code: 'stall', reason: 'no turnComplete' })
       }, 8000)
     }
     if (content.interrupted) {
+      this.generating = false
+      this.dropAudio = false
       this.player.stop()
       this.handlers.onInterrupted?.()
     }
@@ -246,6 +270,7 @@ export class LiveSession {
       }
       this.gaps = 0
       this.chunks = 0
+      this.generating = false
       this.dropAudio = false
       this.firstTurnDone()
       const audio = this.turnAudio
@@ -300,9 +325,10 @@ export class LiveSession {
     this.send({ clientContent: { turns, turnComplete: false } })
   }
 
-  // 子どもが話しはじめたら、いま流れている相棒の声を止めて、この返事の残りは鳴らさない
+  // 子どもが話しはじめたら、いま流れている相棒の声を止める。
+  // まだ返事を作っている途中なら、その残りは鳴らさない（作り終わっていれば、次の返事はふつうに鳴らす）
   silenceCurrentTurn() {
-    if (this.player.playing) this.dropAudio = true
+    this.dropAudio = Boolean(this.generating)
     this.player.stop()
   }
 

@@ -34,7 +34,12 @@ export function newAdult({ name = 'パパ', emoji = '🧔', target = 730 } = {},
 export function loadAdultStore(storage = globalThis.localStorage) {
   try {
     const raw = storage?.getItem(ADULT_KEY)
-    return raw ? { ...initialAdultStore(), ...JSON.parse(raw) } : initialAdultStore()
+    if (!raw) return initialAdultStore()
+    const store = { ...initialAdultStore(), ...JSON.parse(raw) }
+    // 古い保存データに、あとから増えた項目を足す（読みこみで落ちないように）
+    const adults = {}
+    for (const [id, saved] of Object.entries(store.adults || {})) adults[id] = { ...newAdult({}), ...saved, id }
+    return { ...store, adults, order: (store.order || []).filter((id) => adults[id]) }
   } catch {
     return initialAdultStore()
   }
@@ -77,7 +82,7 @@ export function withAdultMemory(adult, items, date = new Date()) {
     const key = fact.toLowerCase()
     if (!fact || fact.length > 160 || known.has(key)) continue
     known.add(key)
-    fresh.push({ id: `m${date.getTime().toString(36)}${fresh.length}`, fact, cat, date: todayKey(date) })
+    fresh.push({ id: `m${date.getTime().toString(36)}${fresh.length}${Math.random().toString(36).slice(2, 6)}`, fact, cat, date: todayKey(date) })
   }
   if (!fresh.length) return adult
   return { ...adult, memory: [...adult.memory, ...fresh].slice(-LIMITS.memory) }
@@ -118,7 +123,7 @@ export function withCards(adult, phrases, from = '', date = new Date()) {
     const key = normalizePhrase(en)
     if (!en || !ja || !key || en.length > 140 || known.has(key)) continue
     known.add(key)
-    fresh.push({ id: `c${date.getTime().toString(36)}${fresh.length}`, en, ja, from, created: date.toISOString(), due: date.getTime(), interval: 0, reps: 0, lapses: 0 })
+    fresh.push({ id: `c${date.getTime().toString(36)}${fresh.length}${Math.random().toString(36).slice(2, 6)}`, en, ja, from, created: date.toISOString(), due: date.getTime(), interval: 0, reps: 0, lapses: 0 })
   }
   if (!fresh.length) return adult
   return { ...adult, cards: [...adult.cards, ...fresh].slice(-LIMITS.cards) }
@@ -128,7 +133,7 @@ export function withCards(adult, phrases, from = '', date = new Date()) {
 export function scheduleCard(card, grade, now = Date.now()) {
   if (grade === 'again') return { ...card, interval: 0, due: now + 10 * 60000, lapses: card.lapses + 1, reps: card.reps + 1 }
   if (grade === 'hard') {
-    const interval = Math.max(1, Math.round(card.interval * 1.2))
+    const interval = Math.max(card.interval + 1, Math.round(card.interval * 1.2))
     return { ...card, interval, due: now + interval * DAY, reps: card.reps + 1 }
   }
   const interval = card.interval ? Math.round(card.interval * 2.5) : 4

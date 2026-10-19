@@ -17,7 +17,7 @@ export default function AdultHome({ adult, adultStore, updateAdult, updateAdultS
   const [short, setShort] = useState(false)
   const [settings, setSettings] = useState(false)
   const partner = ADULT_PARTNERS[adult.partner] || ADULT_PARTNERS.alex
-  const greeting = useMemo(() => greetingFor(adult), [adult.memory.length])
+  const greeting = useMemo(() => greetingFor(adult), [adult.memory[adult.memory.length - 1]?.id])
   const plan = todayPlan(adult, { short })
   const minutes = plan.reduce((sum, step) => sum + step.minutes, 0)
   const score = predictScore(adult)

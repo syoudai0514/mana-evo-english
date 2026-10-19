@@ -19,7 +19,8 @@ function toSession(data) {
   return {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
-    expires_at: data.expires_at || Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    // 期限は端末の時計で数える（サーバーの時刻をそのまま使うと、時計がずれた端末で期限切れのまま使いつづける）
+    expires_at: data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : (data.expires_at || Math.floor(Date.now() / 1000) + 3600),
     email: data.user?.email || ''
   }
 }
@@ -73,7 +74,13 @@ export async function getAccessToken({ force = false } = {}) {
   if (!refreshing) {
     refreshing = authRequest('/token?grant_type=refresh_token', { refresh_token: session.refresh_token })
       .then((data) => { const next = toSession({ ...data, user: data.user || { email: session.email } }); writeSession(next); return next.access_token })
-      .catch((error) => { if (error.status === 400 || error.status === 401) writeSession(null); throw error })
+      .catch((error) => {
+        // 別のタブなどが先に更新していたら、そちらの新しいセッションを使う（ログアウトしない）
+        const latest = readSession()
+        if (latest?.refresh_token && latest.refresh_token !== session.refresh_token) return latest.access_token
+        if (error.status === 400 || error.status === 401) writeSession(null)
+        throw error
+      })
       .finally(() => { refreshing = null })
   }
   return refreshing

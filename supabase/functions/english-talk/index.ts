@@ -67,7 +67,8 @@ async function listAllowedLiveModels(): Promise<string[]> {
 async function pickLiveModel(choice?: string, purpose = 'voice'): Promise<string | null> {
   const names = await listAllowedLiveModels()
   const auto = AUTO_ORDER[purpose] ?? AUTO_ORDER.voice
-  const order = choice && LIVE_ALLOWED[choice] ? [choice, ...auto.filter((id) => id !== choice)] : auto
+  // 決めた名前だけを受けつける（"constructor" などの名前で落ちないように）
+  const order = choice && Object.hasOwn(LIVE_ALLOWED, choice) ? [choice, ...auto.filter((id) => id !== choice)] : auto
   for (const id of order) {
     // 2.5 は名前ちがいがいくつかあるので latest を優先
     const hits = names.filter((name) => LIVE_ALLOWED[id].test(name)).sort((a, b) => Number(b.endsWith('latest')) - Number(a.endsWith('latest')))
@@ -97,6 +98,16 @@ async function createLiveToken() {
 }
 
 Deno.serve(async (req) => {
+  try {
+    return await handle(req)
+  } catch (error) {
+    // 思わぬエラーでも、アプリが理由を受けとれるように CORS つきで返す
+    console.error('english-talk error', String((error as Error)?.message ?? error))
+    return json({ code: 'server', message: 'サーバーでエラーが起きました' }, 500)
+  }
+})
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ message: 'method not allowed' }, 405)
   if (!GEMINI_API_KEY) return json({ code: 'config', message: 'GEMINI_API_KEY が設定されていません' }, 500)
@@ -122,4 +133,4 @@ Deno.serve(async (req) => {
 
   // Live 以外の呼び出し（上限のあるモデル）は受け付けない
   return json({ code: 'not_supported', message: 'Live only' }, 400)
-})
+}

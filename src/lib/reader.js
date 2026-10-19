@@ -4,6 +4,7 @@
 import { LiveSession, reportLiveProblem, requestLiveToken } from './live.js'
 import { isMockMode } from './config.js'
 import { speak, stopSpeech } from './tts.js'
+import { primePlayback } from './audio.js'
 
 const SYSTEM = [
   'You are a narrator for English listening practice. You never chat, greet, answer questions or comment.',
@@ -17,8 +18,10 @@ class Reader {
   constructor() {
     this.session = null
     this.connecting = null
-    this.pending = null
-    this.turnDone = false
+    this.seq = 0 // say() を呼ぶたび・止めるたびに増やす（古い呼び出しは何もしない）
+    this.sent = 0 // 読むように送った回数
+    this.done = 0 // 読み終わったと知らせが来た回数
+    this.current = null // { seq, resolve }
   }
 
   async ensure() {
@@ -32,51 +35,64 @@ class Reader {
           system: SYSTEM,
           voiceName: 'Charon',
           handlers: {
-            onTurnComplete: () => { this.turnDone = true; if (!session.speaking) this.finish() },
-            onSpeaking: (speaking) => { if (!speaking && this.turnDone) this.finish() },
-            onClose: () => { if (this.session === session) this.session = null; this.finish() }
+            // いま読んでいる回の「終わり」だけで次へ（止めた回の遅れた知らせは数えるだけ）
+            onTurnComplete: () => { if (this.session === session) { this.done += 1; this.check() } },
+            onSpeaking: (speaking) => { if (!speaking) this.check() },
+            onClose: () => { if (this.session === session) { this.session = null; this.finish() } }
           }
         })
         await session.connect()
         session.probing = false
+        if (this.closed) { session.close(); return null }
         this.session = session
+        this.sent = 0
+        this.done = 0
         return session
       })().finally(() => { this.connecting = null })
     }
     return this.connecting
   }
 
-  finish() {
-    const pending = this.pending
-    this.pending = null
-    pending?.()
+  check() {
+    if (this.current && this.done >= this.sent && !this.session?.speaking) this.finish()
   }
 
-  // 読みおわったら resolve する
+  finish() {
+    const current = this.current
+    this.current = null
+    current?.resolve()
+  }
+
+  // 読みおわったら resolve する。あとから別の say() や stop() が来たら、それまでの分は打ち切る
   async say(text, { slow = false } = {}) {
     this.stop()
+    const seq = this.seq
     let session = null
     try {
       session = await Promise.race([this.ensure(), new Promise((_, reject) => setTimeout(() => reject(new Error('reader timeout')), 7000))])
     } catch (error) {
       reportLiveProblem({ step: 'reader', message: String(error?.message || error) })
     }
+    if (seq !== this.seq) return // つないでいる間に止められた・次の読み上げが来た
     if (!session) return speak(text.replace(/\b[MW]\s*:\s*/g, ''), { rate: slow ? 0.7 : 0.95, gender: 'male' })
     return new Promise((resolve) => {
-      this.turnDone = false
-      const timer = setTimeout(() => this.finish(), 25000)
-      this.pending = () => { clearTimeout(timer); resolve() }
+      const timer = setTimeout(() => { if (this.current?.seq === seq) this.finish() }, 25000)
+      this.current = { seq, resolve: () => { clearTimeout(timer); resolve() } }
+      this.sent += 1
       session.sendText(slow ? `[SLOW] ${text}` : text)
     })
   }
 
   stop() {
+    this.seq += 1
     stopSpeech()
-    this.session?.player.stop()
+    // 読んでいる途中の残りは鳴らさない
+    this.session?.silenceCurrentTurn()
     this.finish()
   }
 
   close() {
+    this.closed = true
     this.stop()
     this.session?.close()
     this.session = null
@@ -87,6 +103,7 @@ let shared = null
 let idleTimer = null
 
 export function readAloud(text, options) {
+  if (navigator.userActivation?.isActive) primePlayback() // タップの中なら、鳴らせる状態に
   if (isMockMode()) return speak(text, { rate: options?.slow ? 0.7 : 0.95, gender: 'male' })
   shared = shared || new Reader()
   clearTimeout(idleTimer)

@@ -96,7 +96,11 @@ export default function Shadow({ adult, updateAdult, onDone }) {
         )}
         <div className="muted center" style={{ fontSize: 12, margin: '10px 20px 0' }}>お手本のすぐあとを追いかけるように言うのがコツ</div>
         <HoldMic hold={hold} label={result ? 'もう一度言う' : '押しながら まねして言う'} />
-        {(result || !hold.available) && <div style={{ padding: '6px 16px 20px' }}><button className="press cta" style={{ height: 52, fontSize: 17 }} onClick={next}>{index + 1 >= sentences.length ? 'おわり ▶' : 'つぎの文 ▶'}</button></div>}
+        <div style={{ padding: '6px 16px 20px' }}>
+          {result || !hold.available
+            ? <button className="press cta" style={{ height: 52, fontSize: 17 }} onClick={next}>{index + 1 >= sentences.length ? 'おわり ▶' : 'つぎの文 ▶'}</button>
+            : <button className="link-btn center" style={{ display: 'block', margin: '0 auto', color: '#A9AED8' }} onClick={next}>この文はとばす ›</button>}
+        </div>
       </div>
     </div>
   )

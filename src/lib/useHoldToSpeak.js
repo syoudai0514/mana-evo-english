@@ -5,6 +5,7 @@ import { Recorder, micSupported, setPlaybackSession } from './recorder.js'
 import { Transcriber } from './transcriber.js'
 import { isMockMode } from './config.js'
 import { stopSpeech, unlockSpeech } from './tts.js'
+import { primePlayback } from './audio.js'
 
 export function useHoldToSpeak({ vocabulary = [], onText }) {
   const [recording, setRecording] = useState(false)
@@ -15,6 +16,8 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
   const pressing = useRef(false)
   const pending = useRef([]) // つながる前の声
   const began = useRef(false)
+  const pressId = useRef(0) // 1回押すごとの番号（前の回の遅れた処理が今の回をこわさないように）
+  const handled = useRef(0)
   const onTextRef = useRef(onText)
   onTextRef.current = onText
   const available = micSupported() && !isMockMode()
@@ -26,7 +29,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     recorder.current = new Recorder()
     recorder.current.onLevel = setLevel
     setPlaybackSession() // マイクは押している間だけ開く
-    return () => { recorder.current?.close(); transcriber.current?.close() }
+    return () => { recorder.current?.release(); transcriber.current?.close() }
   }, [])
 
   const flush = () => {
@@ -41,20 +44,26 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     event?.preventDefault()
     if (!available || busy || recording) return
     pressing.current = true
+    const id = ++pressId.current
     unlockSpeech()
     stopSpeech()
+    primePlayback()
     pending.current = []
     began.current = false
     const asr = transcriber.current
-    if (!asr.ready) asr.ensure().then(() => { if (pressing.current || recording) flush() })
+    if (!asr.ready) asr.ensure().then(() => { if (pressId.current === id) flush() })
     else flush()
-    recorder.current.onChunk = (chunk) => { pending.current.push(chunk); flush() }
+    const rec = recorder.current
+    rec.onChunk = (chunk) => { pending.current.push(chunk); flush() }
+    rec.onMax = () => { if (pressId.current === id) finish(id) } // 長く押しすぎたら、そこで判定する
     try {
-      await recorder.current.start()
-      if (!pressing.current) { recorder.current.stop(); return }
+      await rec.start()
+      // マイクが開くまでに指を離していたら、マイクを閉じて終わり
+      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); if (began.current) transcriber.current.end(); return }
       setRecording(true)
     } catch {
       pressing.current = false
+      if (began.current) transcriber.current.end()
     }
   }
 
@@ -62,21 +71,27 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     event?.preventDefault()
     pressing.current = false
     if (!recording) return
+    finish(pressId.current)
+  }
+
+  const finish = (id) => {
+    if (handled.current === id) return
+    handled.current = id
     setRecording(false)
     setLevel(0)
     const rec = recorder.current
     setTimeout(async () => {
-      if (!rec.isRecording) return
+      if (!rec.hasTake) { rec.release(); return }
       const audio = rec.stop()
       rec.release()
-      if (audio.seconds < 0.4) return
+      if (audio.seconds < 0.4) { if (began.current) transcriber.current.end(); return }
       setBusy(true)
       // 押している間につながらなかったときは、少し待ってからためた声を送る
       if (!transcriber.current.ready) await Promise.race([transcriber.current.ensure(), new Promise((resolve) => setTimeout(resolve, 2500))])
       flush()
       const text = began.current ? await transcriber.current.end() : ''
       setBusy(false)
-      onTextRef.current?.(text)
+      onTextRef.current?.(text, id)
     }, 300)
   }
 
