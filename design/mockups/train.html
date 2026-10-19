@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>mana-evo-english mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2B2950; --ink2:#6A6890; --line:#E7E3F5;
+  --coral:#FF6B5B; --coral-d:#E04A3B;
+  --sun:#FFC83D; --sun-d:#E5A400;
+  --mint:#2FC79F; --mint-d:#1BA07D;
+  --sky:#4AA8FF; --sky-d:#2A84DB;
+  --grape:#8B6CF0; --grape-d:#6A4CD0;
+  --pink:#FF8FC0; --pink-d:#E06A9E;
+  --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1d1b33;font-family:"Zen Maru Gothic",sans-serif;color:var(--ink);padding:40px;display:flex;flex-wrap:wrap;gap:40px}
+.en{font-family:"Baloo 2","Zen Maru Gothic",sans-serif}
+.phone{width:390px;height:844px;border-radius:0;overflow:hidden;position:relative;background:linear-gradient(180deg,#FFF4E6 0%,#FFE9F1 45%,#E9F1FF 100%)}
+.status{height:47px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 34px;font:600 16px -apple-system,"Baloo 2",sans-serif}
+.status .r{display:flex;gap:6px;align-items:center;font-size:13px}
+.cloud{position:absolute;background:#fff;border-radius:999px;opacity:.7}
+.top{display:flex;justify-content:space-between;align-items:center;padding:6px 20px 0}
+.pill{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:6px 12px 6px 8px;font-weight:900;font-size:14px;box-shadow:0 3px 0 var(--line)}
+.pill .ic{font-size:18px}
+.press{border-radius:24px;box-shadow:0 6px 0 var(--d,#ddd);}
+.bubble{background:#fff;border-radius:24px;padding:14px 16px;box-shadow:0 4px 0 var(--line),0 10px 24px rgba(80,60,140,.08);position:relative}
+.kana{font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.02em;margin-top:4px}
+.ja{font-size:12.5px;color:#8a7fb8;margin-top:6px;padding-top:6px;border-top:1.5px dashed var(--line);font-weight:700}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #F1EDFA;display:flex;justify-content:space-around;padding-top:10px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:900;color:#B3AECF;gap:2px}
+.tabbar div span{font-size:24px;filter:grayscale(1);opacity:.55}
+.tabbar .on{color:var(--coral)} .tabbar .on span{filter:none;opacity:1}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:#2B2950}
+.sig{display:inline-block;width:18px;height:11px;background:linear-gradient(90deg,currentColor 0 3px,transparent 3px 5px,currentColor 5px 8px,transparent 8px 10px,currentColor 10px 13px,transparent 13px 15px,currentColor 15px 18px);clip-path:polygon(0 100%,100% 0,100% 100%)}
+.bat{display:inline-block;width:24px;height:11px;border:1.5px solid currentColor;border-radius:3.5px;position:relative;opacity:.9}.bat:after{content:"";position:absolute;inset:1.5px;right:4px;background:currentColor;border-radius:1.5px}
+.label{color:#fff;font:800 18px "Zen Maru Gothic";width:390px;margin-bottom:-28px}
+.label small{display:block;font-weight:500;font-size:13px;color:#b9b4df;margin-top:2px}
+.wrap{display:flex;flex-direction:column;gap:12px}
+
+.dk{background:linear-gradient(180deg,#1E2340 0%,#252B4D 55%,#2C2550 100%);color:#EEF0FF}
+.dk .pill{background:#323A63;color:#EEF0FF;box-shadow:0 3px 0 #1A1F38}
+.card2{background:#2F3760;border-radius:20px;padding:14px 16px;box-shadow:0 4px 0 #1A1F38}
+.muted{color:#A9AED8;font-size:12px;font-weight:700}
+.chip{display:inline-block;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px;background:#3D4677;color:#C9CDF5}
+.gold{color:#FFC83D}
+.bub2{background:#343D6B;border-radius:20px;padding:12px 14px;font-size:15px;font-weight:700;line-height:1.35}
+.me2{background:linear-gradient(180deg,#5DB5FF,#4AA8FF);color:#fff;border-radius:20px;border-bottom-right-radius:6px;padding:9px 14px;font-size:15px;font-weight:700;margin-left:auto;max-width:78%}
+.ja2{font-size:12px;color:#A9AED8;margin-top:6px;padding-top:6px;border-top:1.5px dashed #4A5385;font-weight:700}
+.tip2{background:#3A3560;border:1.5px solid #6A5CC0;border-radius:14px;padding:8px 12px;font-size:12px;font-weight:700;color:#DCD5FF}
+.phase{display:flex;gap:6px;margin:10px 20px 0}
+.phase div{flex:1;height:8px;border-radius:9px;background:#3D4677}
+.phase .on{background:#2FC79F}
+.who{width:150px;height:190px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:18px}
+.qopt{background:#343D6B;border-radius:14px;padding:10px 12px;font-size:14px;font-weight:700;display:flex;gap:10px;align-items:center}
+.qopt b{width:26px;height:26px;border-radius:50%;background:#4A5385;display:flex;align-items:center;justify-content:center;font-size:13px}
+.mem{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #3D4677;font-size:13px;font-weight:700}
+.mem .x{margin-left:auto;color:#7D83B5;font-size:12px}
+
+.ep{display:flex;gap:12px;align-items:center}
+.ep .ic{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:28px;flex:none}
+.prog{height:6px;border-radius:9px;background:#3D4677;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:#2FC79F}
+.tl{padding:10px 12px;border-radius:14px;margin:6px 0;font-family:"Baloo 2";font-weight:700;font-size:15px;line-height:1.35;color:#8F95C5}
+.tl .spk{font-family:"Zen Maru Gothic";font-size:11px;font-weight:900;color:#7D83B5;display:block}
+.tl .jp{font-family:"Zen Maru Gothic";font-size:12px;color:#7D83B5;margin-top:3px;font-weight:700}
+.tl.now{background:#343D6B;color:#fff}.tl.now .jp{color:#C9CDF5}
+.ctrl{display:flex;justify-content:space-around;align-items:center;margin:14px 20px 0}
+.ctrl .b{width:54px;height:54px;border-radius:50%;background:#323A63;display:grid;place-items:center;font-size:20px;font-weight:900}
+.ctrl .p{width:78px;height:78px;border-radius:50%;background:linear-gradient(180deg,#3BD8AE,#2FC79F);display:grid;place-items:center;font-size:32px;box-shadow:0 5px 0 #1BA07D;color:#fff}
+.seg2{display:flex;gap:6px}.seg2 span{font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:#323A63;color:#A9AED8}.seg2 .on{background:#4A5385;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- T1 -->
+<div class="wrap"><div class="label">🚃 ① 電車モード：きょうの番組<small>話さなくていい。家の Wi-Fi で先に作っておき、電車では聞くだけ</small></div>
+<div class="phone dk"><div class="status"><span>7:52</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill">‹</div><div class="pill">🚃 電車モード</div><div class="pill">⚙️</div></div>
+ <div style="margin:14px 20px 0"><div class="en" style="font:800 24px 'Baloo 2'">Today's listening</div><div class="muted">全部で 18分 ・ イヤホン推奨 ・ 画面を消しても再生（準備済みのもの）</div></div>
+ <div style="margin:12px 16px 0;display:flex;flex-direction:column;gap:10px">
+  <div class="card2"><div class="ep"><div class="ic" style="background:#2E5B52">🎙️</div><div style="flex:1"><div style="font-weight:900">Alex と Sam の雑談</div><div class="muted">「延期になったリリース」・ネイティブの速さ・6分</div></div><span class="chip" style="background:#1F7A62;color:#fff">準備OK</span></div><div class="prog"><i style="width:35%"></i></div></div>
+  <div class="card2"><div class="ep"><div class="ic" style="background:#3A3560">🔁</div><div style="flex:1"><div style="font-weight:900">あなたの会話をネイティブ版で</div><div class="muted">きのう Alex と話した内容を、自然な英語の会話に</div></div><span class="chip" style="background:#1F7A62;color:#fff">準備OK</span></div></div>
+  <div class="card2"><div class="ep"><div class="ic" style="background:#3D3A25">📘</div><div style="flex:1"><div style="font-weight:900">TOEIC Part 3・4 リスニング</div><div class="muted">会話を聞いて、タップで答える 5問・5分</div></div><span class="chip">準備中…</span></div></div>
+  <div class="card2"><div class="ep"><div class="ic" style="background:#4A3550">🎧</div><div style="flex:1"><div style="font-weight:900">耳で復習カード</div><div class="muted">日本語 → 3秒待つ → 英語。手ぶらでOK・12枚</div></div><span class="chip" style="background:#1F7A62;color:#fff">準備OK</span></div></div>
+ </div>
+ <div style="margin:14px 16px 0;height:54px;border-radius:18px;background:linear-gradient(180deg,#3BD8AE,#2FC79F);box-shadow:0 5px 0 #1BA07D;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px;color:#fff">▶ 続けて全部聞く</div>
+ <div class="muted" style="text-align:center;margin-top:8px">＋ 話題をリクエスト（例：海外出張、子育て、映画）</div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+<!-- T2 -->
+<div class="wrap"><div class="label">② 再生中（会話の番組）<small>今の文が光る。字幕は 英語＋日本語／英語だけ／なし。速さは 0.8〜1.2倍</small></div>
+<div class="phone dk"><div class="status"><span>7:55</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill">‹</div><div class="pill">🎙️ 延期になったリリース</div><div class="pill">🔖</div></div>
+ <div style="margin:10px 16px 0">
+  <div class="tl"><span class="spk">Sam</span>So how did the launch go? Weren't you guys shipping last Friday?<div class="jp">で、リリースはどうだった？先週の金曜に出すはずじゃなかった？</div></div>
+  <div class="tl now"><span class="spk">Alex</span>Don't get me started. They <span style="color:#FFC83D">pushed it back</span> again — at the last minute, of course.<div class="jp">その話はやめて。また延期になったんだよ。もちろん直前にね。</div></div>
+  <div class="tl"><span class="spk">Sam</span>Ugh, that's rough. How's the team taking it?<div class="jp">うわ、きついね。チームの様子は？</div></div>
+  <div class="tl"><span class="spk">Alex</span>Honestly? Everyone's pretty swamped, but we'll manage.<div class="jp">正直、みんな手一杯だけど、なんとかなるよ。</div></div>
+ </div>
+ <div style="margin:10px 16px 0" class="tip2">💡 Don't get me started ＝「その話はやめて（言い出したら止まらない）」ネイティブの定番</div>
+ <div style="margin:14px 20px 0"><div class="prog"><i style="width:42%"></i></div><div class="muted" style="display:flex;justify-content:space-between;margin-top:4px"><span>2:31</span><span>6:04</span></div></div>
+ <div class="ctrl"><div class="b">⏮</div><div class="b">↺</div><div class="p">❚❚</div><div class="b" style="font-size:14px">1.0×</div><div class="b">⏭</div></div>
+ <div style="display:flex;justify-content:space-between;margin:16px 20px 0"><div class="seg2"><span class="on">英＋日</span><span>英だけ</span><span>なし</span></div><span class="chip">🔖 この文をカードに</span></div>
+ <div class="muted" style="text-align:center;margin-top:10px">↺ = 今の文をもう一度　⏮⏭ = 前の文・次の文</div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+<!-- T3 -->
+<div class="wrap"><div class="label">③ TOEIC リスニング（タップで答える）<small>電車でも声を出さずに。会話 → 問題 → 4択をタップ → 解説</small></div>
+<div class="phone dk"><div class="status"><span>8:02</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill">‹</div><div class="pill">📘 Part 3 <span class="muted" style="margin-left:4px">2/5</span></div><div class="pill">1.0×</div></div>
+ <div style="margin:16px 16px 0" class="card2"><div class="chip">🔊 会話を聞いています…</div>
+  <div style="display:flex;align-items:center;gap:4px;margin:14px 0 4px;height:34px"><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:8px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:18px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:30px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:14px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:24px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:32px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:10px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:22px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:28px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:16px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:8px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:20px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:30px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:12px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:26px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:18px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:10px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:24px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:14px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:6px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:18px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:28px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:12px"></i><i style="display:block;width:5px;border-radius:3px;background:#2FC79F;height:22px"></i></div>
+  <div class="muted">字幕は答えたあとに出ます（本番と同じ）</div></div>
+ <div style="margin:12px 16px 0" class="card2"><div style="font-weight:900;font-size:15px" class="en">What will the woman probably do next?</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+   <div class="qopt"><b>A</b>Call a client</div><div class="qopt"><b>B</b>Reschedule a meeting</div><div class="qopt"><b>C</b>Print a report</div><div class="qopt"><b>D</b>Book a flight</div>
+  </div></div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+<!-- T4 -->
+<div class="wrap"><div class="label">④ 耳で復習カード（手ぶら）<small>日本語 → 3秒の間に頭の中で英語に → 英語が流れる → 次へ。画面を見なくてOK</small></div>
+<div class="phone dk"><div class="status"><span>8:08</span><span class="r"><i class="sig"></i><i class="bat"></i></span></div>
+ <div class="top"><div class="pill">‹</div><div class="pill">🎧 耳で復習 <span class="muted" style="margin-left:4px">5/12</span></div><div class="pill">⚙️</div></div>
+ <div style="margin:40px 16px 0;height:300px;border-radius:26px;background:#343D6B;box-shadow:0 6px 0 #1A1F38;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px">
+  <div class="muted">🔊 日本語</div><div style="font-size:22px;font-weight:900;margin-top:8px">手一杯で、それどころじゃない</div>
+  <div style="width:70px;height:70px;border-radius:50%;border:5px solid #FFC83D;display:grid;place-items:center;font:800 26px 'Baloo 2';margin:22px 0 10px">2</div>
+  <div class="muted">頭の中で英語にしてみて</div>
+ </div>
+ <div class="ctrl"><div class="b">⏮</div><div class="p">❚❚</div><div class="b">⏭</div></div>
+ <div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><span class="chip">間 3秒 ▾</span><span class="chip">英語を2回</span><span class="chip">😵 にがて にする</span></div>
+<div class="homebar" style="background:#EEF0FF"></div></div></div>
+
+</body>
+</html>
