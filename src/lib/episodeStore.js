@@ -50,10 +50,14 @@ export async function getEpisode(id) {
   return withProgress(await run('readonly', (store) => store.get(id)))
 }
 
+// 声と字幕がずれているかもしれない古い番組（照らしあわせる前に作ったもの）は消して、作りなおしてもらう
+const MIN_VERSION = 2
+
 export async function listEpisodes(adultId) {
   const all = await run('readonly', (store) => store.getAll())
+  for (const old of (all || []).filter((episode) => (episode.v || 1) < MIN_VERSION)) await deleteEpisode(old.id).catch(() => {})
   const progress = readProgress()
-  return (all || []).filter((episode) => episode.adultId === adultId).map((episode) => withProgress(episode, progress)).sort((a, b) => b.createdAt - a.createdAt)
+  return (all || []).filter((episode) => episode.adultId === adultId && (episode.v || 1) >= MIN_VERSION).map((episode) => withProgress(episode, progress)).sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export async function deleteEpisode(id) {

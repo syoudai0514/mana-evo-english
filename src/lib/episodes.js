@@ -101,12 +101,16 @@ class Voice {
     this.speaker = speaker
     this.session = null
     this.chunks = []
+    this.heard = '' // 読んだ声を文字にしたもの（台本どおりに読めたか確かめる）
+    this.reads = 0
     this.done = null
   }
 
   async ensure() {
-    if (this.session?.ws?.readyState === WebSocket.OPEN && this.session.age < 100000) return this.session
+    // 同じ接続で読みつづけると、だんだん台本を「読む」より「返事」をしはじめるので、数行ごとに新しくする
+    if (this.session?.ws?.readyState === WebSocket.OPEN && this.session.age < 100000 && this.reads < 6) return this.session
     this.session?.close()
+    this.reads = 0
     const granted = await requestLiveToken('auto', 'voice')
     const session = new LiveSession({
       ...granted,
@@ -115,6 +119,7 @@ class Voice {
       muted: true,
       handlers: {
         onAudio: (data) => { if (this.session === session) this.chunks.push(pcm16Base64ToFloat(data)) },
+        onPartnerText: (text) => { if (this.session === session) this.heard += text },
         onTurnComplete: () => { if (this.session === session) this.done?.() },
         onClose: () => { if (this.session === session) { this.session = null; this.done?.(new Error('closed')) } }
       }
@@ -125,19 +130,25 @@ class Voice {
     return session
   }
 
-  // 1行読ませる。だめなら1回だけやりなおす。それでもだめなら null
+  // 1行読ませる。台本とちがうことを言ったら、新しい接続で読みなおす（3回まで）。だめなら null
   async read(text) {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const session = await this.ensure()
         this.chunks = []
+        this.heard = ''
+        this.reads += 1
         await new Promise((resolve, reject) => {
           const timer = setTimeout(() => reject(new Error('read timeout')), 25000)
           this.done = (error) => { clearTimeout(timer); this.done = null; error ? reject(error) : resolve() }
-          session.sendText(text)
+          session.sendText(`LINE: ${text}`)
         })
         const audio = joinFloat(this.chunks)
-        if (audio.length > RATE * 0.2) return audio
+        if (audio.length <= RATE * 0.2) continue
+        if (this.speaker === 'JA' || sameLine(text, this.heard)) return audio
+        reportLiveProblem({ step: 'episode-mismatch', message: `${this.speaker}: "${text.slice(0, 60)}" heard "${this.heard.slice(0, 60)}"` })
+        this.session?.close()
+        this.session = null
       } catch (error) {
         reportLiveProblem({ step: 'episode-voice', message: `${this.speaker}: ${String(error?.message || error)}` })
         this.session?.close()
@@ -151,6 +162,29 @@ class Voice {
     this.session?.close()
     this.session = null
   }
+}
+
+// 読んだ声（文字にしたもの）が台本の行とほぼ同じか：台本のことばの3/4以上を言っていて、余計な話をしていない
+export function sameLine(script, heard) {
+  const target = normalizeWords(script)
+  const said = normalizeWords(heard)
+  if (!target.length) return true
+  if (!said.length) return false
+  const pool = [...said]
+  let hit = 0
+  for (const word of target) {
+    const at = pool.indexOf(word)
+    if (at >= 0) { hit += 1; pool.splice(at, 1) }
+  }
+  return hit / target.length >= 0.75 && said.length <= target.length * 1.3 + 3
+}
+
+// I'm / I am、don't / do not などの書き方のちがいは同じとみなす
+function normalizeWords(text) {
+  return String(text || '').toLowerCase().replace(/’/g, "'")
+    .replace(/n't\b/g, ' not').replace(/'m\b/g, ' am').replace(/'re\b/g, ' are').replace(/'ll\b/g, ' will').replace(/'ve\b/g, ' have').replace(/'d\b/g, ' would').replace(/'s\b/g, '')
+    .replace(/\bwon not\b/g, 'will not').replace(/\bcan not\b/g, 'cannot').replace(/\bca not\b/g, 'cannot')
+    .replace(/[^a-z0-9 ]+/g, ' ').split(' ').filter(Boolean)
 }
 
 export function joinFloat(parts) {
@@ -237,6 +271,9 @@ export function assemble(lines, clips, rate = RATE) {
 
 // ---------- まとめて作る ----------
 
+// 2：読んだ声を文字にして台本と照らしあわせるようにした版（それより前の番組は、声と字幕がずれていることがある）
+export const EPISODE_VERSION = 2
+
 export async function createEpisode(kind, adult, { topic = '', onStage = () => {} } = {}) {
   onStage({ stage: 'script' })
   const script = await buildScript(kind, adult, { topic })
@@ -267,6 +304,7 @@ export async function createEpisode(kind, adult, { topic = '', onStage = () => {
     sets,
     audio,
     position: 0,
-    listened: false
+    listened: false,
+    v: EPISODE_VERSION
   }
 }

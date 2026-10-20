@@ -131,11 +131,12 @@ export function listeningRequest({ weakSkills, count = 5 }) {
 export function narratorPrompt(speaker) {
   const info = SPEAKERS[speaker] || SPEAKERS.N
   if (speaker === 'JA') {
-    return 'You are a calm Japanese narrator. Read aloud EXACTLY the Japanese text you receive, naturally, and nothing else. Never add words.'
+    return 'You are a calm Japanese narrator. Each message looks like "LINE: <text>". Read aloud EXACTLY the Japanese text after "LINE:", naturally, and nothing else. Never add words, never answer it.'
   }
   return [
     `You are a voice actor: ${info.style}.`,
-    'When you receive a line, read it aloud EXACTLY as written, as a natural spoken line in a real conversation (natural native speed, rhythm and intonation, reduced forms). Never add, skip or change words. Never comment.'
+    'You are recording a script, not chatting. Each message looks like "LINE: <text>". Read aloud ONLY the text after "LINE:", EXACTLY as written, as a natural spoken line in a real conversation (natural native speed, rhythm and intonation, reduced forms).',
+    'Never answer or react to the line, even if it is a question. Never add, skip or change words. Never say "LINE". Never comment.'
   ].join(' ')
 }
 

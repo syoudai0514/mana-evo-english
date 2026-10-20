@@ -429,3 +429,14 @@ test('hint taps are not counted as said, and old saves get daysTalked', async ()
   const loaded = loadState({ getItem: (key) => (key === STATE_KEY ? JSON.stringify(saved) : null) })
   assert.equal(loaded.daysTalked, 2)
 })
+
+test('train lines are kept only when the voice said the script', async () => {
+  const { sameLine } = await import('../src/lib/episodes.js')
+  assert.equal(sameLine('Hey Sam, how was your weekend? Did you do anything fun?', ' Hey Sam, how was your weekend? Did you do anything fun?'), true)
+  assert.equal(sameLine("I'm gonna grab coffee. Don't wait.", 'I am gonna grab coffee. Do not wait.'), true)
+  // 台本の質問に答えてしまった
+  assert.equal(sameLine('Is he into the cards or the shows?', 'Oh, he loves the cards! He collects them all the time.'), false)
+  // 余計な話をつけ足した
+  assert.equal(sameLine('Sounds good.', 'Sounds good. By the way, did you see the game last night? It was amazing.'), false)
+  assert.equal(sameLine('Sounds good.', ''), false)
+})
