@@ -313,3 +313,34 @@ test('made questions whose skill does not match the part are rejected', async ()
   assert.equal(validQuestion({ ...base, skill: 'why' }), false)
   assert.equal(validQuestion({ ...base, choices: ['is', ' ', 'be'] }), false)
 })
+
+test('train episodes: silence is trimmed and lines get timings with gaps', async () => {
+  const { assemble, trimSilence, RATE } = await import('../src/lib/episodes.js')
+  const voiced = (seconds) => { const a = new Float32Array(Math.round(seconds * RATE)); a.fill(0.2); return a }
+  const padded = new Float32Array(RATE); padded.set(voiced(0.5), RATE * 0.25)
+  const trimmed = trimSilence(padded)
+  assert.ok(trimmed.length > RATE * 0.5 && trimmed.length < RATE * 0.6)
+  const lines = [
+    { speaker: 'Sam', en: 'Hi' }, { speaker: 'Alex', en: 'Hey' }, { speaker: 'Alex', en: 'skipped' }, { speaker: 'Alex', en: 'Again', pauseBefore: 3 }
+  ]
+  const { lines: kept, duration } = assemble(lines, [voiced(1), voiced(1), null, voiced(1)])
+  assert.equal(kept.length, 3)
+  assert.equal(kept[0].start, 0.3)
+  assert.equal(kept[1].start, 1.3 + 0.45) // 話す人が変わったら 0.45 秒
+  assert.ok(Math.abs(kept[2].start - (kept[1].end + 3)) < 1e-6) // 決めた間
+  assert.ok(Math.abs(duration - (kept[2].end + 0.6)) < 1e-6)
+})
+
+test('train scripts: listening sets are validated and cards play ja then en twice', async () => {
+  const { listeningScript, cardsScript } = await import('../src/lib/episodes.js')
+  const { newAdult, withCards } = await import('../src/lib/adult.js')
+  const good = { part: 'p3', lines: [{ speaker: 'M', en: 'a', ja: 'あ' }, { speaker: 'W', en: 'b', ja: 'い' }], question_en: 'Q?', choices: ['1', '2', '3', '4'], answer: 2, explain_ja: '' }
+  const script = listeningScript({ sets: [good, { ...good, choices: ['1', '2'] }, { ...good, part: 'p4' }] })
+  assert.equal(script.sets.length, 2)
+  assert.deepEqual(script.lines.filter((line) => line.question).map((line) => line.set), [0, 1])
+  const adult = withCards(newAdult(), [{ en: 'push back', ja: '延期する' }], '', new Date(0))
+  const cards = cardsScript(adult)
+  assert.deepEqual(cards.lines.map((line) => line.speaker), ['JA', 'Alex', 'Alex'])
+  assert.equal(cards.lines[1].pauseBefore, 3)
+  assert.throws(() => cardsScript(newAdult()), /no cards/)
+})

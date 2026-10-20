@@ -25,6 +25,8 @@ import Quiz from './screens/Quiz.jsx'
 import Toeic from './screens/Toeic.jsx'
 import AdultResult from './screens/AdultResult.jsx'
 import AdultMemory from './screens/AdultMemory.jsx'
+import Train from './screens/Train.jsx'
+import TrainPlayer from './screens/TrainPlayer.jsx'
 import { Toast } from './components/ui.jsx'
 
 // 大人の1回の学習（きょうのメニュー、またはコース1つ）を何段階で進めるか
@@ -49,6 +51,7 @@ export default function App() {
   const [toast, setToast] = useState('')
   const [run, setRun] = useState(null) // 大人の学習の進み具合 { steps, index, results, startedAt }
   const [adultUnlocked, setAdultUnlocked] = useState(false)
+  const [trainQueue, setTrainQueue] = useState(null) // 電車モード：続けて聞く番組 { ids, index }
   const toastTimer = useRef(null)
 
   const stateRef = useRef(state)
@@ -214,6 +217,12 @@ export default function App() {
       {screen === 'adultHome' && adult && <AdultHome {...adultCommon} onStart={startAdult} onSwitch={() => { setAdultUnlocked(false); setScreen('who') }} />}
       {screen === 'adultMemory' && adult && <AdultMemory {...adultCommon} />}
       {screen === 'toeicStats' && adult && <Toeic {...adultCommon} onStart={startAdult} />}
+      {screen === 'train' && adult && <Train {...adultCommon} onPlay={(ids) => { setTrainQueue({ ids, index: 0 }); setScreen('trainPlayer') }} />}
+      {screen === 'trainPlayer' && adult && trainQueue && (
+        <TrainPlayer {...adultCommon} queue={trainQueue}
+          onNext={() => setTrainQueue((prev) => ({ ...prev, index: prev.index + 1 }))}
+          onExit={() => { setTrainQueue(null); setScreen('train') }} />
+      )}
       {screen === 'review' && adult && <Review key={`r${run?.startedAt}`} {...adultCommon} onDone={finishStep} />}
       {screen === 'shadow' && adult && <Shadow key={`s${run?.startedAt}`} {...adultCommon} onDone={finishStep} />}
       {screen === 'quiz' && adult && step && (

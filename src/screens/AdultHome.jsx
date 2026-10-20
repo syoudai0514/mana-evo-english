@@ -73,6 +73,10 @@ export default function AdultHome({ adult, adultStore, updateAdult, updateAdultS
 
         <div className="a-section">
           <div className="a-label">コースを選ぶ</div>
+          <button className="press a-card big-course train-course" onClick={() => navigate('train')}>
+            <div className="t">🚃 電車モード（聞くだけ）</div>
+            <div className="s">話さなくてOK。ネイティブの雑談・あなたの会話のネイティブ版・TOEIC リスニング・耳で復習</div>
+          </button>
           <button className="press a-card big-course" onClick={() => start('chatStudy')}>
             <div className="t">☕→📘 雑談して、最後にお勉強</div>
             <div className="s">雑談 {ADULT_COURSES.chatStudy.chatMinutes}分 → きょうの言い直し＋TOEIC ミニ問題</div>

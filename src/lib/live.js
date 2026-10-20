@@ -249,6 +249,8 @@ export class LiveSession {
     }
     for (const part of content.modelTurn?.parts || []) {
       if (typeof part.text === 'string' && !part.thought) this.textBuffer += part.text
+      // 録音用（電車モードの番組づくり）：鳴らさずに声のデータだけ受けとる
+      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '')) this.handlers.onAudio?.(part.inlineData.data, sampleRateOf(part.inlineData.mimeType))
       if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted && !this.dropAudio) {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])

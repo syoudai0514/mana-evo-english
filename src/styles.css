@@ -409,3 +409,34 @@ img { -webkit-user-drag: none; }
 .talk.dark .typing i { background: #A9AED8; }
 .talk.dark .overlay .card { background: #2F3760; color: #EEF0FF; box-shadow: 0 10px 0 #1A1F38; }
 .study-go { height: 52px; font-size: 17px; background: linear-gradient(180deg, #3BD8AE, var(--mint)); --d: var(--mint-d); }
+
+/* ---------- 電車モード ---------- */
+.a-card.train-course { background: linear-gradient(135deg, #4A5385, #343D6B); --d: #1A1F38; }
+.ep-row { display: flex; gap: 10px; align-items: center; }
+.ep-main { flex: 1; display: flex; gap: 12px; align-items: center; color: inherit; }
+.ep-main:disabled { opacity: 1; }
+.ep-ic { width: 50px; height: 50px; border-radius: 15px; display: grid; place-items: center; font-size: 26px; flex: none; }
+.chip.ok { background: #1F7A62; color: #fff; }
+.chip.btnchip { background: #4A5385; color: #fff; padding: 6px 12px; font-size: 12px; }
+.chip.btnchip:disabled { opacity: .45; }
+.prog { height: 6px; border-radius: 9px; background: #3D4677; overflow: hidden; margin-top: 8px; }
+.prog i { display: block; height: 100%; background: var(--mint); border-radius: 9px; }
+.train-lines { padding: 8px 14px 12px; }
+.tl { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 14px; margin: 4px 0; color: #8F95C5; font-weight: 700; line-height: 1.35; }
+.tl .spk { display: block; font-size: 11px; font-weight: 900; color: #7D83B5; }
+.tl .en-line { display: block; font-family: var(--en); font-size: 15.5px; }
+.tl .jp { display: block; font-size: 12px; color: #7D83B5; margin-top: 3px; }
+.tl .jp-prompt { display: block; font-size: 15px; color: #C9CDF5; }
+.tl.now { background: #343D6B; color: #fff; }
+.tl.now .jp { color: #C9CDF5; }
+.tip2 { background: #3A3560; border: 1.5px solid #6A5CC0; border-radius: 14px; padding: 8px 12px; font-size: 12.5px; font-weight: 700; color: #DCD5FF; line-height: 1.5; }
+.train-tip { margin: 0 14px 6px; }
+.train-q { margin: 0 14px 8px; }
+.train-dock { flex: none; padding: 8px 20px calc(var(--safe-bottom) + 12px); background: linear-gradient(180deg, rgba(37,43,77,0), rgba(37,43,77,.96) 25%); }
+.train-dock .ctrl { display: flex; justify-content: space-around; align-items: center; margin-top: 6px; }
+.train-dock .ctrl .b { width: 52px; height: 52px; border-radius: 50%; background: #323A63; color: #EEF0FF; display: grid; place-items: center; font-size: 18px; font-weight: 900; }
+.train-dock .ctrl .b.rate { font-size: 13px; font-family: var(--en); }
+.train-dock .ctrl .p { width: 74px; height: 74px; border-radius: 50%; background: linear-gradient(180deg, #3BD8AE, #2FC79F); color: #fff; display: grid; place-items: center; font-size: 28px; box-shadow: 0 5px 0 #1BA07D; }
+.seg2 { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+.seg2 button { font-size: 12px; font-weight: 900; border-radius: 999px; padding: 5px 12px; background: #323A63; color: #A9AED8; }
+.seg2 button.on { background: #4A5385; color: #fff; }

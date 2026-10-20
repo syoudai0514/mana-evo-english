@@ -37,6 +37,7 @@ export const ADULT_COURSES = {
 export const TOEIC_PARTS = {
   p2: { label: 'Part 2 応答', short: 'Part 2' },
   p3: { label: 'Part 3 会話', short: 'Part 3' },
+  p4: { label: 'Part 4 説明文', short: 'Part 4' },
   p5: { label: 'Part 5 文法', short: 'Part 5' },
   vocab: { label: '語彙', short: '語彙' }
 }
@@ -52,6 +53,7 @@ export const TOEIC_SKILLS = {
   mainIdea: { part: 'p3', ja: 'Part 3 の話題・目的' },
   detail: { part: 'p3', ja: 'Part 3 の詳細' },
   nextAction: { part: 'p3', ja: 'Part 3「次に何をする？」' },
+  talk: { part: 'p4', ja: 'Part 4 説明文の聞きとり' },
   tense: { part: 'p5', ja: '時制' },
   partOfSpeech: { part: 'p5', ja: '品詞' },
   preposition: { part: 'p5', ja: '前置詞・接続詞' },
@@ -151,7 +153,7 @@ const QUESTION_SCHEMA = {
   type: 'OBJECT',
   properties: {
     part: { type: 'STRING', enum: ['p2', 'p3', 'p5', 'vocab'] },
-    skill: { type: 'STRING', enum: Object.keys(TOEIC_SKILLS) },
+    skill: { type: 'STRING', enum: Object.keys(TOEIC_SKILLS).filter((skill) => TOEIC_SKILLS[skill].part !== 'p4') },
     audio_en: { type: 'STRING', description: 'Part 2: the spoken question. Part 3: the short conversation script with speaker labels (M:/W:). Others: ""' },
     question_en: { type: 'STRING', description: 'Part 3: the printed question. Part 5/vocab: the sentence with ------- for the blank. Part 2: ""' },
     choices: { type: 'ARRAY', items: { type: 'STRING' } },

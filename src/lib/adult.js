@@ -182,7 +182,8 @@ export function predictScore(adult) {
   if (answered < 8) return null
   const rate = (part, fallback) => (stats[part].rate ?? fallback)
   const overall = adult.answers.filter((item) => item.correct).length / answered
-  const listening = (rate('p2', overall) + rate('p3', overall)) / 2
+  // Part 4 は電車モードでといた分だけ（まだなければ数えない）
+  const listening = stats.p4.rate === null ? (rate('p2', overall) + rate('p3', overall)) / 2 : (rate('p2', overall) + rate('p3', overall) + stats.p4.rate) / 3
   const reading = (rate('p5', overall) + rate('vocab', overall)) / 2
   const section = (value) => 5 + Math.round((490 * Math.min(1, Math.max(0, (value - 0.2) / 0.75))) / 5) * 5
   return Math.min(990, section(listening) + section(reading))
@@ -205,8 +206,9 @@ export function weakSkills(adult, count = 3) {
 
 // 苦手つぶしで出す分野（苦手から順に、足りなければ広く）
 export function practiceSkills(adult, count = 4) {
-  const weak = weakSkills(adult, count).map((row) => row.skill)
-  const all = Object.keys(TOEIC_SKILLS)
+  // Part 4 は電車モードで聞く。苦手つぶし（画面でとく問題）には出さない
+  const weak = weakSkills(adult, count + 1).map((row) => row.skill).filter((skill) => TOEIC_SKILLS[skill].part !== 'p4').slice(0, count)
+  const all = Object.keys(TOEIC_SKILLS).filter((skill) => TOEIC_SKILLS[skill].part !== 'p4')
   const rest = all.filter((skill) => !weak.includes(skill))
   const picks = [...weak]
   let i = adult.answers.length
