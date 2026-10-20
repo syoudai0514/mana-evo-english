@@ -130,7 +130,8 @@ export function buildAdultTurnSystemPrompt(ctx) {
 }
 
 // 画面カードの裏方（大人用）
-export function buildAdultAnnotatorPrompt() {
+export function buildAdultAnnotatorPrompt(known = []) {
+  const remembered = (known || []).map((item) => `${item.cat}: ${item.fact}`).join(' / ')
   return [
     'You are a silent helper for an English conversation app for a Japanese adult learner (around TOEIC 500-650).',
     'Each message describes one exchange of the conversation. NEVER speak. Your only job: call the function show_card exactly once for each message, then stop.',
@@ -143,8 +144,9 @@ export function buildAdultAnnotatorPrompt() {
     'hints: 2 natural English replies the learner could say next (en, kana = its Japanese meaning, ja = its Japanese meaning, emoji, emoji_code = Unicode code point in hex).',
     'learn: 0-2 useful phrases from this exchange worth reviewing later (from the recast, the tip, or a natural phrase the partner used), each with en and ja. [] if nothing new.',
     'memory: NEW lasting facts about the learner\'s life worth remembering (work, family, hobbies, plans, worries), each as "category: short English phrase" where category is one of work, family, hobby, feeling, other. Example: "work: the product release was pushed back to next month". [] if none.',
+    remembered ? `Already remembered: ${remembered}. Do not return these again or say them in other words; only return one if something new happened (then write the new state, e.g. "work: the release finally shipped").` : '',
     'end: false.'
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 // ---------- 問題づくり（音は鳴らさない Live に関数で返してもらう） ----------

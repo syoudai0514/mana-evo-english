@@ -129,7 +129,9 @@ function LetterCard({ state, update, voice, navigate }) {
   const seen = Object.keys(state.lettersSeen || {}).length
   const play = () => {
     unlockSpeech()
+    // 英語のあと、文字の名前と音のちがいを日本語で（フォニックスの いちばん大事なところ）
     speak(`${item.letter}! ${item.word}! ${item.letter} is for ${item.word}!`, { ...voice, rate: voice.rate * 0.9 })
+      .then(() => speak(`「${item.name}」は、「${item.sound}」の おと。${item.wordKana}の「${item.sound}」`, { lang: 'ja-JP', rate: 1, pitch: 1.1 }))
     if (!today.played) update((prev) => withLetterPlayed(prev))
   }
   return (

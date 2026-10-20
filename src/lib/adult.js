@@ -6,7 +6,7 @@ import { normalizePhrase, todayKey } from './state.js'
 
 export const ADULT_KEY = 'mee-adult-v1'
 
-const LIMITS = { memory: 60, cards: 400, answers: 300, sessions: 60, shadows: 100 }
+const LIMITS = { memory: 60, cards: 400, answers: 300, sessions: 15, shadows: 100 }
 const DAY = 86400000
 
 export function initialAdultStore() {
@@ -45,8 +45,17 @@ export function loadAdultStore(storage = globalThis.localStorage) {
   }
 }
 
+// 保存できたら true。いっぱいなら古い会話の記録を減らしてもう一度ためす
 export function saveAdultStore(store, storage = globalThis.localStorage) {
-  try { storage?.setItem(ADULT_KEY, JSON.stringify(store)) } catch {}
+  try { storage?.setItem(ADULT_KEY, JSON.stringify(store)); return true } catch {}
+  try {
+    const adults = {}
+    for (const [id, adult] of Object.entries(store.adults)) adults[id] = { ...adult, sessions: adult.sessions.slice(-3), answers: adult.answers.slice(-100) }
+    storage?.setItem(ADULT_KEY, JSON.stringify({ ...store, adults }))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function withAdult(store, adult) {
@@ -74,18 +83,37 @@ export function parseMemory(text) {
   return { cat: 'other', fact: String(text || '').trim() }
 }
 
+const STOP = new Set(['the', 'a', 'an', 'to', 'of', 'and', 'is', 'was', 'are', 'were', 'be', 'been', 'his', 'her', 'their', 'my', 'in', 'on', 'at', 'for', 'with', 'still', 'again', 'now'])
+function factWords(fact) {
+  return new Set(normalizePhrase(fact).split(' ').filter((word) => word && !STOP.has(word)))
+}
+
+// ほぼ同じ話（言いかえ）か：同じ分類で、大事なことばの半分以上が重なる
+export function sameFact(a, b) {
+  if (a.cat !== b.cat) return false
+  const x = factWords(a.fact)
+  const y = factWords(b.fact)
+  if (!x.size || !y.size) return a.fact.toLowerCase() === b.fact.toLowerCase()
+  let shared = 0
+  for (const word of x) if (y.has(word)) shared += 1
+  return shared / Math.min(x.size, y.size) >= 0.6
+}
+
 export function withAdultMemory(adult, items, date = new Date()) {
-  const known = new Set(adult.memory.map((item) => item.fact.toLowerCase()))
-  const fresh = []
+  let memory = adult.memory
+  let added = 0
   for (const raw of items || []) {
     const { cat, fact } = parseMemory(raw)
-    const key = fact.toLowerCase()
-    if (!fact || fact.length > 160 || known.has(key)) continue
-    known.add(key)
-    fresh.push({ id: `m${date.getTime().toString(36)}${fresh.length}${Math.random().toString(36).slice(2, 6)}`, fact, cat, date: todayKey(date) })
+    if (!fact || fact.length > 160) continue
+    const item = { cat, fact }
+    if (memory.some((old) => old.fact.toLowerCase() === fact.toLowerCase())) continue
+    // 同じ話の続き（言いかえ・近況）は、古いほうを新しい内容に置きかえる（記憶が同じ話で埋まらないように）
+    memory = memory.filter((old) => !sameFact(old, item))
+    memory = [...memory, { id: `m${date.getTime().toString(36)}${added}${Math.random().toString(36).slice(2, 6)}`, fact, cat, date: todayKey(date) }]
+    added += 1
   }
-  if (!fresh.length) return adult
-  return { ...adult, memory: [...adult.memory, ...fresh].slice(-LIMITS.memory) }
+  if (!added) return adult
+  return { ...adult, memory: memory.slice(-LIMITS.memory) }
 }
 
 export function withoutMemory(adult, id) {
@@ -131,6 +159,8 @@ export function withCards(adult, phrases, from = '', date = new Date()) {
 
 // grade: 'again'（わからない）/ 'hard'（あやしい）/ 'good'（言えた）
 export function scheduleCard(card, grade, now = Date.now()) {
+  // 期限前に練習しただけなら、間隔はのばさない（同じ日に何度も「言えた」で1か月先に飛ばないように）
+  if (grade !== 'again' && card.reps > 0 && card.due > now) return { ...card, reps: card.reps + 1 }
   if (grade === 'again') return { ...card, interval: 0, due: now + 10 * 60000, lapses: card.lapses + 1, reps: card.reps + 1 }
   if (grade === 'hard') {
     const interval = Math.max(card.interval + 1, Math.round(card.interval * 1.2))
@@ -272,7 +302,11 @@ export function shadowSentences(adult, count = 3) {
 // ---------- 会話の記録・つづけた日数 ----------
 
 export function withAdultSession(adult, session, date = new Date()) {
-  const record = { ...session, endedAt: date.toISOString() }
+  // 保存するのは、あとで使う分だけ（シャドーイング・電車モードの文）。全部ためると端末の保存がいっぱいになる
+  const record = {
+    mode: session.mode, title: session.title, startedAt: session.startedAt, endedAt: date.toISOString(),
+    turns: (session.turns || []).slice(-40).map((turn) => ({ who: turn.who, text: turn.text }))
+  }
   const today = todayKey(date)
   const { last, count } = adult.streak
   const yesterday = todayKey(new Date(date.getTime() - DAY))

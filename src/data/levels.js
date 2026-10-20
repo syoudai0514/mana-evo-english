@@ -84,8 +84,8 @@ export function suggestLevel(current, utterances) {
   if (englishRate >= 0.3) next = 2
   if (englishRate >= 0.5 && avgWords >= 1.5 && dontKnowRate < 0.2) next = 3
   if (englishRate >= 0.7 && avgWords >= 3 && dontKnowRate < 0.1) next = 4
-  // 段階5（全部英語）は会話が大きく変わるので、自動では上げず保護者が決める
-  return Math.max(current, Math.min(next, 4))
+  // 段階5（全部英語）は会話が大きく変わるので、自動では上げず保護者が決める。上げるのは1回に1つだけ
+  return Math.max(current, Math.min(next, current + 1, 4))
 }
 
 // むずかしすぎるサイン：直近8回のうち6回以上が日本語か「わからない」なら、1つ下げてよい

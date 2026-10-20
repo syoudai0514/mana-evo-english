@@ -34,6 +34,9 @@ class PcmOut extends AudioWorkletProcessor {
         }
         this.maybeGap = false
         this.sinceInput = 0
+      } else if (data.type === 'dispose') {
+        // 使いおわった：process が false を返すと、この処理（とためる場所）が片づけられる
+        this.disposed = true
       } else if (data.type === 'clear') {
         // 止めるときも、いきなり 0 にせず 4ms で小さくしてから捨てる（止めるたびのプツッを防ぐ）
         this.maybeGap = false
@@ -52,6 +55,7 @@ class PcmOut extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs) {
+    if (this.disposed) return false
     const out = outputs[0][0]
     if (!out) return true
     const available = this.write - this.read

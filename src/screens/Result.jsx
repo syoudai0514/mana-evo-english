@@ -11,7 +11,15 @@ export default function Result({ state, navigate, result }) {
   const newSet = new Set(record.newPhrases)
   const said = [...new Set(record.said)].slice(-6)
   // 相棒の声でほめる（文字が読めなくても伝わるように）
-  useEffect(() => { const timer = setTimeout(() => speak(said.length ? `Great talk, ${state.profile?.nickname || 'friend'}!` : 'Thank you! See you!', voice), 500); return () => clearTimeout(timer) }, [])
+  // 英語でほめたあと、シールのことを日本語でも言う（字が読めなくてもわかるように）
+  useEffect(() => {
+    const ja = record.sticker ? 'あたらしい シール！ やったね！' : record.stickerToday ? 'シールは 1にち 1まい。また あした もらおうね' : !completed ? 'あと すこし はなすと シールが もらえるよ' : ''
+    const timer = setTimeout(async () => {
+      await speak(said.length ? `Great talk, ${state.profile?.nickname || 'friend'}!` : 'Thank you! See you!', voice)
+      if (ja) speak(ja, { lang: 'ja-JP', rate: 1, pitch: 1.1 })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div className="screen result">

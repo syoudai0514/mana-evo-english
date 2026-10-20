@@ -442,7 +442,7 @@ img { -webkit-user-drag: none; }
 .seg2 button.on { background: #4A5385; color: #fff; }
 
 /* 子ども：にほんごを声で・マイクのおやすみ */
-.ja-speak { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 900; color: var(--grape); background: #F1ECFF; border-radius: 999px; padding: 2px 9px; vertical-align: middle; }
+.ja-speak { display: inline-flex; align-items: center; min-height: 40px; margin: 4px 0 0 6px; font-size: 14px; font-weight: 900; color: var(--grape); background: #F1ECFF; border: 2px solid #E2D9FF; border-radius: 999px; padding: 4px 14px; vertical-align: middle; }
 .mic.sleep .core { background: linear-gradient(180deg, #CFC7EA, #B3AAD8); box-shadow: 0 7px 0 #9A90C8; animation: sleep 3s ease-in-out infinite; }
 .hint .k { font-size: 12.5px; }
 .hint .m { font-size: 12.5px; }

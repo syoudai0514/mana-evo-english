@@ -29,6 +29,9 @@ import Train from './screens/Train.jsx'
 import TrainPlayer from './screens/TrainPlayer.jsx'
 import { Toast } from './components/ui.jsx'
 
+// 子ども側の画面（ここでエラーになったら、子どものホームへもどす。大人側には PIN なしで入れない）
+const KID_SCREENS = new Set(['setup', 'home', 'play', 'guess', 'result', 'stickers', 'friends', 'parent', 'who'])
+
 // 大人の1回の学習（きょうのメニュー、またはコース1つ）を何段階で進めるか
 function stepsFor(kind, adult, plan) {
   if (kind === 'plan') return plan
@@ -57,7 +60,7 @@ export default function App() {
   const stateRef = useRef(state)
   stateRef.current = state
   useEffect(() => { saveState(state) }, [state])
-  useEffect(() => { saveAdultStore(adultStore) }, [adultStore])
+  useEffect(() => { if (!saveAdultStore(adultStore)) showToast('端末の保存がいっぱいです。電車モードの番組を消してください') }, [adultStore])
 
   // ホームで相棒が話しかけてくる話題。起動ごとに選びなおす
   const [homeTopic, setHomeTopic] = useState(() => pickTopic({ recentIds: loadState().recentTopics }))
@@ -186,7 +189,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <ErrorBoundary key={screen} onReset={() => { setRun(null); setScreen(adult && adultStore.current ? 'adultHome' : 'home') }}>
+      <ErrorBoundary key={screen} onReset={() => { setRun(null); setScreen(KID_SCREENS.has(screen) || !adult ? 'home' : adultStore.pinRequired && !adultUnlocked ? 'who' : 'adultHome') }}>
       {screen === 'setup' && (
         <Setup
           onDone={(profile) => {
@@ -223,7 +226,7 @@ export default function App() {
           onNext={() => setTrainQueue((prev) => ({ ...prev, index: prev.index + 1 }))}
           onExit={() => { setTrainQueue(null); setScreen('train') }} />
       )}
-      {screen === 'review' && adult && <Review key={`r${run?.startedAt}`} {...adultCommon} onDone={finishStep} />}
+      {screen === 'review' && adult && <Review key={`r${run?.startedAt}`} {...adultCommon} limit={step?.count} onDone={finishStep} />}
       {screen === 'shadow' && adult && <Shadow key={`s${run?.startedAt}`} {...adultCommon} onDone={finishStep} />}
       {screen === 'quiz' && adult && step && (
         <Quiz key={`q${run.startedAt}${run.index}`} {...adultCommon} kind={step.id} recasts={run.results.recasts || []} context={run.results.chatContext || ''} onDone={finishStep} />

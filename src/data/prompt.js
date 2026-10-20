@@ -33,7 +33,7 @@ How to talk:
 - Never speak Japanese, even if the child only speaks Japanese (Japanese food or place names are OK).
 - Keep everything gentle and cozy: nothing scary, violent or sad. Pretend scares end with a giggle right away ("Boo! Hee-hee, it's just me!").
 - If the child says they are hurt, sad or scared, be kind and suggest telling a grown-up.
-- Special inputs: "[START]" = you speak first. "[DONT_KNOW]" = the child did not understand: say it again more simply and slowly and give two choices. "[WRAP_UP]" = time to finish: say a warm goodbye in one or two short sentences that mentions something you talked about, and finish with "Bye-bye!". "[HINT] text" = the child chose that hint, treat it as the child saying it.`
+- Special inputs: "[START]" = you speak first. "[DONT_KNOW]" = the child did not understand: say it again more simply and slowly and give two choices. "[WRAP_UP]" = time to finish: if the child's words come with it, first react to them happily in a few words (no new question), then say a warm goodbye that mentions something you talked about, and finish with "Bye-bye!". Keep it to two or three short sentences. "[HINT] text" = the child chose that hint, treat it as the child saying it.`
 
 function japanesePolicy(level) {
   if (levelOf(level).japanese === 'english-only') {
@@ -181,9 +181,11 @@ export function buildLiveSystemPrompt(ctx) {
     modeRules(ctx),
     memoryBlock(nickname, ctx.memory),
     letterBlock(ctx.letter),
-    // 終わりはアプリが [WRAP_UP] で知らせる（自分で数えて早く終えない）
-    'Do not end the chat by yourself unless the child wants to stop; the app will send "[WRAP_UP]" when it is time. ' +
-      'When you end, say a warm goodbye that mentions something you talked about, and finish with "Bye-bye!".'
+    // 終わりはアプリが [WRAP_UP] で知らせる（自分で数えて早く終えない）。あてっこは当たったら終わり
+    ctx.mode === 'guess'
+      ? 'When the answer has been found and you have celebrated it, say a warm goodbye and finish with "Bye-bye!". If "[WRAP_UP]" comes before that, tell the answer happily and say goodbye.'
+      : 'Do not end the chat by yourself unless the child wants to stop; the app will send "[WRAP_UP]" when it is time. ' +
+        'When you end, say a warm goodbye that mentions something you talked about, and finish with "Bye-bye!".'
   ].filter(Boolean).join('\n\n')
 }
 

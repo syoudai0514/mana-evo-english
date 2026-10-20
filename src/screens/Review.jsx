@@ -11,10 +11,10 @@ const GRADES = [
   { id: 'good', label: '😎 言えた', cls: 'good' }
 ]
 
-export default function Review({ adult, updateAdult, onDone }) {
-  // 期限の来たカード。なければ新しいものから10枚（いつでも練習できるように）
+export default function Review({ adult, updateAdult, limit, onDone }) {
+  // 期限の来たカード（きょうのメニューの枚数まで）。なければ新しいものから10枚（いつでも練習できるように）
   const cards = useMemo(() => {
-    const due = dueCards(adult)
+    const due = dueCards(adult, Date.now(), limit || 12)
     return due.length ? due : [...adult.cards].reverse().slice(0, 10)
   }, [])
   const [index, setIndex] = useState(0)

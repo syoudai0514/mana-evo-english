@@ -33,13 +33,28 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 }
 
-async function verifyUser(req: Request) {
+// ログインしている人の id（していなければ null）
+async function verifyUser(req: Request): Promise<string | null> {
   const auth = req.headers.get('Authorization') ?? ''
-  if (!auth.startsWith('Bearer ')) return false
+  if (!auth.startsWith('Bearer ')) return null
   const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
     headers: { Authorization: auth, apikey: SUPABASE_ANON_KEY }
   })
-  return response.ok
+  if (!response.ok) return null
+  const user = await response.json().catch(() => null)
+  return user?.id ? String(user.id) : null
+}
+
+// 1人あたりの回数の上限（キーを使いすぎないように。電車モードの準備でも足りる回数）
+const LIMITS: Record<string, number> = { 'live-token': 600, 'live-log': 200 }
+const recent = new Map<string, number[]>()
+function overLimit(userId: string, action: string) {
+  const key = `${userId}:${action}`
+  const since = Date.now() - 3600_000
+  const times = (recent.get(key) ?? []).filter((time) => time > since)
+  times.push(Date.now())
+  recent.set(key, times)
+  return times.length > (LIMITS[action] ?? 60)
 }
 
 // このキーで使える Live モデルのうち、許可した2つだけを返す
@@ -111,10 +126,12 @@ async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ message: 'method not allowed' }, 405)
   if (!GEMINI_API_KEY) return json({ code: 'config', message: 'GEMINI_API_KEY が設定されていません' }, 500)
-  if (!(await verifyUser(req))) return json({ code: 'auth', message: 'ログインが必要です' }, 401)
+  const userId = await verifyUser(req)
+  if (!userId) return json({ code: 'auth', message: 'ログインが必要です' }, 401)
 
   let body: { action?: string; liveModel?: string; purpose?: string; info?: unknown }
   try { body = await req.json() } catch { return json({ code: 'bad_request', message: 'invalid json' }, 400) }
+  if (overLimit(userId, String(body?.action))) return json({ code: 'rate_limited', message: '少し時間をおいてください' }, 429)
 
   if (body?.action === 'live-log') {
     console.warn('live problem', JSON.stringify(body.info ?? {}).slice(0, 800))

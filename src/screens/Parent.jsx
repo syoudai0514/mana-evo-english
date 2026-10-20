@@ -239,7 +239,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
           <div className="stage">
             {LEVELS.map((item) => (
               <button key={item.level} className={`${item.level <= state.level ? 'on' : ''} ${item.level === state.level ? 'cur' : ''}`}
-                onClick={() => update((prev) => ({ ...prev, level: item.level }))}>
+                onClick={() => update((prev) => ({ ...prev, level: item.level, levelChangedAt: Date.now() }))}>
                 <div className="bar" />
                 <div className="lb">{item.label}</div>
               </button>

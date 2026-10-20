@@ -243,10 +243,16 @@ export async function createEpisode(kind, adult, { topic = '', onStage = () => {
   onStage({ stage: 'voice', done: 0, total: script.lines.length })
   const clips = await renderLines(script.lines, (done, total) => onStage({ stage: 'voice', done, total }))
   const { samples, lines, duration } = assemble(script.lines, clips)
-  if (lines.length < Math.min(4, script.lines.length)) throw Object.assign(new Error('voice failed'), { code: 'voice' })
+  // 声にできなかった行が多い・片方の話し手が丸ごと抜けた番組は「準備OK」にしない（もう一度作ってもらう）
+  const speakers = new Set(script.lines.map((line) => line.speaker))
+  const voiced = new Set(lines.map((line) => line.speaker))
+  if (lines.length < Math.min(4, script.lines.length) || lines.length < script.lines.length * 0.9 || [...speakers].some((who) => !voiced.has(who))) {
+    throw Object.assign(new Error('voice failed'), { code: 'voice' })
+  }
   // TOEIC：問題文まで読めた問題だけ残す
   // （番号は行と対応しているので消さずに、読めなかった問題には end を付けない。再生ではとばす）
   const sets = script.sets ? script.sets.map((set, index) => ({ ...set, end: lines.find((line) => line.set === index && line.question)?.end ?? null })) : undefined
+  if (sets && !sets.some((set) => set.end)) throw Object.assign(new Error('no questions voiced'), { code: 'voice' })
   const audio = new Blob([encodeWav(samples, RATE)], { type: 'audio/wav' })
   return {
     id: `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,

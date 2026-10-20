@@ -1,10 +1,11 @@
 // 電車モード（大人だけ）：話さずに聞く番組。家の Wi-Fi で準備しておき、電車では聞くだけ
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { TRAIN_KINDS } from '../data/train.js'
 import { deleteEpisode, listEpisodes } from '../lib/episodeStore.js'
 import { clearJobError, jobKey, prepareEpisode, subscribeJobs } from '../lib/trainJobs.js'
 import { recentTranscript } from '../lib/episodes.js'
 import { primePlayback } from '../lib/audio.js'
+import { unlockTrainAudio } from '../lib/trainAudio.js'
 import { AdultTop } from '../components/adultUi.jsx'
 
 const ERRORS = {
@@ -29,10 +30,17 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
   const reload = () => listEpisodes(adult.id).then(setEpisodes).catch(() => setEpisodes([]))
   useEffect(() => { reload() }, [adult.id])
   // 作り終わったら一覧を読みなおす
-  useEffect(() => subscribeJobs((next) => { setJobs(next); reload() }), [adult.id])
+  // （進み具合が変わるたびに読みなおすと重いので、終わった・失敗したときだけ）
+  const finishedCount = useRef(-1)
+  useEffect(() => subscribeJobs((next) => {
+    setJobs(next)
+    const active = Object.values(next).filter((item) => !item.error).length
+    if (active !== finishedCount.current) { finishedCount.current = active; reload() }
+  }), [adult.id])
 
   const latest = (kind) => episodes?.find((episode) => episode.kind === kind)
   const job = (kind) => jobs[jobKey(adult.id, kind)]
+  const busyWith = (kind) => Boolean(job(kind) && !job(kind).error) // 失敗したものは、もう一度ためせる
   const canMake = (kind) => (kind === 'mine' ? Boolean(recentTranscript(adult)) : kind === 'cards' ? adult.cards.length > 0 : true)
 
   const prepare = (kind, options) => {
@@ -41,7 +49,7 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
   }
 
   const prepareAll = () => {
-    for (const kind of Object.keys(TRAIN_KINDS)) if (canMake(kind) && !job(kind)) prepare(kind)
+    for (const kind of Object.keys(TRAIN_KINDS)) if (canMake(kind) && !busyWith(kind)) prepare(kind)
     showToast('番組を準備しています。Wi-Fi のある所で少し待ってね')
   }
 
@@ -50,6 +58,7 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
     const ids = Object.values(TRAIN_KINDS).filter((kind) => kind.flow).map((kind) => latest(kind.id)).filter((episode) => episode && !episode.listened).map((episode) => episode.id)
     if (!ids.length) return showToast('まだ聞いていない番組がありません。「準備する」を押してね')
     primePlayback()
+    unlockTrainAudio()
     onPlay(ids)
   }
 
@@ -74,7 +83,7 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
             return (
               <div key={kind.id} className="a-card">
                 <div className="ep-row">
-                  <button className="ep-main" disabled={!episode} onClick={() => { primePlayback(); onPlay([episode.id]) }}>
+                  <button className="ep-main" disabled={!episode} onClick={() => { primePlayback(); unlockTrainAudio(); onPlay([episode.id]) }}>
                     <div className="ep-ic" style={{ background: kind.bg }}>{kind.emoji}</div>
                     <div style={{ flex: 1, textAlign: 'left' }}>
                       <div className="t">{kind.title}</div>
@@ -104,7 +113,7 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
               <div className="field"><input value={topic} maxLength={60} placeholder="例：海外出張、子育て、映画、サッカー" onChange={(event) => setTopic(event.target.value)} /></div>
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <button className="press btn ghost dark-ghost" style={{ flex: 1 }} onClick={() => setAsking(false)}>やめる</button>
-                <button className="press btn primary" style={{ flex: 2 }} disabled={!topic.trim() || Boolean(job('chat'))} onClick={() => { prepare('chat', { topic: topic.trim() }); setAsking(false); setTopic('') }}>この話題で雑談を作る</button>
+                <button className="press btn primary" style={{ flex: 2 }} disabled={!topic.trim() || busyWith('chat')} onClick={() => { prepare('chat', { topic: topic.trim() }); setAsking(false); setTopic('') }}>この話題で雑談を作る</button>
               </div>
             </div>
           ) : (
@@ -116,7 +125,7 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
               <div className="t" style={{ marginBottom: 4 }}>前の番組</div>
               {older.map((episode) => (
                 <div key={episode.id} className="mem">
-                  <button style={{ flex: 1, textAlign: 'left' }} onClick={() => { primePlayback(); onPlay([episode.id]) }}>
+                  <button style={{ flex: 1, textAlign: 'left' }} onClick={() => { primePlayback(); unlockTrainAudio(); onPlay([episode.id]) }}>
                     {TRAIN_KINDS[episode.kind]?.emoji} {episode.title}<br /><span className="muted" style={{ fontSize: 11 }}>{new Date(episode.createdAt).toLocaleDateString('ja-JP')}・{minutes(episode.duration)}{episode.listened ? '・聞いた' : ''}</span>
                   </button>
                   <button className="x" onClick={() => deleteEpisode(episode.id).then(reload)}>けす</button>

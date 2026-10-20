@@ -61,7 +61,14 @@ export async function reportLiveProblem(info) {
 
 // purpose: 'voice'（会話・速さ優先）/ 'text'（読みづくり・賢さ優先）
 export async function requestLiveToken(liveModel = 'auto', purpose = 'voice', retried = false) {
-  const token = await getAccessToken({ force: retried }).catch(() => null)
+  // ログインの更新に失敗：期限切れ・取り消し（400/401）だけを「ログインが必要」に。通信の失敗は「つながらない」
+  let token = null
+  try {
+    token = await getAccessToken({ force: retried })
+  } catch (error) {
+    if (error?.status === 400 || error?.status === 401) throw Object.assign(new Error('auth'), { code: 'auth' })
+    throw Object.assign(new Error(`network ${error?.message || ''}`), { code: 'network' })
+  }
   if (!token) throw Object.assign(new Error('auth'), { code: 'auth' })
   // 通信が止まったままにならないよう、10秒で打ち切る
   const abort = new AbortController()
@@ -142,6 +149,8 @@ export class LiveSession {
     return new Promise((resolve, reject) => {
       // 公式 SDK と同じく、トークン（auth_tokens/...）はそのまま付ける
       const ws = new WebSocket(`${WS_BASE}?access_token=${this.token}`)
+      // 文字列にするのを待たずに読めるようにして、届いた順（声 → 終わりの合図）のまま処理する
+      ws.binaryType = 'arraybuffer'
       this.ws = ws
       const timer = setTimeout(() => { reject(new Error('live timeout')); this.close() }, timeoutMs)
       ws.onopen = () => {
@@ -207,7 +216,8 @@ export class LiveSession {
         this.dead = true
         if (!this.ready) reject(new Error(`live closed ${event.code} ${event.reason}`))
         if (this.ready) this.firstTurnFailed(new Error(`live closed ${event.code} ${event.reason}`))
-        if (this.ready && !this.closedByUs && !this.probing) this.handlers.onClose?.(event)
+        // 止まったとみなして閉じた（stall）ときは、もう知らせてあるので2回目は知らせない（つなぎなおしが2つ走らないように）
+        if (this.ready && !this.closedByUs && !this.probing && !this.closeReported) { this.closeReported = true; this.handlers.onClose?.(event) }
       }
     })
   }
@@ -237,6 +247,7 @@ export class LiveSession {
         if (this.closedByUs || this.dead) return
         reportLiveProblem({ step: 'stall', model: this.model, message: `no turnComplete for 8s (age ${Math.round(this.age / 1000)}s)` })
         this.dead = true
+        this.closeReported = true
         try { this.ws?.close() } catch {}
         if (!this.probing) this.handlers.onClose?.({ code: 'stall', reason: 'no turnComplete' })
       }, 8000)

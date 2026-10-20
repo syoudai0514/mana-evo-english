@@ -55,6 +55,7 @@ export class PcmPlayer {
 
   // AudioContext を作りなおしたあと、つなぎなおす（ためていた声は捨てる）
   reattach() {
+    this.node?.port.postMessage({ type: 'dispose' })
     this.node?.disconnect()
     this.node = null
     this.connect()
@@ -75,13 +76,17 @@ export class PcmPlayer {
   }
 
   async attach(context) {
+    this.node?.port.postMessage({ type: 'dispose' })
     this.node?.disconnect()
     this.node = null
     this.context = context
     const ok = await loadWorklet(context)
     if (this.context !== context) return
+    // 話している途中で iPhone が音を止めた（電話・ほかのアプリ）ときも、「話している」のままにしない
+    context.addEventListener('statechange', () => { if (this.context === context && !this.closed && this.active && context.state !== 'running') this.watchSilent() })
     if (!ok) { this.fallback = true; audioInfo.mode = 'fallback'; return }
     audioInfo.mode = 'worklet'
+    this.closed = false
     this.node = new AudioWorkletNode(context, 'pcm-out', { numberOfInputs: 0, outputChannelCount: [1] })
     this.node.connect(context.destination)
     this.node.port.onmessage = (event) => {
@@ -112,13 +117,7 @@ export class PcmPlayer {
     if (!this.active) { this.active = true; this.onStart?.() }
     clearTimeout(this.idleTimer)
     // AudioContext が止まったまま鳴らないときは、「話している」のままにしない（次のタップで鳴るようになる）
-    if (playbackContext().state !== 'running' && !this.silentTimer) {
-      this.silentTimer = setTimeout(() => {
-        this.silentTimer = null
-        const state = playbackContext().state
-        if (state !== 'running') { this.onSilent?.(state); this.stop() }
-      }, 1500)
-    }
+    if (playbackContext().state !== 'running') this.watchSilent()
     if (this.fallback) return this.pushFallback(samples, sampleRate)
     if (this.node && this.context === playbackContext()) {
       this.node.port.postMessage({ type: 'push', samples, rate: sampleRate }, [samples.buffer])
@@ -126,6 +125,16 @@ export class PcmPlayer {
       this.pending.push([samples, sampleRate])
       this.connect().then(() => { if (this.fallback) this.flushFallback() })
     }
+  }
+
+  // 1.5秒たっても鳴らせないままなら止める（次のタップで鳴るようになる）
+  watchSilent() {
+    if (this.silentTimer) return
+    this.silentTimer = setTimeout(() => {
+      this.silentTimer = null
+      const state = playbackContext().state
+      if (state !== 'running') { this.onSilent?.(state); this.stop() }
+    }, 1500)
   }
 
   stop() {
@@ -143,8 +152,13 @@ export class PcmPlayer {
 
   close() {
     this.stop()
+    clearTimeout(this.silentTimer)
+    this.silentTimer = null
+    // AudioWorklet の処理も止めて片づける（disconnect だけだと残りつづけ、会話のたびにメモリがふえる）
+    this.node?.port.postMessage({ type: 'dispose' })
     this.node?.disconnect()
     this.node = null
+    this.closed = true
   }
 
   // ---- AudioWorklet が使えない端末用 ----

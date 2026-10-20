@@ -8,7 +8,10 @@ import { stopSpeech, unlockSpeech } from './tts.js'
 import { primePlayback } from './audio.js'
 
 export function useHoldToSpeak({ vocabulary = [], onText }) {
-  const [recording, setRecording] = useState(false)
+  const [recording, setRecordingState] = useState(false)
+  const recordingRef = useRef(false) // 描きかえ前でも分かるように
+  const setRecording = (value) => { recordingRef.current = value; setRecordingState(value) }
+  const stopping = useRef(false) // 離したあとの 0.3 秒（この間に押しなおすと、前の声が消えるので受けつけない）
   const [level, setLevel] = useState(0)
   const [busy, setBusy] = useState(false)
   const recorder = useRef(null)
@@ -42,7 +45,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
 
   const start = async (event) => {
     event?.preventDefault()
-    if (!available || busy || recording) return
+    if (!available || busy || recordingRef.current || stopping.current) return
     pressing.current = true
     const id = ++pressId.current
     unlockSpeech()
@@ -51,7 +54,8 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     pending.current = []
     began.current = false
     const asr = transcriber.current
-    if (!asr.ready) asr.ensure().then(() => { if (pressId.current === id) flush() })
+    // つながるのが遅れて、もう離したあとなら送らない（離したほうの処理が送る。終わりのない声を送らない）
+    if (!asr.ready) asr.ensure().then(() => { if (pressId.current === id && pressing.current) flush() })
     else flush()
     const rec = recorder.current
     rec.onChunk = (chunk) => { pending.current.push(chunk); flush() }
@@ -70,7 +74,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
   const stop = (event) => {
     event?.preventDefault()
     pressing.current = false
-    if (!recording) return
+    if (!recordingRef.current) return
     finish(pressId.current)
   }
 
@@ -80,7 +84,9 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     setRecording(false)
     setLevel(0)
     const rec = recorder.current
+    stopping.current = true
     setTimeout(async () => {
+      stopping.current = false
       if (!rec.hasTake) { rec.release(); return }
       const audio = rec.stop()
       rec.release()

@@ -3,9 +3,10 @@
 // TOEIC は問題文のところで止まり、タップで答えてから続きへ。
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { TRAIN_KINDS } from '../data/train.js'
-import { getEpisode, updateEpisode } from '../lib/episodeStore.js'
+import { getEpisode, saveProgress } from '../lib/episodeStore.js'
 import { withAnswers, withCards, withGrade, withStudyDay } from '../lib/adult.js'
 import { setPlaybackSession } from '../lib/recorder.js'
+import { trainAudio } from '../lib/trainAudio.js'
 import { AdultTop } from '../components/adultUi.jsx'
 
 const RATES = [0.8, 1, 1.2]
@@ -35,7 +36,7 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
   const [subs, setSubs] = useState(() => { try { return localStorage.getItem('mee-train-subs') || 'both' } catch { return 'both' } })
   const [asking, setAsking] = useState(null) // TOEIC：いま答えている問題の番号
   const [answers, setAnswers] = useState({}) // 問題の番号 → 選んだ番号
-  const audio = useRef(null)
+  const audio = useRef(trainAudio()) // 番組を選んだタップで鳴らせるようにした <audio>（iPhone）
   const listRef = useRef(null)
   const savedAt = useRef(0)
   const id = queue.ids[queue.index]
@@ -47,18 +48,45 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
     setAnswers({})
     setAsking(null)
     getEpisode(id).then((loaded) => {
-      if (!alive || !loaded) return
+      if (!alive) return
+      // 消えていた番組（新しい番組で入れかわった）は飛ばす
+      if (!loaded?.audio) { showToast?.('番組が見つかりませんでした'); if (queue.index + 1 < queue.ids.length) onNext(); else onExit(); return }
       setEpisode(loaded)
+      // 途中から再開するときは、もう答えた問題を聞きなおさない
+      if (!loaded.listened && loaded.answers) setAnswers(loaded.answers)
       url = URL.createObjectURL(loaded.audio)
       const element = audio.current
       element.src = url
       element.playbackRate = rate
-      element.currentTime = loaded.listened ? 0 : loaded.position || 0
+      const startAt = loaded.listened ? 0 : loaded.position || 0
+      // 読みこみが終わってから位置を合わせる（先に合わせると iPhone では 0 にもどる）
+      if (startAt) element.addEventListener('loadedmetadata', () => { element.currentTime = startAt }, { once: true })
       setPlaybackSession() // 音楽と同じモード（マナーモードでも鳴る）
-      element.play().catch(() => setPlaying(false))
-    })
-    return () => { alive = false; audio.current?.pause(); if (url) URL.revokeObjectURL(url) }
+      element.play().catch(() => { setPlaying(false); showToast?.('▶ を押すと はじまります') })
+    }).catch(() => { if (alive) { showToast?.('番組を読みこめませんでした'); onExit() } })
+    return () => {
+      alive = false
+      const element = audio.current
+      element.pause()
+      if (url) { element.removeAttribute('src'); element.load(); URL.revokeObjectURL(url) }
+    }
   }, [id])
+
+  // <audio> の出来事を、いまの画面の状態で受けとる（使いまわす <audio> なので、ここでつなぐ）
+  const events = useRef({})
+  useEffect(() => {
+    const element = audio.current
+    const on = {
+      timeupdate: () => events.current.onTime?.(),
+      play: () => setPlaying(true),
+      pause: () => setPlaying(false),
+      ended: () => events.current.onEnded?.(),
+      // 読みこみや再生のエラー（番組が こわれている など）
+      error: () => { if (element.getAttribute('src')?.startsWith('blob:')) { setPlaying(false); showToast?.('再生できませんでした。番組を作りなおしてください') } }
+    }
+    for (const [name, handler] of Object.entries(on)) element.addEventListener(name, handler)
+    return () => { for (const [name, handler] of Object.entries(on)) element.removeEventListener(name, handler) }
+  }, [])
 
   const lines = episode?.lines || []
   const index = lineAt(lines, time)
@@ -66,24 +94,30 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
   const kind = TRAIN_KINDS[episode?.kind] || TRAIN_KINDS.chat
   const toeic = episode?.kind === 'toeic'
 
-  // ロック画面の表示と操作
+  // ロック画面の表示と操作（ボタンは、いまの位置・問題の状態を見る。登録したときの古い値は使わない）
+  const actions = useRef({})
+  actions.current = { jump: (step) => jump(step), replay: () => replayLine(), play: () => { if (asking === null) audio.current?.play().catch(() => {}) } }
   useEffect(() => {
-    if (!episode || !('mediaSession' in navigator)) return
+    if (!episode || !('mediaSession' in navigator)) return undefined
+    const set = (action, handler) => { try { navigator.mediaSession.setActionHandler(action, handler) } catch {} }
     try {
       navigator.mediaSession.metadata = new window.MediaMetadata({ title: episode.title, artist: kind.title, album: 'マナエボ英語 電車モード' })
-      const set = (action, handler) => { try { navigator.mediaSession.setActionHandler(action, handler) } catch {} }
-      set('play', () => audio.current?.play())
-      set('pause', () => audio.current?.pause())
-      set('previoustrack', () => jump(-1))
-      set('nexttrack', () => jump(1))
-      set('seekbackward', () => replayLine())
     } catch {}
+    set('play', () => actions.current.play())
+    set('pause', () => audio.current?.pause())
+    set('previoustrack', () => actions.current.jump(-1))
+    set('nexttrack', () => actions.current.jump(1))
+    set('seekbackward', () => actions.current.replay())
+    return () => {
+      for (const action of ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward']) set(action, null)
+      try { navigator.mediaSession.metadata = null } catch {}
+    }
   }, [episode])
 
   const save = (position, extra = {}) => {
     if (!episode) return
     savedAt.current = Date.now()
-    updateEpisode(episode.id, { position, ...extra }).catch(() => {})
+    saveProgress(episode.id, { position, ...extra })
   }
 
   const onTime = () => {
@@ -98,9 +132,11 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
     }
   }
 
+  events.current = { onTime: () => onTime(), onEnded: () => onEnded() }
+
   const onEnded = () => {
     setPlaying(false)
-    save(0, { listened: true })
+    save(0, { listened: true, answers: null })
     updateAdult((current) => withStudyDay(current))
     if (queue.index + 1 < queue.ids.length) onNext()
   }
@@ -114,6 +150,7 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
 
   const seekTo = (seconds) => {
     const element = audio.current
+    if (!element) return
     element.currentTime = Math.max(0, seconds)
     setTime(element.currentTime)
     if (element.paused && asking === null) element.play().catch(() => {})
@@ -155,7 +192,11 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
 
   const answer = (choice) => {
     const set = episode.sets[asking]
-    setAnswers((prev) => ({ ...prev, [asking]: choice }))
+    setAnswers((prev) => {
+      const next = { ...prev, [asking]: choice }
+      if (episode) saveProgress(episode.id, { answers: next })
+      return next
+    })
     updateAdult((current) => withAnswers(current, [{ part: set.part, skill: set.part === 'p4' ? 'talk' : 'detail', correct: choice === set.answer }]))
   }
 
@@ -177,8 +218,7 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
   const chosen = asking !== null ? answers[asking] : undefined
 
   return (
-    <div className="screen adult-dark">
-      <audio ref={audio} onTimeUpdate={onTime} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={onEnded} playsInline preload="auto" />
+    <div className="screen adult-dark train-player">
       <AdultTop onBack={() => { save(audio.current?.currentTime || 0); onExit() }} title={<>{kind.emoji} <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>{episode?.title || '読みこみ中…'}</span>{queue.ids.length > 1 && <span className="muted" style={{ marginLeft: 4, fontSize: 11 }}>{queue.index + 1}/{queue.ids.length}</span>}</>}
         right={episode?.kind === 'cards'
           ? <button className="icon-btn" aria-label="にがて" onClick={weakCard}>😵</button>

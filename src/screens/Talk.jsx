@@ -96,7 +96,9 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
   const [turns, setTurns] = useState(() => { const first = openerTurn(config); return first ? [first] : [] })
   const [busy, setBusy] = useState(false)
-  const [recording, setRecording] = useState(false)
+  const [recording, setRecordingState] = useState(false)
+  const recordingRef = useRef(false)
+  const setRecording = (value) => { recordingRef.current = value; setRecordingState(value) }
   const [pressed, setPressed] = useState(false) // 押したらすぐ、押した見た目にする（マイクが開くまで少しかかるため）
   const [micLevel, setMicLevel] = useState(0)
   // 日本語の意味：子どもは段階4まで最初から出す（段階5は全部英語）。大人の練習も出す
@@ -119,7 +121,46 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const memoryAdded = useRef([])
   const speakJaFor = useRef(0) // 「わからない」のあとの返事：ひらがなの意味を声でも読む
   const speakJapanese = (text) => { if (text) { unlockSpeech(); speak(text, { lang: 'ja-JP', rate: 1, pitch: 1.1 }) } }
+  // 相棒の英語の声が鳴り終わってから日本語を読む（声が重ならないように）
+  const speakJapaneseAfterVoice = (text, tries = 0) => {
+    if (live.current?.speaking && tries < 50) { setTimeout(() => speakJapaneseAfterVoice(text, tries + 1), 300); return }
+    speakJapanese(text)
+  }
+  // 字が読めない子のために、だいじな お知らせは声でも言う（同じことを続けて何度も言わない）
+  const lastGuide = useRef({ text: '', at: 0 })
+  const guide = (kid, grown) => {
+    if (!adult && (lastGuide.current.text !== kid || Date.now() - lastGuide.current.at > 8000)) {
+      lastGuide.current = { text: kid, at: Date.now() }
+      speakJapanese(kid.replace(/[…]/g, ''))
+    }
+    return say2(kid, grown)
+  }
+  // 子ども：決めた回数めの答えといっしょに「おわり」を送る（答えに反応してから さよなら。質問だけ残して終わらない）
+  const childSends = useRef(0)
+  const withWrap = (message) => {
+    childSends.current += 1
+    if (adult || !kidLimit || wrapped.current || childSends.current < kidLimit) return message
+    wrapped.current = true
+    return `${message}\n[WRAP_UP]`
+  }
   const cardsAdded = useRef([]) // 大人：この会話で復習カードになった言い方
+  // 大人：記憶とカードを保存し、本当に増えた分だけを「きょう増えたもの」に入れる（前からあるものは出さない）
+  const saveAdultCard = (memory, learn) => {
+    if (!memory.length && !learn.length) return
+    onAdultCard?.((current) => {
+      const next = withCards(withAdultMemory(current, memory), learn, config.adultScene?.title || '')
+      const oldMemory = new Set(current.memory.map((item) => item.id))
+      for (const item of next.memory) {
+        const raw = `${item.cat}: ${item.fact}`
+        if (!oldMemory.has(item.id) && !memoryAdded.current.includes(raw)) memoryAdded.current.push(raw)
+      }
+      const oldCards = new Set(current.cards.map((card) => card.id))
+      for (const card of next.cards) {
+        if (!oldCards.has(card.id) && !cardsAdded.current.some((item) => item.en === card.en)) cardsAdded.current.push({ en: card.en, ja: card.ja })
+      }
+      return next
+    })
+  }
   const [elapsed, setElapsed] = useState(0) // 大人：時間を決めた会話の経過（分）
   const wrapped = useRef(false)
   const finished = useRef(false)
@@ -181,7 +222,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       emoji: title.emoji,
       topicId: config.topic?.id || null,
       startedAt: startedAt.current,
-      turns: turnsRef.current.filter((turn) => turn.text && turn.text !== '…').map(({ who, text, ja, english, lang, recast, tip }) => ({ who, text, ja, english, lang, recast, tip }))
+      turns: turnsRef.current.filter((turn) => turn.text && turn.text !== '…').map(({ who, text, ja, english, lang, recast, tip, hint }) => ({ who, text, ja, english, lang, recast, tip, ...(hint ? { hint: true } : {}) }))
     }, { memoryAdded: memoryAdded.current, cardsAdded: cardsAdded.current, stopped: stopped === true })
   }, [config, persona.id, onFinish, title.text, title.emoji])
 
@@ -229,9 +270,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       if (!special && heard && adult) {
         const learn = Array.isArray(reply.learn) ? reply.learn.filter((item) => item?.en && item?.ja) : []
         if (reply.tip_ja) setTurns((prev) => { const next = [...prev]; const i = next.findLastIndex((turn) => turn.who === 'child'); if (i >= 0) next[i] = { ...next[i], tip: reply.tip_ja }; return next })
-        if (reply.memory?.length || learn.length) onAdultCard?.((current) => withCards(withAdultMemory(current, reply.memory || []), learn, config.adultScene?.title || ''))
-        memoryAdded.current.push(...(reply.memory || []))
-        cardsAdded.current.push(...learn)
+        saveAdultCard(reply.memory || [], learn)
       }
       if (!special && heard && !adult) {
         update((prev) => withMemory(withUtterance(prev, { english: reply.spoke_english, text: reply.child_said || preview }), reply.memory, persona.id))
@@ -310,11 +349,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     waitTimer.current = setTimeout(() => { setBusy(false); setCaption(say2('もういちど はなしてみてね', 'もう一度話してみてください')) }, 15000)
   }
 
-  // 1往復が終わったとき：子どもの発話を記録（カードが来たら英語判定などを上書き）
-  const recordTurn = (childText, partnerText, { hint = false, dk = false } = {}) => {
-    if (!adult && (childText || dk)) {
-      update((prev) => withUtterance(prev, { english: !dk && /[a-z]/i.test(childText), text: childText, hint, dk }))
-    }
+  // 1往復が終わったとき：さよならなら閉じる（子どもの発話の記録は、画面カードで言葉を直してから）
+  const recordTurn = (childText, partnerText) => {
     // さよならで終わったら閉じる（"Can I see your …" などの途中の see you では閉じない）
     if (/\b(bye[- ]?bye|see you( (later|soon|tomorrow))?)\b[.!]*\s*$/i.test(partnerText.trim()) && childCount() >= 3) {
       pendingEnd.current = true
@@ -323,13 +359,28 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   }
 
   // 裏方に、この往復の画面カードを頼む
-  const annotateTurn = async (childText, partnerText, turnId) => {
-    if (!annotator.current || !partnerText) return
+  const annotateTurn = async (childText, partnerText, turnId, { hint = false, dk = false } = {}) => {
+    // 段階の判定用に記録する。文字起こしは「チーズ」のように英語がカタカナになることがあるので、カードで直した言葉と判定を使う
+    const record = (card) => {
+      if (adult || !(childText || dk)) return
+      const said = String(card?.child_said || '').trim() || childText
+      const english = !dk && (typeof card?.spoke_english === 'boolean' ? card.spoke_english : /[a-z]/i.test(said))
+      update((prev) => withUtterance(prev, { english, text: said, hint, dk }))
+    }
+    if (!annotator.current || !partnerText) { record(null); return }
     const previousPartner = [...turnsRef.current].reverse().find((item) => item.who === 'partner' && item.turnId !== turnId)?.text || ''
+    // カードがおそいときも、こまらないよう少ししたら「Yes! / No!」のボタンを出しておく（カードが来たら入れかえる）
+    const fallback = adult ? 0 : setTimeout(() => showFallbackHints(turnId), 3500)
     const card = await annotator.current.ask(annotatorMessage({ previousPartner, childText, partnerText }), partnerText)
+    clearTimeout(fallback)
+    record(card)
     if (card && !finished.current) applyCard(card, turnId)
-    // 画面カードが作れなかったら、こまらないよう「Yes! / No!」のボタンだけでも出す
-    if (!card && !finished.current && !adult) setTurns((prev) => prev.map((item) => (item.turnId === turnId && item.who === 'partner' && !item.hints?.length ? { ...item, hints: FALLBACK_HINTS } : item)))
+    if (!card && !finished.current && !adult) showFallbackHints(turnId)
+  }
+
+  const showFallbackHints = (turnId) => {
+    if (finished.current || pendingEnd.current) return
+    setTurns((prev) => prev.map((item) => (item.turnId === turnId && item.who === 'partner' && !item.hints?.length ? { ...item, hints: FALLBACK_HINTS } : item)))
   }
 
   // 相棒から届いた画面カード（読み・ひらがなの意味・ヒント・子どもの言葉の補正）を、その往復の吹き出しに付ける
@@ -342,8 +393,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       if (item.turnId !== turnId) return item
       if (item.who === 'partner') {
         // 「わからない」のあとの返事は、ひらがなの意味を声でも読む
-        if (!adult && speakJaFor.current === turnId && card.ja_kids) { speakJaFor.current = 0; speakJapanese(tidyKidsJa(card.ja_kids)) }
-        return { ...item, kana: String(card.kana || ''), ja: String(card.ja || card.ja_kids || ''), jaKids: tidyKidsJa(card.ja_kids), hints: Array.isArray(card.hints) ? card.hints.slice(0, 3).map(cleanHint) : [], tip: String(card.tip_ja || '') }
+        if (!adult && speakJaFor.current === turnId && card.ja_kids) { speakJaFor.current = 0; speakJapaneseAfterVoice(tidyKidsJa(card.ja_kids)) }
+        const hints = Array.isArray(card.hints) ? card.hints.slice(0, 3).map(cleanHint).filter((hint) => hint.en) : []
+        // ヒントが空でも、子どもにはこたえ方のボタンを出す（さよならのときは出さない）
+        return { ...item, kana: String(card.kana || ''), ja: String(card.ja || card.ja_kids || ''), jaKids: tidyKidsJa(card.ja_kids), hints: hints.length || adult || card.end ? hints : FALLBACK_HINTS, tip: String(card.tip_ja || '') }
       }
       return { ...item, text: childSaid || item.text, english: card.spoke_english ?? item.english, recast: String(card.recast || '') }
     }))
@@ -351,9 +404,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     if (adult) {
       const learn = Array.isArray(card.learn) ? card.learn.filter((item) => item?.en && item?.ja) : []
       if (card.tip_ja) setTurns((prev) => prev.map((item) => (item.turnId === turnId && item.who === 'child' ? { ...item, tip: String(card.tip_ja) } : item)))
-      if (memory.length || learn.length) onAdultCard?.((current) => withCards(withAdultMemory(current, memory), learn, config.adultScene?.title || ''))
-      memoryAdded.current.push(...memory)
-      cardsAdded.current.push(...learn)
+      saveAdultCard(memory, learn)
     } else if (memory.length) {
       update((prev) => withMemory(prev, memory, persona.id))
       memoryAdded.current.push(...memory)
@@ -480,7 +531,12 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           clearTimeout(waitTimer.current)
           setBusy(false)
           const { child, partner, start, id, hint, dk } = liveTurn.current
-          if (audio.length) liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
+          if (audio.length) {
+            liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
+            // 🔊 で聞きなおせる声は、はじめのひとこと と 新しい12回分だけ（長い会話でメモリがふくらまないように）
+            const keys = [...liveAudio.current.keys()].filter((key) => key !== 'opener')
+            for (const key of keys.slice(0, -12)) liveAudio.current.delete(key)
+          }
           flushBubbles()
           newLiveTurn()
           setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false, ...(item.who === 'child' && hint ? { hint: true } : {}) } : item)))
@@ -488,9 +544,9 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           // 声の聞きなおしは、文字起こしが空・化けている・日本語（"ちゃ" など）のときだけ
           lastTurnId.current = id
           reconnects.current = 0 // 1往復できたら、つなぎなおしの回数をもどす
-          recordTurn(child.trim(), partner.trim(), { hint, dk })
+          recordTurn(child.trim(), partner.trim())
           if (dk) speakJaFor.current = id
-          annotateTurn(child.trim(), partner.trim(), id)
+          annotateTurn(child.trim(), partner.trim(), id, { hint, dk })
         },
         onClose: (event) => {
           if (finished.current) return
@@ -522,7 +578,13 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const reconnects = useRef(0)
   const resumeRef = useRef('')
   const resumeModel = useRef('')
+  const reconnecting = useRef(false) // つなぎなおしは同時に1つだけ
   const reconnectLive = async () => {
+    if (reconnecting.current) return
+    reconnecting.current = true
+    try { await reconnectOnce() } finally { reconnecting.current = false }
+  }
+  const reconnectOnce = async () => {
     reconnects.current += 1
     setEngine('connecting')
     setCaption(say2('つなぎなおしてるよ…', 'つなぎ直しています…'))
@@ -621,6 +683,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
   const onLiveConnected = (session, model) => {
     if (finished.current) { session.close(); return }
+    // 前の接続がまだ残っていたら閉じる（2つの接続から声が重ならないように）
+    if (live.current && live.current !== session) live.current.close()
     live.current = session
     setEngine('live')
     if (!transcriber.current) {
@@ -628,7 +692,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       transcriber.current.ensure()
     }
     if (!annotator.current) {
-      annotator.current = new Annotator({ system: adult ? buildAdultAnnotatorPrompt() : buildAnnotatorPrompt(makeContext(0)) })
+      annotator.current = new Annotator({ system: adult ? buildAdultAnnotatorPrompt(config.adultCtx?.memory) : buildAnnotatorPrompt(makeContext(0)) })
       annotator.current.ensure().catch(() => {})
     }
     const first = turnsRef.current[0]
@@ -661,9 +725,22 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     const timer = setInterval(() => setElapsed((Date.now() - new Date(startedAt.current).getTime()) / 60000), 5000)
     return () => clearInterval(timer)
   }, [])
+  // つながらない・おしまいのお知らせも、子どもには声で（字が読めなくても わかるように）
+  useEffect(() => {
+    if (adult || !stopped) return
+    const lines = { offline: `${persona.name}に つながらなかったよ。もういちど を おしてね`, exhausted: 'きょうは おしまい。また あした！' }
+    speakJapanese(lines[stopped] || 'おうちのひとを よんでね')
+  }, [stopped])
+  // おきるまで（つながるまで）時間がかかるときも、声で「まってね」
+  useEffect(() => {
+    if (adult || engine !== 'connecting') return undefined
+    const timer = setTimeout(() => speakJapanese(`${persona.name}が おきるまで ちょっと まってね`), 5000)
+    return () => clearTimeout(timer)
+  }, [engine])
   // 子ども：段階に合わせた回数（はじめは6回）話したら、相棒にさよならしてもらう（長すぎて飽きないように）
-  const kidLimit = !adult && (config.mode === 'free' || config.mode === 'play') ? kidTurnLimit(level.level) : 0
-  const timeUp = (Boolean(config.minutes) && elapsed >= config.minutes) || (kidLimit > 0 && childTurnCount >= kidLimit)
+  // （ふだんは決めた回数めの答えといっしょに送る。声をそのまま送ったときなどは、もう1回話したあとにここで送る）
+  const kidLimit = adult ? 0 : config.mode === 'free' || config.mode === 'play' ? kidTurnLimit(level.level) : config.mode === 'guess' ? 12 : 0
+  const timeUp = (Boolean(config.minutes) && elapsed >= config.minutes) || (kidLimit > 0 && childTurnCount > kidLimit)
   // まとめを頼むのは、相棒が話し終わり、ボタンも押していないときだけ（話の途中で切らない）
   useEffect(() => {
     if (!timeUp) return undefined
@@ -730,7 +807,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       const rec = recorder.current
       await rec.start()
       // マイクが開くまでに指を離していたら、録音しない（マイクも、話しはじめも閉じる）
-      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); abandonTake(); setPressed(false); setCaption(say2('ぎゅーっと おしたまま はなしてね', '押したまま話してください')); return }
+      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); abandonTake(); setPressed(false); setCaption(guide('ぎゅーっと おしたまま はなしてね', '押したまま話してください')); return }
       setRecording(true)
       setCaption(say2('はなしてね… はなしたら ゆびを はなす', '話し終わったら指を離してください'))
       // 0.8秒たっても音が届かなければ、マイクが止まっている。作りなおして、もういちど押してもらう
@@ -743,12 +820,12 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         pressing.current = false
         setPressed(false)
         setRecording(false)
-        setCaption(say2('あれれ？ もういちど おしてね', 'マイクを準備しました。もう一度押してください'))
+        setCaption(guide('あれれ？ もういちど おしてね', 'マイクを準備しました。もう一度押してください'))
       }, 1500)
     } catch {
       abandonTake()
       setTyping(true)
-      setCaption(say2('マイクが つかえないよ。おうちのひとに きいてね', 'マイクが使えません。文字で入力してください'))
+      setCaption(guide('マイクが つかえないよ。おうちのひとに きいてね', 'マイクが使えません。文字で入力してください'))
     }
   }
 
@@ -756,7 +833,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     event?.preventDefault()
     pressing.current = false
     setPressed(false)
-    if (!recording) return
+    // 描きかえ前でも分かるよう、ref で見る（マイクが開いた直後に離したのを見のがさない）
+    if (!recordingRef.current) return
     finishTake(pressId.current)
   }
 
@@ -775,8 +853,15 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       if (!rec.hasTake) { rec.release(); abandonTake(); return }
       const audio = rec.stop()
       rec.release()
+      // 押している間に接続が切れた：つなぎなおしを待ってもらう（「つながらない」にはしない）
+      if (!live.current && !isMockMode()) {
+        if (usingAsr.current) transcriber.current?.end()
+        abandonTake()
+        setCaption(guide('つなぎなおしてるよ… もういちど おしてね', 'つなぎ直しています。もう一度押してください'))
+        return
+      }
       if (live.current && usingAsr.current) {
-        if (audio.seconds < 0.3) { transcriber.current?.end(); return setCaption(say2('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください')) }
+        if (audio.seconds < 0.3) { transcriber.current?.end(); return setCaption(guide('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください')) }
         setLiveBubble('child', '…')
         setCaption('')
         waitForReply()
@@ -786,12 +871,13 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           liveTurn.current.child = text
           liveTurn.current.typed = true
           setLiveBubble('child', text)
-          live.current.sendText(text)
+          live.current.sendText(withWrap(text))
         } else if (audio.loudness >= 0.004) {
           // 文字にならなかったときは、相棒に声をそのまま送る
           live.current.beginSpeech()
           for (const chunk of heldChunks.current) live.current.sendAudio(chunk)
           if (!live.current.endSpeech()) notHeard()
+          else childSends.current += 1
         } else {
           notHeard()
         }
@@ -799,14 +885,15 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       }
       if (live.current) {
         const sent = live.current.endSpeech()
-        if (audio.seconds < 0.3) return setCaption(say2('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください'))
+        if (audio.seconds < 0.3) return setCaption(guide('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください'))
         if (!sent) return notHeard()
+        childSends.current += 1
         setLiveBubble('child', '…')
         setCaption('')
         return waitForReply()
       }
-      if (audio.seconds < 0.3) return setCaption(say2('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください'))
-      if (audio.loudness < 0.004) return setCaption('こえが きこえなかったよ。もういちど！')
+      if (audio.seconds < 0.3) return setCaption(guide('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください'))
+      if (audio.loudness < 0.004) return setCaption(guide('こえが きこえなかったよ。もういちど！', '声が聞こえませんでした。もう一度どうぞ'))
       send({ audio: { mime: audio.mime, data: audio.base64 } })
     }, 300)
   }
@@ -818,9 +905,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     const id = liveTurn.current.id
     setTurns((prev) => prev.filter((turn) => !(turn.turnId === id && turn.who === 'child' && (!turn.text || turn.text === '…'))))
     bubbleQueue.current = {}
-    setCaption(say2('こえが きこえなかったよ。もういちど おしてね', '声が聞き取れませんでした。もう一度押して話してください'))
+    setCaption(guide('こえが きこえなかったよ。もういちど おしてね', '声が聞き取れませんでした。もう一度押して話してください'))
   }
 
+  const hintTeach = useRef(0)
   const tapHint = (hint) => {
     unlockSpeech()
     if (pickedHint?.en === hint.en) {
@@ -828,7 +916,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       return
     }
     setPickedHint(hint)
-    speak(hint.en, voice)
+    // はじめの数回は「もういちど タップで こたえよう」も声で教える（字が読めなくてもわかるように）
+    const teach = !adult && hintTeach.current < 3
+    if (teach) hintTeach.current += 1
+    Promise.resolve(speak(hint.en, voice)).then(() => { if (teach) speakJapanese('もういちど タップすると こたえられるよ') })
   }
 
   const submitText = (event) => {
@@ -849,7 +940,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     liveTurn.current.typed = true
     liveTurn.current.hint = message.startsWith('[HINT]') // ヒントをタップしただけ（自分で言えた数には入れない）
     setLiveBubble('child', display)
-    live.current.sendText(message)
+    live.current.sendText(withWrap(message))
     waitForReply()
   }
 
@@ -906,7 +997,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
                   <div className={adult ? 'ja' : 'ja kids'}>
                     {adult ? turn.ja : (turn.jaKids || turn.ja)}
                     {/* ひらがなが まだ読みにくい子のために、意味を声でも */}
-                    {!adult && <button className="ja-speak" aria-label="にほんごで きく" onClick={() => speakJapanese(turn.jaKids || turn.ja)}>🔊 にほんご</button>}
+                    {!adult && <button className="ja-speak" aria-label="にほんごで きく" onClick={() => { live.current?.player?.stop(); speakJapanese(turn.jaKids || turn.ja) }}>🔊 にほんご</button>}
                   </div>
                 )}
                 {!turn.live && <button className="speak" aria-label="もういちど きく" onClick={() => replay(turn, index)}>🔊</button>}

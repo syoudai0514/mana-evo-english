@@ -53,19 +53,31 @@ test('level rises only from spoken English over 3+ days, never above 4, and step
   const make = (n, fn) => days(n).map((day, i) => ({ day, ...fn(i) }))
   assert.equal(suggestLevel(1, make(11, () => ({ english: true, words: 5 }))), 1)
   assert.equal(suggestLevel(1, make(20, () => ({ english: false, words: 0 }))), 1)
-  assert.equal(suggestLevel(1, make(20, (i) => ({ english: i % 2 === 0, words: 2 }))), 3)
-  assert.equal(suggestLevel(1, make(20, () => ({ english: true, words: 6 }))), 4)
+  // 上がるのは1回に1つだけ
+  assert.equal(suggestLevel(1, make(20, (i) => ({ english: i % 2 === 0, words: 2 }))), 2)
+  assert.equal(suggestLevel(2, make(20, (i) => ({ english: i % 2 === 0, words: 2 }))), 3)
+  assert.equal(suggestLevel(1, make(20, () => ({ english: true, words: 6 }))), 2)
+  assert.equal(suggestLevel(3, make(20, () => ({ english: true, words: 6 }))), 4)
   assert.equal(suggestLevel(5, make(20, () => ({ english: false, words: 0 }))), 5)
   // 1日だけたくさん話しても上がらない
   assert.equal(suggestLevel(1, Array(20).fill({ english: true, words: 6, day: '2026-10-10' })), 1)
   // ヒントをタップしただけでは上がらない
   assert.equal(suggestLevel(1, make(20, () => ({ english: true, words: 3, hint: true }))), 1)
   let state = initialState()
-  for (let i = 0; i < 14; i += 1) state = withUtterance(state, { english: true, text: 'I like big dogs' }, new Date(2026, 9, 10 + (i % 3), 9))
+  // 段階が変わるたびに、そこから3日以上かけて数えなおす（1→2→3→4）
+  for (const start of [1, 4, 7]) {
+    for (let i = 0; i < 14; i += 1) state = withUtterance(state, { english: true, text: 'I like big dogs' }, new Date(2026, 9, start + (i % 3), 9, i))
+  }
   assert.equal(state.level, 4)
-  for (let i = 0; i < 8; i += 1) state = withUtterance(state, { english: false, text: 'わかんない', dk: i % 2 === 0 }, new Date(2026, 9, 14, 9))
+  for (let i = 0; i < 8; i += 1) state = withUtterance(state, { english: false, text: 'わかんない', dk: i % 2 === 0 }, new Date(2026, 9, 14, 9, i))
   assert.equal(state.level, 3)
   assert.ok(state.levelDownAt)
+  // 下げたすぐあとに、前の発話で また上がらない
+  state = withUtterance(state, { english: true, text: 'Yes!' }, new Date(2026, 9, 14, 10))
+  assert.equal(state.level, 3)
+  // 保護者が変えたあとも、前の発話ですぐ もどらない
+  state = withUtterance({ ...state, level: 1, levelChangedAt: new Date(2026, 9, 14, 11).getTime() }, { english: false, text: 'うん' }, new Date(2026, 9, 14, 12))
+  assert.equal(state.level, 1)
 })
 
 test('memory dedupes and keeps the newest facts', () => {
@@ -111,7 +123,11 @@ test('session end records phrases, first-time phrases, sticker and friendship', 
   const nextDay = withSessionEnd(again.state, { ...session, id: 's3' }, { date: new Date('2026-10-18T09:06:00.000Z'), random: () => 0 })
   assert.notEqual(nextDay.state.stickers[1].emoji, nextDay.state.stickers[0].emoji)
   assert.equal(nextDay.state.daysTalked, 2)
-  assert.equal(nextDay.state.letter.played, true)
+  // きょうの もじ（S＝sun）は、相棒が会話で言ったときだけ「聞いた」
+  assert.equal(nextDay.state.letter, undefined)
+  const sunny = withSessionEnd(initialState(), { ...session, turns: [...session.turns, { who: 'partner', text: 'The sun is hot!' }] }, { date, random: () => 0 })
+  assert.equal(sunny.state.letter.played, true)
+  assert.deepEqual(sunny.state.lettersSeen, { S: 1 })
 
   const summary = todaySummary(again.state, date)
   assert.equal(summary.sessions, 2)
@@ -255,7 +271,31 @@ test('review cards follow again/hard/good spacing', async () => {
   assert.equal(nextLabel(card, 'again', now.getTime()), '10分後')
   assert.equal(nextLabel(card, 'hard', now.getTime()), 'あした')
   assert.equal(nextLabel(card, 'good', now.getTime()), '4日後')
-  assert.equal(scheduleCard(scheduleCard(card, 'good', 0), 'good', 0).interval, 10)
+  const once = scheduleCard(card, 'good', 0)
+  assert.equal(scheduleCard(once, 'good', once.due).interval, 10)
+  // 期限前にもう一度「言えた」でも、1か月先には飛ばない
+  const early = scheduleCard(scheduleCard(once, 'good', 1000), 'good', 2000)
+  assert.equal(early.interval, 4)
+  assert.equal(early.due, once.due)
+  assert.equal(scheduleCard(once, 'again', 1000).interval, 0)
+})
+
+test('adult memory replaces a restated fact instead of piling up', async () => {
+  const { newAdult, withAdultMemory, sameFact } = await import('../src/lib/adult.js')
+  let adult = withAdultMemory(newAdult(), ['work: the product release was pushed back to next month', 'family: has a son who loves trains'])
+  adult = withAdultMemory(adult, ['work: the product release is still pushed back'])
+  assert.equal(adult.memory.length, 2)
+  assert.equal(adult.memory[1].fact, 'the product release is still pushed back')
+  assert.equal(sameFact({ cat: 'work', fact: 'boss changes plans at the last minute' }, { cat: 'work', fact: 'the release was pushed back' }), false)
+  assert.equal(sameFact({ cat: 'hobby', fact: 'plays tennis' }, { cat: 'work', fact: 'plays tennis' }), false)
+})
+
+test('adult sessions keep only what later features read', async () => {
+  const { newAdult, withAdultSession } = await import('../src/lib/adult.js')
+  let adult = newAdult()
+  for (let i = 0; i < 20; i += 1) adult = withAdultSession(adult, { mode: 'adult', startedAt: 'x', turns: [{ who: 'child', text: 'hi', ja: 'やあ', recast: 'Hi', hints: [1, 2] }] })
+  assert.equal(adult.sessions.length, 15)
+  assert.deepEqual(adult.sessions[0].turns[0], { who: 'child', text: 'hi' })
 })
 
 test('toeic stats predict a score and find weak skills', async () => {
@@ -311,7 +351,7 @@ test('review "hard" keeps growing and old saved adults get new fields', async ()
   const { scheduleCard, loadAdultStore, ADULT_KEY } = await import('../src/lib/adult.js')
   let card = { interval: 0, reps: 0, lapses: 0, due: 0 }
   const seen = []
-  for (let i = 0; i < 4; i += 1) { card = scheduleCard(card, 'hard', 0); seen.push(card.interval) }
+  for (let i = 0; i < 4; i += 1) { card = scheduleCard(card, 'hard', card.due); seen.push(card.interval) }
   assert.deepEqual(seen, [1, 2, 3, 4])
   const storage = { getItem: (key) => (key === ADULT_KEY ? JSON.stringify({ current: 'a1', order: ['a1', 'gone'], adults: { a1: { id: 'a1', name: 'パパ' } } }) : null) }
   const store = loadAdultStore(storage)
@@ -373,4 +413,19 @@ test('letter of the day moves on only after a day it was played', async () => {
   assert.equal(state.lettersSeen.S, 1)
   assert.equal(letterToday(state, d2).item.letter, 'A')
   assert.equal(letterToday(state, d3).item.letter, 'A')
+})
+
+test('hint taps are not counted as said, and old saves get daysTalked', async () => {
+  const { loadState, STATE_KEY } = await import('../src/lib/state.js')
+  const session = {
+    id: 'h1', mode: 'free', partner: 'howamy', startedAt: '2026-10-17T09:00:00.000Z',
+    turns: [{ who: 'partner', text: 'Dog or cat?' }, { who: 'child', text: 'Dog!', english: true, hint: true }, { who: 'child', text: 'I like cats', english: true }]
+  }
+  const date = new Date('2026-10-17T09:06:00.000Z')
+  const { state, record } = withSessionEnd(initialState(), session, { date, random: () => 0 })
+  assert.deepEqual(record.said, ['I like cats'])
+  assert.equal(todaySummary(state, date).englishTurns, 1)
+  const saved = { sessions: [{ mode: 'free', endedAt: '2026-10-10T09:00:00Z' }, { mode: 'free', endedAt: '2026-10-11T09:00:00Z' }, { mode: 'adult', endedAt: '2026-10-12T09:00:00Z' }] }
+  const loaded = loadState({ getItem: (key) => (key === STATE_KEY ? JSON.stringify(saved) : null) })
+  assert.equal(loaded.daysTalked, 2)
 })

@@ -26,6 +26,7 @@ export default function Shadow({ adult, updateAdult, onDone }) {
   const [slow, setSlow] = useState(false)
   const scores = useRef([])
   const coach = useRef(null)
+  const attempts = useRef(0) // 何回目の言いなおしか（遅れて届いたコツを捨てる）
   const sentence = sentences[index]
 
   useEffect(() => {
@@ -39,12 +40,14 @@ export default function Shadow({ adult, updateAdult, onDone }) {
     vocabulary: sentence.en.split(/\s+/),
     onText: async (text) => {
       const compared = compareShadow(sentence.en, text)
+      const attempt = ++attempts.current
       setResult({ ...compared, text })
       setTips([])
       if (compared.missed.length && text && coach.current) {
         setTips(null) // 調べ中
         const reply = await coach.current.ask(`Sentence: "${sentence.en}"\nMissed words: ${compared.missed.join(', ')}`)
-        setTips(Array.isArray(reply?.tips) ? reply.tips.slice(0, 3) : [])
+        // 待っている間に言いなおした・次の文へ進んだときは、古いコツを出さない
+        if (attempt === attempts.current) setTips(Array.isArray(reply?.tips) ? reply.tips.slice(0, 3) : [])
       }
     }
   })
@@ -56,6 +59,7 @@ export default function Shadow({ adult, updateAdult, onDone }) {
     }
     setResult(null)
     setTips([])
+    attempts.current += 1
     if (index + 1 >= sentences.length) onDone(scores.current.length ? { shadowScores: scores.current } : {})
     else setIndex(index + 1)
   }

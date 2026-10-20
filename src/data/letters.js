@@ -18,7 +18,7 @@ export const LETTERS = [
   { letter: 'N', name: 'エヌ', sound: 'ン', say: 'n', word: 'nose', wordKana: 'ノーズ', emoji: '👃', ja: 'はな' },
   { letter: 'O', name: 'オー', sound: 'オ', say: 'o', word: 'octopus', wordKana: 'オクトパス', emoji: '🐙', ja: 'たこ' },
   { letter: 'P', name: 'ピー', sound: 'プ', say: 'p', word: 'pig', wordKana: 'ピッグ', emoji: '🐷', ja: 'ぶた' },
-  { letter: 'Q', name: 'キュー', sound: 'クw', say: 'q', word: 'queen', wordKana: 'クイーン', emoji: '👑', ja: 'じょおうさま' },
+  { letter: 'Q', name: 'キュー', sound: 'クウ', say: 'q', word: 'queen', wordKana: 'クイーン', emoji: '👑', ja: 'じょおうさま' },
   { letter: 'R', name: 'アール', sound: 'ゥル', say: 'r', word: 'rabbit', wordKana: 'ラビット', emoji: '🐰', ja: 'うさぎ' },
   { letter: 'S', name: 'エス', sound: 'ス', say: 's', word: 'sun', wordKana: 'サン', emoji: '☀️', ja: 'おひさま' },
   { letter: 'T', name: 'ティー', sound: 'トゥ', say: 't', word: 'tiger', wordKana: 'タイガー', emoji: '🐯', ja: 'とら' },

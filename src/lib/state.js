@@ -43,7 +43,12 @@ export function loadState(storage = globalThis.localStorage) {
   try {
     const raw = storage?.getItem(STATE_KEY)
     if (!raw) return initialState()
-    return { ...initialState(), ...JSON.parse(raw) }
+    const saved = { ...initialState(), ...JSON.parse(raw) }
+    // あとから増えた「はなした日の数」：前からの記録から数える（0 から始まらないように）
+    if (saved.daysTalked === undefined) {
+      saved.daysTalked = new Set(saved.sessions.filter((item) => item.endedAt && item.mode !== 'adult').map((item) => todayKey(new Date(item.endedAt)))).size
+    }
+    return saved
   } catch {
     return initialState()
   }
@@ -86,17 +91,21 @@ export function friendshipView(points) {
 
 // 子どもの1回の発話を記録する（段階の自動判定用）。hint＝ヒントをタップしただけ、dk＝「わからない」
 export function withUtterance(state, { english, text, hint = false, dk = false }, date = new Date()) {
-  const entry = { english: Boolean(english) && !dk, words: english ? countWords(text) : 0, day: todayKey(date), ...(hint ? { hint: true } : {}), ...(dk ? { dk: true } : {}) }
+  const entry = { english: Boolean(english) && !dk, words: english ? countWords(text) : 0, day: todayKey(date), t: date.getTime(), ...(hint ? { hint: true } : {}), ...(dk ? { dk: true } : {}) }
   const utterances = [...state.utterances, entry].slice(-LIMITS.utterances)
-  let level = suggestLevel(state.level, utterances)
+  // 段階が変わってから（自動でも、保護者が変えても）の発話だけで決める。変わる前の発話でまたすぐ戻らないように
+  const since = state.levelChangedAt || 0
+  const window = utterances.filter((item) => (item.t || 0) > since)
+  let level = suggestLevel(state.level, window)
   let levelDownAt = state.levelDownAt || null
   // むずかしすぎるときは1つ下げる（下げるのは1週間に1回まで。保護者画面に出す）
   const weekPassed = !levelDownAt || (date - new Date(levelDownAt)) > 7 * 86400000
-  if (level === state.level && level > 1 && level <= 4 && tooHard(utterances) && weekPassed) {
+  if (level === state.level && level > 1 && level <= 4 && tooHard(window) && weekPassed) {
     level -= 1
     levelDownAt = date.toISOString()
   }
-  return { ...state, utterances, level, levelDownAt }
+  const levelChangedAt = level !== state.level ? date.getTime() : state.levelChangedAt || null
+  return { ...state, utterances, level, levelDownAt, levelChangedAt }
 }
 
 export function withMemory(state, facts, partner, date = new Date()) {
@@ -152,8 +161,10 @@ export function withSessionEnd(state, session, { date = new Date(), random = Mat
   // おはなしした日の数（つづけた日数が切れても、へらない数）
   const talkedToday = state.sessions.some((item) => item.endedAt && todayKey(new Date(item.endedAt)) === today && item.mode !== 'adult')
   const daysTalked = (state.daysTalked || 0) + (childTurns.length && !talkedToday ? 1 : 0)
-  // 会話でも「きょうの もじ」にふれるので、話したら聞いたことにする
-  const base = childTurns.length ? withLetterPlayed(state, date) : state
+  // 相棒が会話の中で「きょうの もじ」のことばを本当に言ったときだけ、聞いたことにする
+  const word = letterToday(state, date).item.word.toLowerCase()
+  const heardLetter = session.turns.some((turn) => turn.who === 'partner' && String(turn.text || '').toLowerCase().includes(word))
+  const base = heardLetter ? withLetterPlayed(state, date) : state
   return {
     state: withStreak({ ...base, phrasesSaid, stickers, friendship, sessions, recentTopics, daysTalked }, date),
     record: { ...record, stickerToday: stickerToday && completed },
@@ -188,7 +199,7 @@ export function todaySummary(state, date = new Date()) {
     minutes += Math.max(0, (new Date(session.endedAt) - new Date(session.startedAt)) / 60000)
     const turns = session.turns.filter((turn) => turn.who === 'child')
     childTurns += turns.length
-    englishTurns += turns.filter((turn) => turn.english).length
+    englishTurns += turns.filter((turn) => turn.english && !turn.hint).length
     newPhrases += session.newPhrases?.length || 0
   }
   return { sessions: sessions.length, minutes: Math.ceil(minutes), childTurns, englishTurns, newPhrases }
