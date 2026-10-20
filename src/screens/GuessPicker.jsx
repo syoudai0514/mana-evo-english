@@ -1,7 +1,7 @@
 import React from 'react'
 import { GUESS_CATEGORIES, pickSecret } from '../data/guess.js'
 import { personaOf } from '../data/personas.js'
-import { unlockSpeech } from '../lib/tts.js'
+import { speak, unlockSpeech } from '../lib/tts.js'
 import { TabBar } from '../components/ui.jsx'
 
 const COLORS = [['#E9FBE9', '#C9E8C9'], ['#FFF1C9', '#F0DCA0'], ['#DDF0FF', '#BFD9F5'], ['#FFE3EF', '#F5C2D6']]
@@ -20,7 +20,7 @@ export default function GuessPicker({ state, navigate, onStart }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 20px 0' }}>
           <img src={persona.image} alt="" className="monster-float" style={{ width: 84, height: 84, objectFit: 'contain' }} />
           <div className="bubble" style={{ flex: 1, padding: '10px 14px' }}>
-            <div className="en" style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2 }}>I'm thinking of something… Can you guess?</div>
+            <button className="en" style={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2, textAlign: 'left' }} onClick={() => { unlockSpeech(); speak("I'm thinking of something. Can you guess?", persona.voice) }}>I'm thinking of something… Can you guess? 🔊</button>
             <div className="muted" style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>
               {childAsks ? 'えいごで しつもんして あててね（Is it big? など）' : 'ヒントを きいて、なにか あててね！'}
             </div>

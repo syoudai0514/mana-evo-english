@@ -440,3 +440,25 @@ img { -webkit-user-drag: none; }
 .seg2 { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
 .seg2 button { font-size: 12px; font-weight: 900; border-radius: 999px; padding: 5px 12px; background: #323A63; color: #A9AED8; }
 .seg2 button.on { background: #4A5385; color: #fff; }
+
+/* 子ども：にほんごを声で・マイクのおやすみ */
+.ja-speak { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 900; color: var(--grape); background: #F1ECFF; border-radius: 999px; padding: 2px 9px; vertical-align: middle; }
+.mic.sleep .core { background: linear-gradient(180deg, #CFC7EA, #B3AAD8); box-shadow: 0 7px 0 #9A90C8; animation: sleep 3s ease-in-out infinite; }
+.hint .k { font-size: 12.5px; }
+.hint .m { font-size: 12.5px; }
+
+/* きょうの もじ */
+.letter-card-wrap { padding: 16px 20px 0; }
+.letter-card { width: 100%; background: linear-gradient(135deg, #FFF8D6, #FFEBC2); --d: #F0D58A; padding: 10px 14px 12px; text-align: left; }
+.letter-card.done { background: linear-gradient(135deg, #EFFFF6, #DDF7EA); --d: #A9E3C6; }
+.lc-label { font-size: 12px; font-weight: 900; color: #B07A00; }
+.letter-card.done .lc-label { color: var(--mint-d); }
+.lc-body { display: flex; align-items: center; gap: 14px; margin-top: 2px; }
+.lc-letter { font-size: 64px; font-weight: 800; line-height: 1; color: var(--coral); }
+.lc-letter span { font-size: 44px; color: var(--sky); margin-left: 6px; }
+.lc-word { flex: 1; text-align: center; }
+.lc-sound { font-size: 12.5px; font-weight: 900; color: var(--ink2); margin-top: 4px; }
+.abc-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 10px 20px 0; }
+.abc-slot { aspect-ratio: 1; border-radius: 14px; background: #fff; box-shadow: 0 3px 0 var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; }
+.abc-slot span:last-child { font-size: 18px; }
+.abc-slot.empty { background: rgba(255,255,255,.5); box-shadow: none; border: 2px dashed #E2DDF0; color: #D5D1E6; }

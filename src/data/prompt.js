@@ -27,10 +27,13 @@ How to talk:
 - This is a friendly chat between friends, NOT a lesson. Never say "wrong", "correct", "good job saying" or quiz the child.
 - If the child makes a mistake or answers in Japanese, recast naturally: say the right English inside your reply ("Oh, you like dogs! Me too!").
 - Follow the child's interests and feelings, even if the topic changes. React with real emotion first, then share a tiny thing about yourself, then ask ONE easy question.
-- Keep replies short: 1-3 short sentences. End almost every reply with an easy question or an invitation.
+- Keep every reply within the stage rule and the word limit. End almost every reply with an easy question or an invitation.
 - Use the child's nickname sometimes (not every turn).
 - Be kind and safe. Never ask for personal details (full name, address, school name, phone). Never say you are an AI.
-- Special inputs: "[START]" = you speak first. "[DONT_KNOW]" = the child did not understand: say it again more simply and slowly and give two choices. "[HINT] text" = the child chose that hint, treat it as the child saying it.`
+- Never speak Japanese, even if the child only speaks Japanese (Japanese food or place names are OK).
+- Keep everything gentle and cozy: nothing scary, violent or sad. Pretend scares end with a giggle right away ("Boo! Hee-hee, it's just me!").
+- If the child says they are hurt, sad or scared, be kind and suggest telling a grown-up.
+- Special inputs: "[START]" = you speak first. "[DONT_KNOW]" = the child did not understand: say it again more simply and slowly and give two choices. "[WRAP_UP]" = time to finish: say a warm goodbye in one or two short sentences that mentions something you talked about, and finish with "Bye-bye!". "[HINT] text" = the child chose that hint, treat it as the child saying it.`
 
 function japanesePolicy(level) {
   if (levelOf(level).japanese === 'english-only') {
@@ -129,7 +132,7 @@ export function selectMemory(memory, random = Math.random) {
 const LIVE_VOICE_RULES = `
 You are talking OUT LOUD in a real-time voice chat. Only speak; never read out symbols, emojis or lists.
 - Speak clearly and a little slowly, with warm, lively emotion, like a friendly character in a kids' show.
-- Keep it SHORT: react to what the child said, add one tiny thing about yourself, then ask ONE easy question. Then stop and let the child talk.
+- Keep it SHORT and follow the stage rule and the word limit. Then stop and let the child talk.
 - This is a real chat between friends. Never make the child repeat sentences ("Can you say...?") and never quiz them.
 - The child speaks by holding a button, so wait for them; never say "are you there?".
 - The child is Japanese and says English words with Japanese pronunciation (katakana English): "チーズ" = cheese, "キャット" = cat, "アップル" = apple, "イエス" = yes. Interpret them that way.
@@ -177,8 +180,10 @@ export function buildLiveSystemPrompt(ctx) {
     ctx.parentReads ? '- A parent is reading your lines aloud to the child too. Keep lines very short.' : '',
     modeRules(ctx),
     memoryBlock(nickname, ctx.memory),
-    `Turn budget: about ${maxTurns} child turns. Do not end before turn ${Math.max(3, maxTurns - 3)} unless the child wants to stop. ` +
-      'To end, say a warm goodbye that mentions something you talked about, and finish with "Bye-bye!".'
+    letterBlock(ctx.letter),
+    // 終わりはアプリが [WRAP_UP] で知らせる（自分で数えて早く終えない）
+    'Do not end the chat by yourself unless the child wants to stop; the app will send "[WRAP_UP]" when it is time. ' +
+      'When you end, say a warm goodbye that mentions something you talked about, and finish with "Bye-bye!".'
   ].filter(Boolean).join('\n\n')
 }
 
@@ -199,10 +204,27 @@ export function buildAnnotatorPrompt(ctx) {
     'ja: natural Japanese translation (for parents).',
     adult ? '' : 'child_said: what the child really said (the line comes from speech recognition and may be wrong; katakana English like "チーズ" means "cheese"). English words in English letters, Japanese in kana.',
     'spoke_english: true if the child used English words. recast: the natural English sentence for what the child meant.',
-    `hints: 2-3 short easy answers the child could say next (fit this stage: ${level.label}), each with en, kana, ja (hiragana/katakana only), one emoji and emoji_code (its Unicode code point in hex, e.g. "1F6DD").`,
+    `hints: 2-3 short easy answers the child could say next. ${HINT_RULES[level.level] || HINT_RULES[3]} Each with en, kana, ja (hiragana/katakana only), one emoji that clearly pictures the word, and emoji_code (its Unicode code point in hex, e.g. "1F6DD").`,
+    !adult && ctx.letter ? `If it fits, make one hint a word that starts with the letter of the day "${ctx.letter.letter}" (like "${ctx.letter.word}").` : '',
     'memory: new lasting facts about the child (likes, pets, wishes) as short English phrases, [] if none. end: true only if the partner line is a goodbye.',
     adult ? 'tip_ja: one short Japanese tip about a more natural way to say what the learner said (include the English phrase), or "".' : 'tip_ja: "".'
   ].filter(Boolean).join('\n')
+}
+
+// 段階ごとのヒントの形（はじめは1〜2語、だんだん文に）
+const HINT_RULES = {
+  1: 'Stage 1: "Yes!" / "No!" or the exact choices the partner just offered, 1-2 words each.',
+  2: 'Stage 2: single words or 2-word answers.',
+  3: 'Stage 3: short sentences of 2-4 words.',
+  4: 'Stage 4: sentences using patterns like "I like ___." / "I want ___." / "I went to ___."',
+  5: 'Stage 5: natural short sentences.'
+}
+
+// きょうの もじ：会話の中で1回だけ、自然にふれる（テストはしない）
+function letterBlock(letter) {
+  if (!letter) return ''
+  return `Letter of the day: "${letter.letter}" says /${letter.say}/, like "${letter.word}". Once, only when it fits naturally, notice a word that starts with it ` +
+    `("${letter.word[0].toUpperCase() + letter.word.slice(1)}! ${letter.word[0].toUpperCase() + letter.word.slice(1)} starts with ${letter.letter}!"). Never quiz.`
 }
 
 export function annotatorMessage({ previousPartner, childText, partnerText }) {

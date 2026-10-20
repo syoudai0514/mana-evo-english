@@ -58,7 +58,7 @@ class PcmOut extends AudioWorkletProcessor {
     this.sinceInput += out.length
     if (!this.playing) {
       // 話しはじめは 0.5 秒、とぎれたあとは 0.4 秒ためてから（声は 0.3 秒ほどの細切れで届く）。届くのが止まっていたら残りを鳴らす
-      if (available > 1 && (available >= this.need || this.sinceInput > 0.45 * sampleRate)) {
+      if (available >= 2 && (available >= this.need || this.sinceInput > 0.45 * sampleRate)) {
         this.playing = true
         this.port.postMessage({ type: 'start' })
       } else {
@@ -93,6 +93,8 @@ class PcmOut extends AudioWorkletProcessor {
             this.clearTo = null
             this.maybeGap = false
           }
+          // 1〜2サンプルの半端が残ると「鳴らす→すぐ空」をくり返し、話し終わりにならないので捨てる
+          if (this.write - this.read < 2) this.read = this.write
           this.port.postMessage({ type: 'drained', underruns: this.underruns, jumps: this.jumps })
           return true
         }

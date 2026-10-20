@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { HOME_MODE_IDS, MODES } from '../data/modes.js'
 import { levelOf, WORLD_UNLOCK_LEVEL } from '../data/levels.js'
-import { modelToday, streakCount, todayKey } from '../lib/state.js'
+import { letterToday, modelToday, streakCount, todayKey, withLetterPlayed } from '../lib/state.js'
 import { speak, unlockSpeech } from '../lib/tts.js'
 import { Hearts, Reading, TabBar } from '../components/ui.jsx'
 import { nextReading } from '../lib/kana.js'
@@ -41,7 +41,8 @@ export default function Home({ state, update, navigate, showToast, topic, onStar
     <div className="screen">
       <div className="scroll">
         <div className="top">
-          <div className="pill"><span className="ic">🔥</span>{streak}にち</div>
+          {/* つづけた日数は切れるとへるので、おはなしした日の合計を大きく出す */}
+          <div className="pill"><span className="ic">🗓️</span>{state.daysTalked || 0}かい{streak > 1 && <span style={{ marginLeft: 4, color: 'var(--coral)' }}>🔥{streak}</span>}</div>
           <div style={{ font: '800 21px var(--en)', color: 'var(--coral)' }}>
             マナエボ<span style={{ color: 'var(--sun)' }}> </span>English
           </div>
@@ -66,7 +67,7 @@ export default function Home({ state, update, navigate, showToast, topic, onStar
             ) : (
               <>
                 <button className="line en" style={{ textAlign: 'left' }} onClick={() => { unlockSpeech(); speak(topic.opener.en, voice) }}>
-                  {topic.opener.en} {topic.emoji}
+                  {topic.opener.en} {topic.emoji} <span style={{ fontSize: 16 }}>🔊</span>
                 </button>
                 <Reading
                   kana={topic.opener.kana}
@@ -96,6 +97,8 @@ export default function Home({ state, update, navigate, showToast, topic, onStar
           </button>
         </div>
 
+        <LetterCard state={state} update={update} voice={voice} navigate={navigate} />
+
         <div className="mode-grid">
           {HOME_MODE_IDS.map((id) => {
             const mode = MODES[id]
@@ -118,3 +121,33 @@ export default function Home({ state, update, navigate, showToast, topic, onStar
     </div>
   )
 }
+
+// きょうの もじ：大きな文字と絵。タップすると相棒の声で「S! sun! S is for sun!」。聞いたら ABC アルバムに入る
+function LetterCard({ state, update, voice, navigate }) {
+  const today = letterToday(state)
+  const item = today.item
+  const seen = Object.keys(state.lettersSeen || {}).length
+  const play = () => {
+    unlockSpeech()
+    speak(`${item.letter}! ${item.word}! ${item.letter} is for ${item.word}!`, { ...voice, rate: voice.rate * 0.9 })
+    if (!today.played) update((prev) => withLetterPlayed(prev))
+  }
+  return (
+    <div className="letter-card-wrap">
+      <button className={`press letter-card ${today.played ? 'done' : ''}`} onClick={play}>
+        <div className="lc-label">きょうの もじ {today.played ? '✅' : '🔊'}</div>
+        <div className="lc-body">
+          <div className="lc-letter en">{item.letter}<span>{item.letter.toLowerCase()}</span></div>
+          <div className="lc-word">
+            <div style={{ fontSize: 40, lineHeight: 1 }}>{item.emoji}</div>
+            <div className="en" style={{ fontWeight: 800, fontSize: 18 }}>{item.word}</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--ink2)' }}>{item.wordKana}（{item.ja}）</div>
+          </div>
+        </div>
+        <div className="lc-sound">「{item.name}」は「{item.sound}」の おと</div>
+      </button>
+      <button className="link-btn" style={{ display: 'block', margin: '6px auto 0' }} onClick={() => navigate('stickers')}>🔤 ABC アルバム {seen} / 26 ›</button>
+    </div>
+  )
+}
+

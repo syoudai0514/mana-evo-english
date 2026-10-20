@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { personaOf } from '../data/personas.js'
 import { levelOf } from '../data/levels.js'
 import { speak } from '../lib/tts.js'
@@ -10,6 +10,8 @@ export default function Result({ state, navigate, result }) {
   const voice = { ...persona.voice, rate: persona.voice.rate * levelOf(state.level).speechRate }
   const newSet = new Set(record.newPhrases)
   const said = [...new Set(record.said)].slice(-6)
+  // 相棒の声でほめる（文字が読めなくても伝わるように）
+  useEffect(() => { const timer = setTimeout(() => speak(said.length ? `Great talk, ${state.profile?.nickname || 'friend'}!` : 'Thank you! See you!', voice), 500); return () => clearTimeout(timer) }, [])
 
   return (
     <div className="screen result">
@@ -48,11 +50,17 @@ export default function Result({ state, navigate, result }) {
           <div className="bubble" style={{ margin: '12px 20px 0', padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ fontSize: 26 }}>🧠</div>
             <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.45 }}>
-              {persona.name}が おぼえたよ：<br /><b className="en" style={{ fontSize: 15 }}>{memoryAdded.slice(-2).join(' / ')}</b><br />つぎ はなすときに きいてくるかも！
+              {persona.name}が きみの ことを {memoryAdded.length}つ おぼえたよ！<br />つぎ はなすときに きいてくるかも！
             </div>
           </div>
         )}
 
+        {!completed && (
+          <div className="center" style={{ marginTop: 16, fontWeight: 900, fontSize: 14 }}>🌟 あと すこし はなすと シールが もらえるよ</div>
+        )}
+        {record.stickerToday && !record.sticker && (
+          <div className="center" style={{ marginTop: 16, fontWeight: 900, fontSize: 14 }}>🌟 シールは 1にち 1まい。また あした もらおうね！</div>
+        )}
         {record.sticker && (
           <div className="center" style={{ marginTop: 16 }}>
             <div style={{ fontWeight: 900, fontSize: 14 }}>あたらしい シール！</div>

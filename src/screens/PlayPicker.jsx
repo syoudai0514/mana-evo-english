@@ -36,7 +36,7 @@ export default function PlayPicker({ state, navigate, onStart }) {
                 style={{ background: `linear-gradient(160deg, ${from}, ${to})`, '--d': shadow }}
                 onClick={() => { unlockSpeech(); onStart({ mode: 'play', partner: persona.id, play: { scene, role: roll.role, twist: roll.twist } }) }}
               >
-                {!playedIds.has(scene.title) && <span className="tag" style={{ position: 'absolute', top: 10, right: 10, background: 'var(--coral)', color: '#fff' }}>NEW</span>}
+                {!playedIds.has(scene.title) && <span className="tag" style={{ position: 'absolute', top: 10, right: 10, background: 'var(--coral)', color: '#fff' }}>あたらしい</span>}
                 <div className="big">{scene.emoji}</div>
                 <div className="t">{scene.title}</div>
                 <div className="s">{scene.titleEn}</div>

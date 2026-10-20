@@ -247,7 +247,8 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
           </div>
           <p className="muted" style={{ fontSize: 11.5, marginTop: 8, lineHeight: 1.5 }}>
             段階{level.level}：{level.japanese === 'english-only' ? '全部英語で話します。読みは発音記号。' : '日本語も分かってくれます（返事は英語）。'}
-            段階4まではお子さんの会話から自動で上がります。段階5（英検3級くらい）は手動で切り替えてください。
+            段階4までは、3日以上つづけて自分の声で英語が言えると自動で上がります（ヒントをタップしただけの答えは数えません）。日本語や「わからない」が続くと1つ下がります（週1回まで）。段階5（英検3級くらい）は手動で切り替えてください。
+            {state.levelDownAt && <><br />📉 {new Date(state.levelDownAt).toLocaleDateString('ja-JP')} に、むずかしそうだったので段階を1つ下げました。</>}
           </p>
         </div>
 

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { personaOf } from '../data/personas.js'
-import { levelOf } from '../data/levels.js'
+import { kidTurnLimit, levelOf } from '../data/levels.js'
 import { MODES } from '../data/modes.js'
 import { annotatorMessage, buildAnnotatorPrompt, buildHistory, buildLiveSystemPrompt, buildSystemPrompt, selectMemory } from '../data/prompt.js'
-import { modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
+import { letterToday, modelToday, todayKey, withMemory, withModelResult, withUtterance } from '../lib/state.js'
 import { nextReading, cleanHint, tidyKidsJa } from '../lib/kana.js'
 import { Recorder, micSupported, setPlaybackSession } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
@@ -35,10 +35,22 @@ function liveModelId(name) {
   return ''
 }
 
+// はじめのひとことにも、こたえ方のボタンを出す（英語ゼロの子が最初につまずかないように）
+const OPENER_HINTS = [
+  { en: 'Yes!', kana: 'イエス！', ja: 'うん！', emoji: '👍' },
+  { en: 'No!', kana: 'ノー！', ja: 'ううん', emoji: '🙅' },
+  { en: 'Wow!', kana: 'ワオ！', ja: 'すごい！', emoji: '🤩' }
+]
+// 画面カードが作れなかったときの、こたえ方のボタン
+const FALLBACK_HINTS = [
+  { en: 'Yes!', kana: 'イエス！', ja: 'うん！', emoji: '👍' },
+  { en: 'No!', kana: 'ノー！', ja: 'ううん', emoji: '🙅' }
+]
+
 function openerTurn(config) {
   if (config.mode === 'free' && config.topic) {
     const { en, kana, ja } = config.topic.opener
-    return { who: 'partner', text: en, kana, ja, jaKids: ja, hints: [], opener: true }
+    return { who: 'partner', text: en, kana, ja, jaKids: ja, hints: config.topic.hints || OPENER_HINTS, opener: true }
   }
   if (config.mode === 'adult') return { who: 'partner', text: config.adultScene.opener, kana: '', ja: config.adultScene.openerJa || '', hints: [], opener: true }
   return null
@@ -68,6 +80,11 @@ function partnerTurnFrom(reply) {
   }
 }
 
+// 確認用：localStorage に mee-keys=1 があれば、子どもでも もじ を出す
+function keysWanted() {
+  try { return localStorage.getItem('mee-keys') === '1' } catch { return false }
+}
+
 export default function Talk({ state, update, config, onFinish, showToast, onAdultCard }) {
   const persona = config.adultPartner ? adultPersona(config.adultPartner) : personaOf(config.partner)
   const adult = config.mode === 'adult'
@@ -80,6 +97,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const [turns, setTurns] = useState(() => { const first = openerTurn(config); return first ? [first] : [] })
   const [busy, setBusy] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [pressed, setPressed] = useState(false) // 押したらすぐ、押した見た目にする（マイクが開くまで少しかかるため）
   const [micLevel, setMicLevel] = useState(0)
   // 日本語の意味：子どもは段階4まで最初から出す（段階5は全部英語）。大人の練習も出す
   const [showJa, setShowJa] = useState(adult || levelOf(state.level).japanese !== 'english-only')
@@ -99,6 +117,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const turnsRef = useRef(turns)
   turnsRef.current = turns
   const memoryAdded = useRef([])
+  const speakJaFor = useRef(0) // 「わからない」のあとの返事：ひらがなの意味を声でも読む
+  const speakJapanese = (text) => { if (text) { unlockSpeech(); speak(text, { lang: 'ja-JP', rate: 1, pitch: 1.1 }) } }
   const cardsAdded = useRef([]) // 大人：この会話で復習カードになった言い方
   const [elapsed, setElapsed] = useState(0) // 大人：時間を決めた会話の経過（分）
   const wrapped = useRef(false)
@@ -132,6 +152,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     adultScene: config.adultScene,
     parentReads: config.parentReads,
     memory: adult ? [] : selectMemory(stateRef.current.memory),
+    letter: adult ? null : letterToday(stateRef.current).item,
     turn,
     maxTurns: mode.maxTurns
   })
@@ -290,11 +311,12 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   }
 
   // 1往復が終わったとき：子どもの発話を記録（カードが来たら英語判定などを上書き）
-  const recordTurn = (childText, partnerText) => {
-    if (childText && !adult) {
-      update((prev) => withUtterance(prev, { english: /[a-z]/i.test(childText), text: childText }))
+  const recordTurn = (childText, partnerText, { hint = false, dk = false } = {}) => {
+    if (!adult && (childText || dk)) {
+      update((prev) => withUtterance(prev, { english: !dk && /[a-z]/i.test(childText), text: childText, hint, dk }))
     }
-    if (/bye[- ]?bye|see you/i.test(partnerText) && childCount() >= 3) {
+    // さよならで終わったら閉じる（"Can I see your …" などの途中の see you では閉じない）
+    if (/\b(bye[- ]?bye|see you( (later|soon|tomorrow))?)\b[.!]*\s*$/i.test(partnerText.trim()) && childCount() >= 3) {
       pendingEnd.current = true
       if (!live.current?.speaking) setTimeout(finish, 900)
     }
@@ -306,6 +328,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     const previousPartner = [...turnsRef.current].reverse().find((item) => item.who === 'partner' && item.turnId !== turnId)?.text || ''
     const card = await annotator.current.ask(annotatorMessage({ previousPartner, childText, partnerText }), partnerText)
     if (card && !finished.current) applyCard(card, turnId)
+    // 画面カードが作れなかったら、こまらないよう「Yes! / No!」のボタンだけでも出す
+    if (!card && !finished.current && !adult) setTurns((prev) => prev.map((item) => (item.turnId === turnId && item.who === 'partner' && !item.hints?.length ? { ...item, hints: FALLBACK_HINTS } : item)))
   }
 
   // 相棒から届いた画面カード（読み・ひらがなの意味・ヒント・子どもの言葉の補正）を、その往復の吹き出しに付ける
@@ -317,6 +341,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     setTurns((prev) => prev.map((item) => {
       if (item.turnId !== turnId) return item
       if (item.who === 'partner') {
+        // 「わからない」のあとの返事は、ひらがなの意味を声でも読む
+        if (!adult && speakJaFor.current === turnId && card.ja_kids) { speakJaFor.current = 0; speakJapanese(tidyKidsJa(card.ja_kids)) }
         return { ...item, kana: String(card.kana || ''), ja: String(card.ja || card.ja_kids || ''), jaKids: tidyKidsJa(card.ja_kids), hints: Array.isArray(card.hints) ? card.hints.slice(0, 3).map(cleanHint) : [], tip: String(card.tip_ja || '') }
       }
       return { ...item, text: childSaid || item.text, english: card.spoke_english ?? item.english, recast: String(card.recast || '') }
@@ -347,6 +373,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
   // 選んだ Live モデルでだめなら、もう1つの Live モデルで試してから予備の方式へ
   const startLive = async () => {
+    const giveUpAt = Date.now() + 25000 // 子どもを長く待たせない（25秒でだめなら「もういちど」）
     const choice = stateRef.current.liveModel || 'auto'
     const order = ['3-flash', '3.8', '2.5-audio']
     const attempts = choice === 'auto' ? order : [choice, ...order.filter((id) => id !== choice)]
@@ -363,6 +390,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       ]
       for (const setup of setups) {
         if (finished.current) return
+        if (Date.now() > giveUpAt) throw lastError || new Error('live timeout')
         let model = ''
         try {
           const granted = await requestLiveToken(attempt, 'voice')
@@ -451,16 +479,17 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         onTurnComplete: (audio) => {
           clearTimeout(waitTimer.current)
           setBusy(false)
-          const { child, partner, start, id } = liveTurn.current
+          const { child, partner, start, id, hint, dk } = liveTurn.current
           if (audio.length) liveAudio.current.set(start && turnsRef.current[0]?.opener ? 'opener' : id, audio)
           flushBubbles()
           newLiveTurn()
-          setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false } : item)))
+          setTurns((prev) => prev.map((item) => (item.turnId === id ? { ...item, live: false, pending: false, ...(item.who === 'child' && hint ? { hint: true } : {}) } : item)))
           if (start && turnsRef.current[0]?.opener) return
           // 声の聞きなおしは、文字起こしが空・化けている・日本語（"ちゃ" など）のときだけ
           lastTurnId.current = id
           reconnects.current = 0 // 1往復できたら、つなぎなおしの回数をもどす
-          recordTurn(child.trim(), partner.trim())
+          recordTurn(child.trim(), partner.trim(), { hint, dk })
+          if (dk) speakJaFor.current = id
           annotateTurn(child.trim(), partner.trim(), id)
         },
         onClose: (event) => {
@@ -587,7 +616,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     setStopped(null)
     reconnects.current = 0
     if (turnsRef.current.some((turn) => turn.who === 'child')) reconnectLive()
-    else startLive().catch(() => { if (!finished.current) setStopped('offline') })
+    else startLive().catch((error) => { if (!finished.current) setStopped(error?.code === 'auth' ? 'auth' : 'offline') })
   }
 
   const onLiveConnected = (session, model) => {
@@ -618,7 +647,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     }
     // 会話も読みづくりも、上限のない Live の中だけで行う（確認用の mock だけ1回ずつの方式）
     if (isMockMode()) startTurnEngine()
-    else startLive().catch(() => { if (!finished.current) setStopped('offline') })
+    else startLive().catch((error) => { if (!finished.current) setStopped(error?.code === 'auth' ? 'auth' : 'offline') })
     return () => {
       finished.current = true // 画面を離れたら、つないでいる途中のものも使わない
       stopSpeech(); recorder.current?.release(); live.current?.close(); transcriber.current?.close(); annotator.current?.close()
@@ -632,7 +661,9 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     const timer = setInterval(() => setElapsed((Date.now() - new Date(startedAt.current).getTime()) / 60000), 5000)
     return () => clearInterval(timer)
   }, [])
-  const timeUp = Boolean(config.minutes) && elapsed >= config.minutes
+  // 子ども：段階に合わせた回数（はじめは6回）話したら、相棒にさよならしてもらう（長すぎて飽きないように）
+  const kidLimit = !adult && (config.mode === 'free' || config.mode === 'play') ? kidTurnLimit(level.level) : 0
+  const timeUp = (Boolean(config.minutes) && elapsed >= config.minutes) || (kidLimit > 0 && childTurnCount >= kidLimit)
   // まとめを頼むのは、相棒が話し終わり、ボタンも押していないときだけ（話の途中で切らない）
   useEffect(() => {
     if (!timeUp) return undefined
@@ -667,6 +698,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     // つないでいる途中・つなぎなおし中は待ってもらう（1回ずつ送る方式に流れないように）
     if (!live.current && !isMockMode()) return setCaption(say2(`${persona.name}に つないでるよ… ちょっと まってね`, `${persona.name}に接続中です。少し待ってください`))
     pressing.current = true
+    setPressed(true)
     const id = ++pressId.current
     unlockSpeech()
     stopSpeech()
@@ -698,7 +730,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       const rec = recorder.current
       await rec.start()
       // マイクが開くまでに指を離していたら、録音しない（マイクも、話しはじめも閉じる）
-      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); abandonTake(); return }
+      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); abandonTake(); setPressed(false); setCaption(say2('ぎゅーっと おしたまま はなしてね', '押したまま話してください')); return }
       setRecording(true)
       setCaption(say2('はなしてね… はなしたら ゆびを はなす', '話し終わったら指を離してください'))
       // 0.8秒たっても音が届かなければ、マイクが止まっている。作りなおして、もういちど押してもらう
@@ -709,9 +741,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         rec.release()
         abandonTake()
         pressing.current = false
+        setPressed(false)
         setRecording(false)
-        setCaption(say2('マイクを じゅんびしたよ。もういちど おしてね', 'マイクを準備しました。もう一度押してください'))
-      }, 800)
+        setCaption(say2('あれれ？ もういちど おしてね', 'マイクを準備しました。もう一度押してください'))
+      }, 1500)
     } catch {
       abandonTake()
       setTyping(true)
@@ -722,6 +755,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const stopRecording = (event) => {
     event?.preventDefault()
     pressing.current = false
+    setPressed(false)
     if (!recording) return
     finishTake(pressId.current)
   }
@@ -742,7 +776,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       const audio = rec.stop()
       rec.release()
       if (live.current && usingAsr.current) {
-        if (audio.seconds < 0.5) { transcriber.current?.end(); return setCaption(say2('ながめに おしながら はなしてね', '少し長めに押しながら話してください')) }
+        if (audio.seconds < 0.3) { transcriber.current?.end(); return setCaption(say2('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください')) }
         setLiveBubble('child', '…')
         setCaption('')
         waitForReply()
@@ -765,13 +799,13 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       }
       if (live.current) {
         const sent = live.current.endSpeech()
-        if (audio.seconds < 0.5) return setCaption(say2('ながめに おしながら はなしてね', '少し長めに押しながら話してください'))
+        if (audio.seconds < 0.3) return setCaption(say2('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください'))
         if (!sent) return notHeard()
         setLiveBubble('child', '…')
         setCaption('')
         return waitForReply()
       }
-      if (audio.seconds < 0.5) return setCaption(say2('ながめに おしながら はなしてね', '少し長めに押しながら話してください'))
+      if (audio.seconds < 0.3) return setCaption(say2('ぎゅーっと おしたまま はなしてね', '少し長めに押しながら話してください'))
       if (audio.loudness < 0.004) return setCaption('こえが きこえなかったよ。もういちど！')
       send({ audio: { mime: audio.mime, data: audio.base64 } })
     }, 300)
@@ -813,6 +847,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     newLiveTurn()
     liveTurn.current.child = display
     liveTurn.current.typed = true
+    liveTurn.current.hint = message.startsWith('[HINT]') // ヒントをタップしただけ（自分で言えた数には入れない）
     setLiveBubble('child', display)
     live.current.sendText(message)
     waitForReply()
@@ -823,6 +858,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     if (!live.current) return isMockMode() ? send({ text: '[DONT_KNOW]' }) : setCaption(say2('つないでるよ… ちょっと まってね', '接続中です。少し待ってください'))
     if (busy) return
     newLiveTurn()
+    liveTurn.current.dk = true
     live.current.sendText('[DONT_KNOW]')
     waitForReply()
   }
@@ -849,7 +885,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           {config.minutes > 0 && <span className="muted" style={{ marginLeft: 4, fontSize: 11 }}>{Math.floor(elapsed)}/{config.minutes}分</span>}
         </div>
         {level.japanese !== 'english-only' || adult ? (
-          <button className="icon-btn" style={{ fontSize: 12, color: showJa ? '#fff' : 'var(--grape)', background: showJa ? 'var(--grape)' : '#fff' }} onClick={() => setShowJa((v) => !v)}>あ⇄A</button>
+          <button className="icon-btn" style={{ fontSize: 12, color: showJa ? '#fff' : 'var(--grape)', background: showJa ? 'var(--grape)' : '#fff' }} onClick={() => setShowJa((v) => !v)}>{adult ? 'あ⇄A' : (showJa ? 'にほんご ON' : 'にほんご OFF')}</button>
         ) : <div style={{ width: 42 }} />}
       </div>
 
@@ -867,7 +903,11 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
                 </div>
                 <Reading kana={turn.kana} ipa={turn.ipa} policy={readingPolicy} mode={state.reading} onCycle={cycleReading} />
                 {showJa && (adult ? turn.ja : (turn.jaKids || turn.ja)) && (
-                  <div className={adult ? 'ja' : 'ja kids'}>{adult ? turn.ja : (turn.jaKids || turn.ja)}</div>
+                  <div className={adult ? 'ja' : 'ja kids'}>
+                    {adult ? turn.ja : (turn.jaKids || turn.ja)}
+                    {/* ひらがなが まだ読みにくい子のために、意味を声でも */}
+                    {!adult && <button className="ja-speak" aria-label="にほんごで きく" onClick={() => speakJapanese(turn.jaKids || turn.ja)}>🔊 にほんご</button>}
+                  </div>
                 )}
                 {!turn.live && <button className="speak" aria-label="もういちど きく" onClick={() => replay(turn, index)}>🔊</button>}
               </div>
@@ -877,7 +917,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         ) : (
           <div key={index} className="row-child">
             <div className={`child-bubble ${turn.english ? 'en' : 'ja'}`} style={{ opacity: turn.pending ? 0.6 : 1 }}>{turn.text || '…'}</div>
-            {!turn.pending && !adult && turn.english && <span className="tag praise">✨ えいごで いえたね！</span>}
+            {!turn.pending && !adult && turn.english && !turn.hint && <span className="tag praise">✨ えいごで いえたね！</span>}
+            {!turn.pending && !adult && turn.hint && <span className="tag praise" style={{ background: '#E9F6FF', color: '#2A84DB' }}>👆 えらべたね！</span>}
             {!turn.pending && turn.recast && (adult || !turn.english) && <span className="tag recast en" style={{ fontSize: 12, whiteSpace: 'normal', textAlign: 'right' }}>💬 {turn.recast}</span>}
             {adult && turn.tip && <div className="tip adult-tip">💡 {turn.tip}</div>}
           </div>
@@ -892,7 +933,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
       {!busy && latest?.hints?.length > 0 && !stopped && (
         <div className="hints">
-          <div className="label">💡 {adult ? 'こんな返し方も' : 'こまったら タップ → まねして いってみよう'}</div>
+          <div className="label">💡 {adult ? 'こんな返し方も' : 'タップで きこえるよ → もういちど タップで こたえる（こえで いっても OK）'}</div>
           <div className="hint-row">
             {latest.hints.map((hint) => (
               <button key={hint.en} className={`press hint ${pickedHint?.en === hint.en ? 'on' : ''}`} onClick={() => tapHint(hint)}>
@@ -907,7 +948,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         </div>
       )}
 
-      {timeUp && !stopped && (
+      {timeUp && adult && !stopped && (
         <div style={{ padding: '6px 14px 0' }}>
           <button className="press cta study-go" onClick={() => finish()}>📘 お勉強へ すすむ ▶</button>
         </div>
@@ -925,7 +966,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
             🤔<br />わから<br />ない
           </button>
           <div
-            className={`mic ${recording ? 'rec' : ''} ${busy ? 'busy' : ''}`}
+            className={`mic ${recording || pressed ? 'rec' : ''} ${busy ? 'busy' : ''} ${engine === 'connecting' && !adult ? 'sleep' : ''}`}
             onPointerDown={startRecording}
             onPointerUp={stopRecording}
             onPointerCancel={stopRecording}
@@ -936,13 +977,16 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           >
             <div className="ring" style={{ inset: -14, transform: `scale(${1 + micLevel * 0.35})` }} />
             <div className="ring" style={{ inset: -6, background: 'rgba(255,107,91,.22)' }} />
-            <div className="core">{busy ? '💭' : '🎤'}</div>
+            <div className="core">{engine === 'connecting' && !adult ? '💤' : busy ? '💭' : '🎤'}</div>
           </div>
-          <button className="side-btn" onClick={() => setTyping((v) => !v)}>⌨️<br />もじ</button>
+          {/* 子どもは文字を打てないので、マイクが使えるときは もじ を出さない */}
+          {adult || !micSupported() || keysWanted()
+            ? <button className="side-btn" onClick={() => setTyping((v) => !v)}>⌨️<br />もじ</button>
+            : <div style={{ width: 54 }} />}
         </div>
         <div className="cap">{caption || (adult
           ? (engine === 'connecting' ? `${persona.name}につないでいます…` : busy ? `${persona.name}が考え中…` : recording ? '聞いています…（離すと送信）' : '押しながら話してください')
-          : (engine === 'connecting' ? `${persona.name}に つないでるよ…` : busy ? `${persona.name}が かんがえてるよ…` : recording ? 'きいてるよ…' : 'おしながら はなしてね'))}</div>
+          : (engine === 'connecting' ? `${persona.name}が おきるまで まってね…` : busy ? `${persona.name}が かんがえてるよ…` : recording ? 'きいてるよ… はなしおわったら ゆびを はなしてね' : pressed ? 'ちょっと まってね…' : 'ぎゅーっと おしながら はなしてね'))}</div>
       </div>
 
       {stopped && (
@@ -962,7 +1006,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
               </>
             ) : (
               <>
-                <p style={{ fontWeight: 900, marginTop: 6 }}>おうちのひとに ログインしてもらってね</p>
+                <div style={{ fontSize: 44, marginTop: 4 }}>👪</div>
+                <p style={{ fontWeight: 900, marginTop: 6, fontSize: 18 }}>おうちのひとを よんでね</p>
                 <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>「おうちのひと」→「AIのせつぞく」から mana-evo と同じアカウントでログインできます</p>
               </>
             )}

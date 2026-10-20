@@ -48,16 +48,24 @@ test('streak counts consecutive days and resets after a gap', () => {
   assert.equal(state.streak.count, 1)
 })
 
-test('level rises from English answers but never above 4 automatically', () => {
-  assert.equal(suggestLevel(1, Array(11).fill({ english: true, words: 5 })), 1)
-  assert.equal(suggestLevel(1, Array(20).fill({ english: false, words: 0 })), 1)
-  const half = Array.from({ length: 20 }, (_, i) => ({ english: i % 2 === 0, words: 2 }))
-  assert.equal(suggestLevel(1, half), 3)
-  assert.equal(suggestLevel(1, Array(20).fill({ english: true, words: 6 })), 4)
-  assert.equal(suggestLevel(5, Array(20).fill({ english: false, words: 0 })), 5)
+test('level rises only from spoken English over 3+ days, never above 4, and steps down when too hard', () => {
+  const days = (n) => Array.from({ length: n }, (_, i) => `2026-10-${String(10 + (i % 3)).padStart(2, '0')}`)
+  const make = (n, fn) => days(n).map((day, i) => ({ day, ...fn(i) }))
+  assert.equal(suggestLevel(1, make(11, () => ({ english: true, words: 5 }))), 1)
+  assert.equal(suggestLevel(1, make(20, () => ({ english: false, words: 0 }))), 1)
+  assert.equal(suggestLevel(1, make(20, (i) => ({ english: i % 2 === 0, words: 2 }))), 3)
+  assert.equal(suggestLevel(1, make(20, () => ({ english: true, words: 6 }))), 4)
+  assert.equal(suggestLevel(5, make(20, () => ({ english: false, words: 0 }))), 5)
+  // 1日だけたくさん話しても上がらない
+  assert.equal(suggestLevel(1, Array(20).fill({ english: true, words: 6, day: '2026-10-10' })), 1)
+  // ヒントをタップしただけでは上がらない
+  assert.equal(suggestLevel(1, make(20, () => ({ english: true, words: 3, hint: true }))), 1)
   let state = initialState()
-  for (let i = 0; i < 14; i += 1) state = withUtterance(state, { english: true, text: 'I like big dogs' })
+  for (let i = 0; i < 14; i += 1) state = withUtterance(state, { english: true, text: 'I like big dogs' }, new Date(2026, 9, 10 + (i % 3), 9))
   assert.equal(state.level, 4)
+  for (let i = 0; i < 8; i += 1) state = withUtterance(state, { english: false, text: 'わかんない', dk: i % 2 === 0 }, new Date(2026, 9, 14, 9))
+  assert.equal(state.level, 3)
+  assert.ok(state.levelDownAt)
 })
 
 test('memory dedupes and keeps the newest facts', () => {
@@ -97,7 +105,13 @@ test('session end records phrases, first-time phrases, sticker and friendship', 
 
   const again = withSessionEnd(state, { ...session, id: 's2' }, { date, random: () => 0 })
   assert.deepEqual(again.record.newPhrases, [])
-  assert.notEqual(again.state.stickers[1].emoji, again.state.stickers[0].emoji)
+  // シールは1日1まい。次の日はもらえて、ちがうシール
+  assert.equal(again.state.stickers.length, 1)
+  assert.equal(again.record.stickerToday, true)
+  const nextDay = withSessionEnd(again.state, { ...session, id: 's3' }, { date: new Date('2026-10-18T09:06:00.000Z'), random: () => 0 })
+  assert.notEqual(nextDay.state.stickers[1].emoji, nextDay.state.stickers[0].emoji)
+  assert.equal(nextDay.state.daysTalked, 2)
+  assert.equal(nextDay.state.letter.played, true)
 
   const summary = todaySummary(again.state, date)
   assert.equal(summary.sessions, 2)
@@ -343,4 +357,20 @@ test('train scripts: listening sets are validated and cards play ja then en twic
   assert.deepEqual(cards.lines.map((line) => line.speaker), ['JA', 'Alex', 'Alex'])
   assert.equal(cards.lines[1].pauseBefore, 3)
   assert.throws(() => cardsScript(newAdult()), /no cards/)
+})
+
+test('letter of the day moves on only after a day it was played', async () => {
+  const { letterToday, withLetterPlayed } = await import('../src/lib/state.js')
+  let state = initialState()
+  const d1 = new Date(2026, 9, 20, 9)
+  const d2 = new Date(2026, 9, 21, 9)
+  const d3 = new Date(2026, 9, 22, 9)
+  assert.equal(letterToday(state, d1).item.letter, 'S')
+  assert.equal(letterToday(state, d2).item.letter, 'S') // 聞かなかったら同じ文字
+  state = withLetterPlayed(state, d1)
+  assert.equal(state.lettersSeen.S, 1)
+  state = withLetterPlayed(state, d1) // 同じ日に何回聞いても1回
+  assert.equal(state.lettersSeen.S, 1)
+  assert.equal(letterToday(state, d2).item.letter, 'A')
+  assert.equal(letterToday(state, d3).item.letter, 'A')
 })
