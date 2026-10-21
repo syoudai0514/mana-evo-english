@@ -462,3 +462,4 @@ img { -webkit-user-drag: none; }
 .abc-slot { aspect-ratio: 1; border-radius: 14px; background: #fff; box-shadow: 0 3px 0 var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; }
 .abc-slot span:last-child { font-size: 18px; }
 .abc-slot.empty { background: rgba(255,255,255,.5); box-shadow: none; border: 2px dashed #E2DDF0; color: #D5D1E6; }
+.plan-step { color: inherit; font: inherit; border: none; cursor: pointer; }

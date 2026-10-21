@@ -60,15 +60,17 @@ export default function AdultHome({ adult, adultStore, updateAdult, updateAdultS
           </div>
           {plan.map((step) => {
             const info = STEP_INFO[step.id]
+            // 1つだけやりたいときは、その段階をタップ
             return (
-              <div key={step.id} className={`a-card row ${step.id === 'chat' ? 'hl' : ''}`}>
+              <button key={step.id} className={`press a-card row plan-step ${step.id === 'chat' ? 'hl' : ''}`} onClick={() => start(step.id === 'chat' ? 'chat' : step.id)}>
                 <div className="e">{info.emoji}</div>
-                <div style={{ flex: 1 }}><div className="t">{info.title(step)}</div><div className="muted s">{info.about(step, greeting)}</div></div>
-                <span className="chip">{step.minutes}分</span>
-              </div>
+                <div style={{ flex: 1, textAlign: 'left' }}><div className="t">{info.title(step)}</div><div className="muted s">{info.about(step, greeting)}</div></div>
+                <span className="chip">{step.minutes}分 ▶</span>
+              </button>
             )
           })}
-          <button className="press cta" style={{ height: 56, fontSize: 18, marginTop: 4 }} onClick={() => start('plan', plan.map((step) => (step.id === 'chat' ? { id: 'chat', course: 'chat', minutes: step.minutes } : step)))}>はじめる ▶</button>
+          <div className="muted" style={{ fontSize: 11, fontWeight: 700, textAlign: 'center', margin: '2px 0 6px' }}>1つだけやるなら、その段階をタップ</div>
+          <button className="press cta" style={{ height: 56, fontSize: 18, marginTop: 4 }} onClick={() => start('plan', plan.map((step) => (step.id === 'chat' ? { id: 'chat', course: 'chat', minutes: step.minutes } : step)))}>ぜんぶ順番に はじめる ▶</button>
         </div>
 
         <div className="a-section">

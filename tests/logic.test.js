@@ -258,7 +258,7 @@ test('adult memory is parsed by category and deduped', async () => {
   adult = withAdultMemory(adult, ['work: the release was pushed back to next month', 'family: wants to take his son to the park', 'work: the release was pushed back to next month'])
   assert.equal(adult.memory.length, 2)
   assert.equal(adult.memory[0].cat, 'work')
-  assert.match(greetingFor(adult, new Date('2026-10-18T21:00:00')).en, /^Evening! Last time you told me wants to take/)
+  assert.match(greetingFor(adult, new Date('2026-10-18T21:00:00')).en, /^Evening! Last time you told me that wants to take/)
 })
 
 test('review cards follow again/hard/good spacing', async () => {
@@ -439,4 +439,15 @@ test('train lines are kept only when the voice said the script', async () => {
   // 余計な話をつけ足した
   assert.equal(sameLine('Sounds good.', 'Sounds good. By the way, did you see the game last night? It was amazing.'), false)
   assert.equal(sameLine('Sounds good.', ''), false)
+})
+
+test('a line is accepted when the transcript is cut short but the voice is long enough', async () => {
+  const { sameLine } = await import('../src/lib/episodes.js')
+  // 文字がとちゅうまでしか来なかった（声は行全体ぶん）
+  assert.equal(sameLine('Will do. I imagine the theater will be packed with kids.', 'Will do.', 3.2), true)
+  // 声が短い＝本当にとちゅうで切れた
+  assert.equal(sameLine('Will do. I imagine the theater will be packed with kids.', 'Will do.', 0.7), false)
+  // 台本にないことを言った
+  assert.equal(sameLine('Ah, the action! I get that.', 'Ah, the So it is all about the excitement and adventure of it', 4), false)
+  assert.equal(sameLine('Morning, Sam! You look a bit worn out today, everything okay?', 'Morning. Yeah, just a bit of a late night. Not sleeping great', 4), false)
 })

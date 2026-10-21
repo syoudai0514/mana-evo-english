@@ -91,7 +91,7 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
                     </div>
                   </button>
                   {running && !running.error
-                    ? <span className="chip">{running.stage === 'script' ? '台本づくり…' : `声の準備 ${running.done}/${running.total}`}</span>
+                    ? <span className="chip">{running.stage === 'queued' ? 'じゅんばん待ち…' : running.stage === 'script' ? '台本づくり…' : `声の準備 ${running.done}/${running.total}`}</span>
                     : fresh
                       ? <span className="chip ok">準備OK</span>
                       : <button className="chip btnchip" disabled={!canMake(kind.id)} onClick={() => prepare(kind.id)}>{episode ? '新しく作る' : '準備する'}</button>}

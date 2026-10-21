@@ -28,20 +28,29 @@ export function isRunning(adultId, kind) {
 export async function prepareEpisode(kind, adult, { topic = '' } = {}) {
   const key = jobKey(adult.id, kind)
   if (isRunning(adult.id, kind)) return null
-  jobs[key] = { stage: 'script', done: 0, total: 0, topic }
+  jobs[key] = { stage: 'queued', done: 0, total: 0, topic }
   notify()
-  try {
-    const episode = await createEpisode(kind, adult, { topic, onStage: (stage) => { jobs[key] = { ...stage, topic }; notify() } })
-    await saveEpisode(episode)
-    delete jobs[key]
+  // 1本ずつ順番に作る（いくつも同時に作ると Live の接続が多すぎて止められる）
+  const run = queue.then(async () => {
+    jobs[key] = { stage: 'script', done: 0, total: 0, topic }
     notify()
-    return episode
-  } catch (error) {
-    jobs[key] = { error: error?.code || 'failed' }
-    notify()
-    return null
-  }
+    try {
+      const episode = await createEpisode(kind, adult, { topic, onStage: (stage) => { jobs[key] = { ...stage, topic }; notify() } })
+      await saveEpisode(episode)
+      delete jobs[key]
+      notify()
+      return episode
+    } catch (error) {
+      jobs[key] = { error: error?.code || 'failed' }
+      notify()
+      return null
+    }
+  })
+  queue = run.catch(() => null)
+  return run
 }
+
+let queue = Promise.resolve()
 
 export function clearJobError(adultId, kind) {
   const key = jobKey(adultId, kind)

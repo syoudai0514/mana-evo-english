@@ -145,17 +145,35 @@ class Voice {
         })
         const audio = joinFloat(this.chunks)
         if (audio.length <= RATE * 0.2) continue
-        if (this.speaker === 'JA' || sameLine(text, this.heard)) return audio
+        if (this.speaker === 'JA') return audio
+        // 声を文字にしたものは、声より少しおくれて届く。とどき終わるまで待ってから照らしあわせる
+        await this.settleHeard()
+        if (sameLine(text, this.heard, audio.length / RATE)) return audio
         reportLiveProblem({ step: 'episode-mismatch', message: `${this.speaker}: "${text.slice(0, 60)}" heard "${this.heard.slice(0, 60)}"` })
         this.session?.close()
         this.session = null
       } catch (error) {
-        reportLiveProblem({ step: 'episode-voice', message: `${this.speaker}: ${String(error?.message || error)}` })
+        const message = String(error?.message || error)
+        reportLiveProblem({ step: 'episode-voice', message: `${this.speaker}: ${message}` })
         this.session?.close()
         this.session = null
+        // 「使いすぎ」で切られたときは、少し待ってからやりなおす（すぐつなぐとまた切られる）
+        if (/quota|1011|exhausted/i.test(message)) await new Promise((resolve) => setTimeout(resolve, 6000 * (attempt + 1)))
       }
     }
     return null
+  }
+
+  // 文字が 0.6 秒とどかなくなるまで待つ（長くても 2.5 秒）
+  async settleHeard() {
+    const started = Date.now()
+    let last = this.heard
+    let still = Date.now()
+    while (Date.now() - started < 2500) {
+      await new Promise((resolve) => setTimeout(resolve, 150))
+      if (this.heard !== last) { last = this.heard; still = Date.now() }
+      else if (Date.now() - still >= 600) return
+    }
   }
 
   close() {
@@ -165,7 +183,8 @@ class Voice {
 }
 
 // 読んだ声（文字にしたもの）が台本の行とほぼ同じか：台本のことばの3/4以上を言っていて、余計な話をしていない
-export function sameLine(script, heard) {
+// seconds：声の長さ。文字がとちゅうまでしか届かなくても、言ったことばが全部台本どおりで、声の長さが行全体ぶんあれば読めたとみなす
+export function sameLine(script, heard, seconds = 0) {
   const target = normalizeWords(script)
   const said = normalizeWords(heard)
   if (!target.length) return true
@@ -176,7 +195,10 @@ export function sameLine(script, heard) {
     const at = pool.indexOf(word)
     if (at >= 0) { hit += 1; pool.splice(at, 1) }
   }
-  return hit / target.length >= 0.75 && said.length <= target.length * 1.3 + 3
+  const extra = pool.length // 台本にないことば
+  if (hit / target.length >= 0.75 && said.length <= target.length * 1.3 + 3) return true
+  const fullLength = seconds >= target.length * 0.2
+  return extra <= Math.max(1, said.length * 0.15) && hit >= Math.min(2, target.length) && fullLength
 }
 
 // I'm / I am、don't / do not などの書き方のちがいは同じとみなす

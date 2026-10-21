@@ -137,7 +137,8 @@ export function greetingFor(adult, date = new Date()) {
   const hour = date.getHours()
   const hello = hour < 11 ? 'Morning!' : hour < 18 ? 'Hey!' : 'Evening!'
   if (!last) return { en: `${hello} Nice to meet you. I'm Alex, from London. Tell me a bit about your day?`, ja: 'はじめまして。ロンドン出身のアレックスだよ。きょうはどんな一日だった？' }
-  return { en: `${hello} Last time you told me ${last.fact}. How's that going?`, ja: `前回「${last.fact}」って話してたよね。その後どう？`, fact: last }
+  // 記憶は「You told me that ...」に続く形（your daughter loves Pikachu）で作っている
+  return { en: `${hello} Last time you told me that ${last.fact.replace(/^(that|about)\s+/i, '')}. How's that going?`, ja: `前回「${last.fact}」って話してたよね。その後どう？`, fact: last }
 }
 
 // ---------- 復習カード（忘れかけたころに出す） ----------

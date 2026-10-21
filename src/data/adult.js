@@ -143,7 +143,7 @@ export function buildAdultAnnotatorPrompt(known = []) {
     'tip_ja: ONE short Japanese tip about a more natural way to say what the learner said, including the English phrase in quotes. "" if it was already natural. Never nitpick small things.',
     'hints: 2 natural English replies the learner could say next (en, kana = its Japanese meaning, ja = its Japanese meaning, emoji, emoji_code = Unicode code point in hex).',
     'learn: 0-2 useful phrases from this exchange worth reviewing later (from the recast, the tip, or a natural phrase the partner used), each with en and ja. [] if nothing new.',
-    'memory: NEW lasting facts about the learner\'s life worth remembering (work, family, hobbies, plans, worries), each as "category: short English phrase" where category is one of work, family, hobby, feeling, other. Example: "work: the product release was pushed back to next month". [] if none.',
+    'memory: NEW lasting facts about the learner\'s life worth remembering (work, family, hobbies, plans, worries), each as "category: short English phrase" where category is one of work, family, hobby, feeling, other. Write the phrase so it fits after "You told me that ...", using "you/your" for the learner. Example: "work: your product release was pushed back to next month", "family: your daughter loves Pikachu". [] if none.',
     remembered ? `Already remembered: ${remembered}. Do not return these again or say them in other words; only return one if something new happened (then write the new state, e.g. "work: the release finally shipped").` : '',
     'end: false.'
   ].filter(Boolean).join('\n')
