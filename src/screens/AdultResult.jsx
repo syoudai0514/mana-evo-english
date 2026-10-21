@@ -21,7 +21,7 @@ export default function AdultResult({ adult, updateAdult, run, onHome }) {
     results.sentences ? `英語で話した文 ${results.sentences}` : '',
     answers.length ? `TOEIC ${correct}/${answers.length} 正解` : '',
     results.reviewed ? `復習 ${results.reviewed}枚` : '',
-    shadow.length ? `発音 平均 ${Math.round(shadow.reduce((a, b) => a + b, 0) / shadow.length)}点` : ''
+    shadow.length ? `単語の一致率 平均 ${Math.round(shadow.reduce((a, b) => a + b, 0) / shadow.length)}点` : ''
   ].filter(Boolean)
 
   return (
@@ -52,9 +52,9 @@ export default function AdultResult({ adult, updateAdult, run, onHome }) {
           )}
           {answers.length > 0 && (
             <div className="a-card">
-              <div className="t">📈 TOEIC めやす</div>
+              <div className="t">📈 練習の記録（本番スコアの予測ではありません）</div>
               <div className="muted s" style={{ marginTop: 4 }}>
-                {score ? <>予想スコア <span className="gold" style={{ fontWeight: 900 }}>{score}</span>（目標 {adult.target}）</> : 'もう少し問題をとくと予想スコアが出ます'}
+                {score ? <>参考換算（未校正） <span className="gold" style={{ fontWeight: 900 }}>{score}</span>（目標 {adult.target}）</> : '練習を重ねると参考換算を表示します'}
                 {weak.length ? <><br />苦手：{weak.map((row) => row.ja).join('／')}</> : null}
               </div>
             </div>

@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './styles.css'
+import './experience.css'
 import { reportLiveProblem } from './lib/live.js'
 
 // iPhone で起きたエラーを english-talk のログに残す（原因調べ用。会話の中身は送らない）

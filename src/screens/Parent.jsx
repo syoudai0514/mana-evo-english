@@ -77,7 +77,7 @@ export function PinGate({ onUnlock, onBack }) {
   )
 }
 
-function LoginCard({ showToast }) {
+export function LoginCard({ showToast }) {
   const [signedIn, setSignedIn] = useState(isSignedIn())
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -106,8 +106,8 @@ function LoginCard({ showToast }) {
         catch (err) { setError(err.message) }
         finally { setBusy(false) }
       }}>
-        <div className="field"><label>メールアドレス</label><input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></div>
-        <div className="field"><label>パスワード</label><input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+        <div className="field"><label htmlFor="login-email">メールアドレス</label><input id="login-email" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+        <div className="field"><label htmlFor="login-password">パスワード</label><input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div>
         {error && <p style={{ color: '#D0453A', fontWeight: 700, fontSize: 13, marginTop: 8 }}>{error}</p>}
         <button className="press btn primary" style={{ width: '100%', marginTop: 12 }} disabled={busy || !email || !password}>{busy ? 'ログイン中…' : 'ログイン'}</button>
       </form>

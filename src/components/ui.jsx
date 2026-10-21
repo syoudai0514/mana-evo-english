@@ -36,7 +36,7 @@ export function Reading({ kana, ipa, policy, mode, onCycle }) {
 
 export function Toast({ message }) {
   if (!message) return null
-  return <div className="toast">{message}</div>
+  return <div className="toast" role="status" aria-live="polite">{message}</div>
 }
 
 export function TabBar({ current, onNavigate }) {
@@ -47,9 +47,9 @@ export function TabBar({ current, onNavigate }) {
     ['parent', '👪', 'おうちのひと']
   ]
   return (
-    <nav className="tabbar">
+    <nav className="tabbar" aria-label="こどものメニュー">
       {tabs.map(([id, icon, label]) => (
-        <button key={id} className={current === id ? 'on' : ''} onClick={() => onNavigate(id)}>
+        <button key={id} aria-current={current === id ? 'page' : undefined} className={current === id ? 'on' : ''} onClick={() => onNavigate(id)}>
           <span>{icon}</span>{label}
         </button>
       ))}

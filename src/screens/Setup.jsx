@@ -8,6 +8,7 @@ export function PartnerPicker({ value, onChange }) {
       {Object.values(PERSONAS).map((persona) => (
         <button
           key={persona.id}
+          aria-pressed={value === persona.id}
           className={`partner-card ${value === persona.id ? 'on' : ''}`}
           style={{ '--c': persona.theme.main, '--cd': persona.theme.deep, background: `linear-gradient(180deg, ${persona.theme.soft}, #fff)` }}
           onClick={() => {
@@ -26,7 +27,7 @@ export function PartnerPicker({ value, onChange }) {
   )
 }
 
-export default function Setup({ onDone }) {
+export default function Setup({ onDone, onBack }) {
   const [nickname, setNickname] = useState('')
   const [partner, setPartner] = useState('howamy')
   const name = nickname.trim()
@@ -34,6 +35,7 @@ export default function Setup({ onDone }) {
   return (
     <div className="screen">
       <div className="scroll">
+        <div className="top"><button className="icon-btn" aria-label="学ぶ人の選択にもどる" onClick={onBack}>‹</button><span className="eyebrow">YOUR FIRST ADVENTURE</span></div>
         <div className="setup-hero">
           <h1>Nice to meet you!</h1>
           <p>はじめまして！ なんて よんだら いい？</p>

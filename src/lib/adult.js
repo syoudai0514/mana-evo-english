@@ -25,6 +25,8 @@ export function newAdult({ name = 'パパ', emoji = '🧔', target = 730 } = {},
     cards: [], // 復習カード { id, en, ja, from, created, due, interval, reps, lapses }
     answers: [], // TOEIC の解答 { part, skill, correct, date }
     diagnosed: false,
+    focus: 'speak',
+    studyDays: [],
     sessions: [],
     shadows: [], // { score, date }
     streak: { last: null, count: 0 }
@@ -312,7 +314,7 @@ export function withAdultSession(adult, session, date = new Date()) {
   const { last, count } = adult.streak
   const yesterday = todayKey(new Date(date.getTime() - DAY))
   const streak = last === today ? adult.streak : { last: today, count: last === yesterday ? count + 1 : 1 }
-  return { ...adult, sessions: [...adult.sessions, record].slice(-LIMITS.sessions), streak }
+  return { ...adult, sessions: [...adult.sessions, record].slice(-LIMITS.sessions), streak, studyDays: [...new Set([...(adult.studyDays || []), today])].slice(-365) }
 }
 
 export function adultStreak(adult, date = new Date()) {
@@ -326,9 +328,12 @@ export function adultStreak(adult, date = new Date()) {
 export function withStudyDay(adult, date = new Date()) {
   const today = todayKey(date)
   const { last, count } = adult.streak
-  if (last === today) return adult
   const yesterday = todayKey(new Date(date.getTime() - DAY))
-  return { ...adult, streak: { last: today, count: last === yesterday ? count + 1 : 1 } }
+  return {
+    ...adult,
+    streak: last === today ? adult.streak : { last: today, count: last === yesterday ? count + 1 : 1 },
+    studyDays: [...new Set([...(adult.studyDays || []), today])].slice(-365)
+  }
 }
 
 // ---------- きょうのメニュー ----------

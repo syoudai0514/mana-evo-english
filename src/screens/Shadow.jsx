@@ -87,9 +87,9 @@ export default function Shadow({ adult, updateAdult, onDone }) {
               {result.marks.map((mark, i) => <span key={i} className={mark.ok === null ? '' : mark.ok ? 'w-ok' : 'w-miss'}>{mark.text}</span>)}
             </div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
-              <ScoreRing score={result.score} />
+              <div><ScoreRing score={result.score} /><div className="muted" style={{ fontSize: 10, marginTop: 5 }}>単語の一致率</div></div>
               <div className="tips">
-                {result.score >= 90 && <div>ばっちり！ このリズムで</div>}
+                {result.score >= 90 && <div>お手本の単語をよく言えています</div>}
                 {!result.text && <div>聞き取れませんでした。もう一度どうぞ</div>}
                 {(tips || []).map((tip) => <div key={tip.word}><b>{tip.word}</b>：{tip.tip_ja}</div>)}
                 {tips === null && <div className="muted">コツを調べています…</div>}
@@ -98,7 +98,7 @@ export default function Shadow({ adult, updateAdult, onDone }) {
             </div>
           </div>
         )}
-        <div className="muted center" style={{ fontSize: 12, margin: '10px 20px 0' }}>お手本のすぐあとを追いかけるように言うのがコツ</div>
+        <div className="muted center" style={{ fontSize: 12, margin: '10px 20px 0' }}>お手本のすぐあとを追いかけるように言うのがコツ。表示は文字起こしとの単語の一致率で、発音の採点ではありません。</div>
         <HoldMic hold={hold} label={result ? 'もう一度言う' : '押しながら まねして言う'} />
         <div style={{ padding: '6px 16px 20px' }}>
           {result || !hold.available
