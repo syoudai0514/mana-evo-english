@@ -1690,3 +1690,19 @@ button:disabled {
     scroll-behavior: auto !important;
   }
 }
+
+/* Keep all seven calendar days on one row at tablet widths. */
+.week-trail {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.week-note {
+  grid-column: 1 / -1;
+}
+.page-intro h1 > span {
+  display: inline-block;
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .studio-art { display: none; }
+  .focus-copy { width: 100%; }
+}

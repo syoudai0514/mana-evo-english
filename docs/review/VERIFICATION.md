@@ -28,7 +28,7 @@ npm run test:e2e
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e -- --workers=2
 ```
 
-最終E2Eは **9 passed (27.3s)**。テストは英語音声AIを呼ばない。CIにもChromiumの同じE2Eを追加。
+フロー全体のE2Eは **9 passed (27.3s)**。その後のCSS調整に対し、4幅のレイアウトE2Eを再実行し **4 passed (15.7s)**。テストは英語音声AIを呼ばない。CIにもChromiumの同じE2Eを追加。
 
 ## 実装した修正
 
