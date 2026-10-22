@@ -90,7 +90,7 @@ export default function Quiz({ adult, updateAdult, kind, recasts = [], context =
     else setIndex(index + 1)
   }
 
-  const title = kind === 'diagnosis' ? '🩺 実力診断' : kind === 'study' ? '📘 お勉強' : '📘 苦手つぶし'
+  const title = kind === 'diagnosis' ? '🩺 基礎チェック' : kind === 'study' ? '📘 お勉強' : '📘 苦手つぶし'
   const progress = items ? <span className="muted" style={{ marginLeft: 4, fontSize: 12 }}>{index + 1}/{items.length}</span> : null
 
   if (!items) {

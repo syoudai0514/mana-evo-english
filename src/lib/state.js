@@ -35,6 +35,7 @@ export function initialState() {
     phrasesSaid: {},
     sessions: [],
     recentTopics: [],
+    studyDays: [],
     model: { date: null, startIndex: 0, done: false }
   }
 }
@@ -55,7 +56,11 @@ export function loadState(storage = globalThis.localStorage) {
 }
 
 export function saveState(state, storage = globalThis.localStorage) {
-  try { storage?.setItem(STATE_KEY, JSON.stringify(state)) } catch {}
+  try {
+    if (!storage) return false
+    storage.setItem(STATE_KEY, JSON.stringify(state))
+    return true
+  } catch { return false }
 }
 
 export function normalizePhrase(text) {
@@ -222,6 +227,6 @@ export function withLetterPlayed(state, date = new Date()) {
   const current = letterToday(state, date)
   const lettersSeen = { ...(state.lettersSeen || {}) }
   if (!current.played) lettersSeen[current.item.letter] = (lettersSeen[current.item.letter] || 0) + 1
-  return { ...state, letter: { index: current.index, day: current.day, played: true }, lettersSeen }
+  return { ...state, letter: { index: current.index, day: current.day, played: true }, lettersSeen, studyDays: [...new Set([...(state.studyDays || []), current.day])].slice(-365) }
 }
 

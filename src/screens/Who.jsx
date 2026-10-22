@@ -1,74 +1,217 @@
-// 起動したら「だれが はなす？」。子どもと大人の入り口を最初に分ける
 import React, { useState } from 'react'
 import { personaOf } from '../data/personas.js'
-import { streakCount } from '../lib/state.js'
-import { adultStreak, newAdult, withAdult } from '../lib/adult.js'
+import { newAdult, withAdult } from '../lib/adult.js'
+import { validToeicTarget } from '../lib/journey.js'
 import { unlockSpeech } from '../lib/tts.js'
+import { Brand, Icon } from '../components/experience.jsx'
 
-const EMOJIS = ['🧔', '👨', '👩', '🧑', '👱‍♀️', '👨‍🦱']
-
-export default function Who({ state, adultStore, updateAdultStore, onKid, onAdult }) {
-  const [adding, setAdding] = useState(!adultStore.order.length)
-  const [name, setName] = useState(adultStore.order.length ? 'ママ' : 'パパ')
-  const [emoji, setEmoji] = useState(adultStore.order.length ? '👩' : '🧔')
-  const [target, setTarget] = useState(730)
+const EMOJIS = ['🌿', '☕', '🌼', '🌙', '🧑', '🦊']
+export default function Who({
+  state,
+  adultStore,
+  updateAdultStore,
+  onKid,
+  onAdult
+}) {
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('🌿')
+  const [target, setTarget] = useState('730')
   const persona = personaOf(state.profile?.partner)
-  const kidStreak = streakCount(state)
-
-  const add = () => {
-    const adult = newAdult({ name: name.trim() || 'パパ', emoji, target: Number(target) || 730 })
+  const add = (event) => {
+    event.preventDefault()
+    if (!name.trim() || !validToeicTarget(target)) return
+    const adult = newAdult({ name: name.trim(), emoji, target: Number(target) })
     updateAdultStore((prev) => withAdult(prev, adult))
-    setAdding(false)
+    unlockSpeech()
     onAdult(adult.id)
   }
-
   return (
-    <div className="screen who">
+    <div className="screen welcome-screen">
       <div className="scroll">
-        <div className="center" style={{ marginTop: 46 }}>
-          <div className="en" style={{ font: '800 32px var(--en)', color: 'var(--coral)' }}>Who's talking?</div>
-          <div style={{ fontWeight: 900, marginTop: 4 }}>だれが はなす？</div>
-        </div>
-        <div className="who-grid">
-          {state.profile && (
-            <button className="press who-card kid" onClick={() => { unlockSpeech(); onKid() }}>
-              <img src={persona.image} alt="" />
-              <div className="n">{state.profile.nickname}</div>
-              {kidStreak > 0 && <span className="tag" style={{ background: '#FFF1C9', color: '#B07A00' }}>🔥 {kidStreak}にち れんぞく</span>}
-            </button>
-          )}
-          {adultStore.order.map((id) => {
-            const adult = adultStore.adults[id]
-            const streak = adultStreak(adult)
-            return (
-              <button key={id} className="press who-card grown" onClick={() => { unlockSpeech(); onAdult(id) }}>
-                <div style={{ fontSize: 58 }}>{adult.emoji}</div>
-                <div className="n">{adult.name}</div>
-                <span className="tag" style={{ background: '#3D4677', color: '#C9CDF5' }}>{streak ? `🔥 ${streak}日 ・ ` : ''}TOEIC 目標 {adult.target}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {adding ? (
-          <div className="card who-add">
-            <h3>大人の入り口をつくる</h3>
-            <div className="field"><label>よび名</label><input value={name} maxLength={10} onChange={(event) => setName(event.target.value)} /></div>
-            <div className="field"><label>アイコン</label>
-              <div style={{ display: 'flex', gap: 8 }}>{EMOJIS.map((item) => <button key={item} className={`emoji-pick ${emoji === item ? 'on' : ''}`} onClick={() => setEmoji(item)}>{item}</button>)}</div>
-            </div>
-            <div className="field"><label>TOEIC の目標スコア</label><input inputMode="numeric" value={target} onChange={(event) => setTarget(event.target.value.replace(/\D/g, '').slice(0, 3))} /></div>
-            <p className="muted" style={{ fontSize: 12, fontWeight: 700, marginTop: 8, lineHeight: 1.6 }}>大人の会話の記憶（仕事・家族の話）は子ども側には出しません。入るときは保護者PINで守ります。</p>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              {adultStore.order.length > 0 && <button className="press btn ghost" style={{ flex: 1 }} onClick={() => setAdding(false)}>やめる</button>}
-              <button className="press btn primary" style={{ flex: 2 }} onClick={add}>つくって はじめる</button>
-            </div>
-            {!adultStore.order.length && <button className="link-btn" onClick={onKid}>子どもの画面へ ›</button>}
+        <header className="experience-header">
+          <Brand />
+          <span className="header-note">小さな一歩が、世界をひらく。</span>
+        </header>
+        <main className="welcome-main">
+          <div className="welcome-copy">
+            <span className="eyebrow">A LITTLE ENGLISH, EVERY DAY</span>
+            <h1>
+              「はなしたい」が、
+              <br />
+              毎日を変える。
+            </h1>
+            <p>
+              あいぼうと遊ぶ。自分のことを話す。
+              <br />
+              あなたらしい英語の時間を、ここから。
+            </p>
           </div>
-        ) : (
-          <button className="link-btn center" style={{ display: 'block', margin: '22px auto 0' }} onClick={() => setAdding(true)}>＋ ママ・ほかの大人をふやす</button>
-        )}
-        <div style={{ height: 30 }} />
+          <div className="welcome-art" aria-hidden="true">
+            <span className="art-orbit" />
+            <span className="hello-note">Hello, new world!</span>
+            <img className="welcome-howamy" src="/monsters/m049.webp" alt="" />
+            <img className="welcome-niji" src="/monsters/m186.webp" alt="" />
+            <span className="art-star star-one">✦</span>
+            <span className="art-star star-two">✧</span>
+          </div>
+          <section className="entry-grid" aria-label="学ぶ人を選ぶ">
+            <button
+              className="entry-card entry-kid"
+              onClick={() => {
+                unlockSpeech()
+                onKid()
+              }}
+            >
+              <span className="entry-icon">
+                {state.profile ? (
+                  <img src={persona.image} alt="" />
+                ) : (
+                  <Icon name="spark" size={30} />
+                )}
+              </span>
+              <span className="eyebrow">FOR KIDS</span>
+              <h2>
+                {state.profile
+                  ? `${state.profile.nickname}の ぼうけん`
+                  : 'あそんで、なかよく。'}
+              </h2>
+              <p>
+                あいぼうとおしゃべり、ごっこあそび。
+                <br />
+                ひとこと言えたら、もう大ぼうけん。
+              </p>
+              <span className="entry-link">
+                {state.profile ? 'つづきから あそぶ' : 'あいぼうを えらぶ'}
+                <Icon name="arrow" />
+              </span>
+            </button>
+            <button
+              className="entry-card entry-adult"
+              onClick={() => setAdding(true)}
+            >
+              <span className="entry-icon">
+                <Icon name="chat" size={30} />
+              </span>
+              <span className="eyebrow">FOR ADULTS</span>
+              <h2>話せる自分へ、少しずつ。</h2>
+              <p>
+                日常会話から、仕事の英語、TOEICまで。
+                <br />
+                今日の気分で、自分だけの学び方を。
+              </p>
+              <span className="entry-link">
+                大人の学習をはじめる
+                <Icon name="arrow" />
+              </span>
+            </button>
+          </section>
+          {adultStore.order.length > 0 && (
+            <section className="saved-learners">
+              <h2>つづきから学ぶ</h2>
+              <div>
+                {adultStore.order.map((id) => {
+                  const adult = adultStore.adults[id]
+                  return (
+                    <button
+                      key={id}
+                      className="learner-chip"
+                      onClick={() => {
+                        unlockSpeech()
+                        onAdult(id)
+                      }}
+                    >
+                      <span>{adult.emoji}</span>
+                      {adult.name}
+                      <Icon name="arrow" size={18} />
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+          {adding && (
+            <form
+              className="learner-form"
+              onSubmit={add}
+              aria-label="大人のプロフィール作成"
+            >
+              <div className="section-heading">
+                <h2>あなたの学習スペース</h2>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="プロフィール作成を閉じる"
+                  onClick={() => setAdding(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="profile-fields">
+                <div className="field">
+                  <label htmlFor="adult-name">よび名</label>
+                  <input
+                    autoFocus
+                    id="adult-name"
+                    value={name}
+                    maxLength={10}
+                    placeholder="ニックネーム"
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="adult-target">
+                    TOEIC 目標（あとで変更できます）
+                  </label>
+                  <input
+                    id="adult-target"
+                    type="number"
+                    min="10"
+                    max="990"
+                    step="5"
+                    value={target}
+                    onChange={(event) => setTarget(event.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div
+                className="emoji-options"
+                role="group"
+                aria-label="プロフィールアイコン"
+              >
+                {EMOJIS.map((item) => (
+                  <button
+                    type="button"
+                    key={item}
+                    className={`emoji-pick ${emoji === item ? 'on' : ''}`}
+                    aria-label={`アイコン ${item}`}
+                    aria-pressed={emoji === item}
+                    onClick={() => setEmoji(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+              <p className="form-help">
+                記録はこの端末に保存されます。PIN
+                は子供の誤操作を防ぐためのものです。AI
+                会話は設定からログインすると使えます。
+              </p>
+              <button
+                className="primary-action"
+                disabled={!name.trim() || !validToeicTarget(target)}
+              >
+                学習スペースをつくる
+                <Icon name="arrow" size={18} />
+              </button>
+            </form>
+          )}
+          <footer className="welcome-footer">
+            <Icon name="leaf" size={16} /> たくさんより、ちょっとを毎日。
+          </footer>
+        </main>
       </div>
     </div>
   )

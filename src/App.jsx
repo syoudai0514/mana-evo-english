@@ -48,7 +48,7 @@ export default function App() {
   const [state, setState] = useState(() => loadState())
   const [adultStore, setAdultStore] = useState(() => loadAdultStore())
   // 大人がいれば、起動したら「だれが はなす？」から
-  const [screen, setScreen] = useState(() => (!loadState().profile ? 'setup' : loadAdultStore().order.length ? 'who' : 'home'))
+  const [screen, setScreen] = useState(() => (loadState().profile && !loadAdultStore().order.length ? 'home' : 'who'))
   const [talkConfig, setTalkConfig] = useState(null)
   const [result, setResult] = useState(null)
   const [toast, setToast] = useState('')
@@ -59,7 +59,7 @@ export default function App() {
 
   const stateRef = useRef(state)
   stateRef.current = state
-  useEffect(() => { saveState(state) }, [state])
+  useEffect(() => { if (!saveState(state)) showToast('記録を保存できませんでした。端末の空き容量を確認してください') }, [state])
   useEffect(() => { if (!saveAdultStore(adultStore)) showToast('端末の保存がいっぱいです。電車モードの番組を消してください') }, [adultStore])
 
   // ホームで相棒が話しかけてくる話題。起動ごとに選びなおす
@@ -188,10 +188,11 @@ export default function App() {
   const step = run?.steps[run.index]
 
   return (
-    <div className="app">
-      <ErrorBoundary key={screen} onReset={() => { setRun(null); setScreen(KID_SCREENS.has(screen) || !adult ? 'home' : adultStore.pinRequired && !adultUnlocked ? 'who' : 'adultHome') }}>
+    <div className="app" data-view={screen}>
+      <ErrorBoundary key={screen} onReset={() => { setRun(null); setScreen(KID_SCREENS.has(screen) || !adult ? (state.profile ? 'home' : 'who') : adultStore.pinRequired && !adultUnlocked ? 'who' : 'adultHome') }}>
       {screen === 'setup' && (
         <Setup
+          onBack={() => setScreen('who')}
           onDone={(profile) => {
             update((prev) => ({ ...prev, profile: { ...profile, createdAt: new Date().toISOString() } }))
             setScreen('home')
@@ -215,7 +216,7 @@ export default function App() {
       {screen === 'friends' && <Friends {...common} />}
       {screen === 'parent' && <Parent {...common} onStart={startTalk} />}
 
-      {screen === 'who' && <Who state={state} adultStore={adultStore} updateAdultStore={updateAdultStore} onKid={() => setScreen('home')} onAdult={chooseAdult} />}
+      {screen === 'who' && <Who state={state} adultStore={adultStore} updateAdultStore={updateAdultStore} onKid={() => setScreen(state.profile ? 'home' : 'setup')} onAdult={chooseAdult} />}
       {screen === 'adultPin' && <PinGate onUnlock={() => { setAdultUnlocked(true); setScreen('adultHome') }} onBack={() => setScreen('who')} />}
       {screen === 'adultHome' && adult && <AdultHome {...adultCommon} onStart={startAdult} onSwitch={() => { setAdultUnlocked(false); setScreen('who') }} />}
       {screen === 'adultMemory' && adult && <AdultMemory {...adultCommon} />}

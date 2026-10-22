@@ -1,127 +1,256 @@
 import React, { useState } from 'react'
 import { personaOf } from '../data/personas.js'
-import { HOME_MODE_IDS, MODES } from '../data/modes.js'
-import { levelOf, WORLD_UNLOCK_LEVEL } from '../data/levels.js'
-import { letterToday, modelToday, streakCount, todayKey, withLetterPlayed } from '../lib/state.js'
+import { MODES } from '../data/modes.js'
+import { levelOf } from '../data/levels.js'
+import {
+  letterToday,
+  modelToday,
+  todayKey,
+  withLetterPlayed
+} from '../lib/state.js'
+import { kidLearningDays, weekTrail } from '../lib/journey.js'
 import { speak, unlockSpeech } from '../lib/tts.js'
 import { Hearts, Reading, TabBar } from '../components/ui.jsx'
+import { Brand, Icon, WeekTrail } from '../components/experience.jsx'
 import { nextReading } from '../lib/kana.js'
 
-const POKE_LINES = ['Hee-hee! That tickles!', 'Hi hi!', 'Let\'s talk!', 'Yay!', 'Boing!']
-
-export default function Home({ state, update, navigate, showToast, topic, onStart }) {
+export default function Home({
+  state,
+  update,
+  navigate,
+  showToast,
+  topic,
+  onStart
+}) {
   const persona = personaOf(state.profile?.partner)
   const level = levelOf(state.level)
   const [wiggle, setWiggle] = useState(false)
-  // Live が今日つながっていれば、1回ずつ送る方式の上限に関係なく話せる
   const done = modelToday(state).done && state.liveDate !== todayKey()
-  const streak = streakCount(state)
-  const voice = { ...persona.voice, rate: persona.voice.rate * level.speechRate }
-
+  const voice = {
+    ...persona.voice,
+    rate: persona.voice.rate * level.speechRate
+  }
+  const days = kidLearningDays(state)
+  const talkedToday = state.sessions.some(
+    (session) =>
+      session.endedAt &&
+      session.mode !== 'adult' &&
+      todayKey(new Date(session.endedAt)) === todayKey()
+  )
+  const letter = letterToday(state)
+  const start = () => {
+    unlockSpeech()
+    onStart({ mode: 'free', partner: persona.id, topic })
+  }
   const poke = () => {
     unlockSpeech()
     setWiggle(true)
-    setTimeout(() => setWiggle(false), 650)
-    speak(done ? 'Zzz...' : POKE_LINES[Math.floor(Math.random() * POKE_LINES.length)], voice)
+    speak("Hi! Let's play together!", voice).finally(() => setWiggle(false))
   }
-
-  const openMode = (id) => {
-    unlockSpeech()
-    if (done) return showToast('きょうは おしまい。また あした！')
-    if (id === 'play') return navigate('play')
-    if (id === 'guess') return navigate('guess')
-    if (id === 'story') return showToast('もうすぐ あそべるよ！')
-    if (id === 'world') {
-      if (state.level < WORLD_UNLOCK_LEVEL) return showToast(`だんかい${WORLD_UNLOCK_LEVEL}に なったら でんわが くるよ！`)
-      return showToast('じゅんびちゅう！ もうすぐ でんわが くるよ')
-    }
-  }
-
   return (
-    <div className="screen">
+    <div className="screen kid-home">
       <div className="scroll">
-        <div className="top">
-          {/* つづけた日数は切れるとへるので、おはなしした日の合計を大きく出す */}
-          <div className="pill"><span className="ic">🗓️</span>{state.daysTalked || 0}かい{streak > 1 && <span style={{ marginLeft: 4, color: 'var(--coral)' }}>🔥{streak}</span>}</div>
-          <div style={{ font: '800 21px var(--en)', color: 'var(--coral)' }}>
-            マナエボ<span style={{ color: 'var(--sun)' }}> </span>English
-          </div>
-          <button className="pill" onClick={() => navigate('stickers')}><span className="ic">⭐</span>{state.stickers.length}</button>
-        </div>
-
-        <div className="home-stage">
-          <div className="shadow" />
-          <img
-            src={persona.image}
-            alt={persona.name}
-            className={`monster ${wiggle ? 'monster-wiggle' : done ? 'monster-sleep' : 'monster-float'}`}
-            onClick={poke}
-          />
-          {done && <div style={{ position: 'absolute', right: 70, top: 90, fontSize: 30 }}>💤</div>}
-          <div className="bubble home-bubble">
-            {done ? (
-              <>
-                <div className="line en">I'm sleepy... See you tomorrow, {state.profile?.nickname}!</div>
-                <div className="ja" style={{ borderTop: 0, paddingTop: 0 }}>きょうは おしまい。また あした おはなし しようね</div>
-              </>
-            ) : (
-              <>
-                <button className="line en" style={{ textAlign: 'left' }} onClick={() => { unlockSpeech(); speak(topic.opener.en, voice) }}>
-                  {topic.opener.en} {topic.emoji} <span style={{ fontSize: 16 }}>🔊</span>
-                </button>
-                <Reading
-                  kana={topic.opener.kana}
-                  policy={level.reading}
-                  mode={state.reading}
-                  onCycle={() => update((prev) => ({ ...prev, reading: nextReading(prev.reading) }))}
-                />
-                {level.japanese !== 'english-only' && <div className="ja kids">{topic.opener.ja}</div>}
-              </>
-            )}
-          </div>
-          <div className="home-name">
-            <span className="tag" style={{ background: '#fff', color: 'var(--grape)', fontSize: 13, padding: '5px 12px', boxShadow: '0 3px 0 var(--line)' }}>
-              {persona.name}　<Hearts points={state.friendship[persona.id] || 0} />
-            </span>
-          </div>
-        </div>
-
-        <div style={{ padding: '0 20px' }}>
-          <button
-            className="press cta"
-            style={{ height: 76, fontSize: 22 }}
-            disabled={done}
-            onClick={() => { unlockSpeech(); onStart({ mode: 'free', partner: persona.id, topic }) }}
-          >
-            <span style={{ fontSize: 32 }}>{done ? '😴' : '🎤'}</span> {done ? 'また あした！' : 'おはなし する！'}
+        <header className="experience-header">
+          <Brand />
+          <button className="profile-switch" onClick={() => navigate('who')}>
+            <Icon name="users" size={18} />
+            <span>{state.profile?.nickname}</span>
+            <span className="switch-caption">きりかえ</span>
           </button>
-        </div>
-
-        <LetterCard state={state} update={update} voice={voice} navigate={navigate} />
-
-        <div className="mode-grid">
-          {HOME_MODE_IDS.map((id) => {
-            const mode = MODES[id]
-            const locked = id === 'world' && state.level < WORLD_UNLOCK_LEVEL
-            return (
-              <button key={id} className={`press mode-card ${locked ? 'locked' : ''}`} onClick={() => openMode(id)}>
-                <div className="ic" style={{ background: mode.iconBg }}>{mode.emoji}</div>
-                <div>
-                  <div className="t">{mode.title}</div>
-                  <div className="s">{mode.titleEn}</div>
+        </header>
+        <main className="dashboard-content">
+          <div className="page-intro">
+            <div>
+              <span className="eyebrow">MY LITTLE ADVENTURE</span>
+              <h1>
+                <span>きょうも、いっしょに</span>
+                <wbr /> <span>あそぼう！</span>
+              </h1>
+              <p>ひとことから はじまる、きみの ぼうけん。</p>
+            </div>
+            <button
+              className="collection-pill"
+              onClick={() => navigate('stickers')}
+            >
+              <span>⭐</span>
+              <strong>{state.stickers.length}</strong> シール
+            </button>
+          </div>
+          <div className="kid-layout">
+            <section
+              className="adventure-card"
+              aria-label="あいぼうとおしゃべり"
+            >
+              <div className="adventure-heading">
+                <span className="soft-badge">✦ きょうの おしゃべり</span>
+                <span className="adventure-caption">
+                  {persona.name}と いっしょ
+                </span>
+              </div>
+              <div className="garden-scene">
+                <div className="garden-sun" />
+                <div className="garden-cloud cloud-left" />
+                <div className="garden-cloud cloud-right" />
+                <div className="garden-hill hill-back" />
+                <div className="garden-hill hill-front" />
+                <span className="garden-flower flower-left">✿</span>
+                <span className="garden-flower flower-right">✿</span>
+                <span className="garden-spark">✦</span>
+                <div className="garden-bubble">
+                  <button
+                    className="en"
+                    onClick={() => {
+                      unlockSpeech()
+                      speak(topic.opener.en, voice)
+                    }}
+                  >
+                    {topic.opener.en} <span aria-hidden="true">🔊</span>
+                  </button>
+                  <Reading
+                    kana={topic.opener.kana}
+                    policy={level.reading}
+                    mode={state.reading}
+                    onCycle={() =>
+                      update((prev) => ({
+                        ...prev,
+                        reading: nextReading(prev.reading)
+                      }))
+                    }
+                  />
+                  {level.japanese !== 'english-only' && (
+                    <p>{topic.opener.ja}</p>
+                  )}
                 </div>
-                {locked && <span className="tag badge" style={{ background: '#fff', color: 'var(--grape)', boxShadow: '0 2px 0 var(--line)' }}>🔒 だんかい{WORLD_UNLOCK_LEVEL}で ひらく</span>}
-                {mode.status === 'soon' && <span className="tag badge" style={{ background: '#fff', color: 'var(--pink-d)', boxShadow: '0 2px 0 var(--line)' }}>もうすぐ</span>}
-              </button>
-            )
-          })}
-        </div>
+                <button
+                  className="buddy-button"
+                  onClick={poke}
+                  aria-label={`${persona.name}に あいさつする`}
+                >
+                  <img
+                    src={persona.image}
+                    alt={persona.name}
+                    className={wiggle ? 'monster-wiggle' : 'monster-float'}
+                  />
+                </button>
+                <div className="buddy-label">
+                  {persona.name}
+                  <Hearts points={state.friendship[persona.id] || 0} />
+                </div>
+              </div>
+              <div className="adventure-action">
+                <p>
+                  {done
+                    ? 'きょうも ありがとう。また あした！'
+                    : 'にほんごでも、ひとことでも だいじょうぶ。'}
+                </p>
+                <button
+                  className="primary-action"
+                  disabled={done}
+                  onClick={start}
+                >
+                  <Icon name="chat" />
+                  {done ? 'また あした おはなししよう' : 'おはなし する！'}
+                  <Icon name="arrow" />
+                </button>
+              </div>
+            </section>
+            <aside className="kid-side">
+              <section className="daily-discovery">
+                <div className="section-heading">
+                  <h2>きょうの ちいさな いっぽ</h2>
+                  <span>🌱</span>
+                </div>
+                <p>ひとつ できたら、はなまる！</p>
+                <button
+                  className="mission-row"
+                  onClick={() =>
+                    document
+                      .getElementById('daily-letter')
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }
+                >
+                  <span
+                    className={`mission-check ${letter.played ? 'checked' : ''}`}
+                  >
+                    {letter.played ? <Icon name="check" size={18} /> : '1'}
+                  </span>
+                  <span>
+                    もじの おとを きこう
+                    <small>きょうは「{letter.item.letter}」</small>
+                  </span>
+                  <Icon name="arrow" size={17} />
+                </button>
+                <button className="mission-row" disabled={done} onClick={start}>
+                  <span
+                    className={`mission-check ${talkedToday ? 'checked' : ''}`}
+                  >
+                    {talkedToday ? <Icon name="check" size={18} /> : '2'}
+                  </span>
+                  <span>
+                    あいぼうと はなそう
+                    <small>
+                      {talkedToday
+                        ? 'きょうも はなせたね！'
+                        : 'すきなことを ひとつ'}
+                    </small>
+                  </span>
+                  <Icon name="arrow" size={17} />
+                </button>
+                <WeekTrail days={weekTrail(days)} kid />
+              </section>
+              <section id="daily-letter">
+                <LetterCard
+                  state={state}
+                  update={update}
+                  voice={voice}
+                  navigate={navigate}
+                />
+              </section>
+            </aside>
+          </div>
+          <section className="play-section">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">MORE WAYS TO PLAY</span>
+                <h2>なにして あそぶ？</h2>
+              </div>
+              <span className="section-note">すきなものを えらぼう</span>
+            </div>
+            <div className="play-grid">
+              {['play', 'guess'].map((id) => (
+                <button
+                  className={`play-tile play-${id}`}
+                  key={id}
+                  disabled={done}
+                  onClick={() => {
+                    unlockSpeech()
+                    if (done) return showToast('また あした！')
+                    navigate(id)
+                  }}
+                >
+                  <span className="play-emoji">{MODES[id].emoji}</span>
+                  <span>
+                    <h3>{MODES[id].title}</h3>
+                    <p>
+                      {id === 'play'
+                        ? 'おみせやさんに なってみよう'
+                        : 'ヒントを きいて あててみよう'}
+                    </p>
+                  </span>
+                  <Icon name="arrow" />
+                </button>
+              ))}
+            </div>
+          </section>
+          <p className="gentle-note">
+            🌼 おやすみした日があっても、だいじょうぶ。また ここから。
+          </p>
+        </main>
       </div>
       <TabBar current="home" onNavigate={navigate} />
     </div>
   )
 }
-
 // きょうの もじ：大きな文字と絵。タップすると相棒の声で「S! sun! S is for sun!」。聞いたら ABC アルバムに入る
 function LetterCard({ state, update, voice, navigate }) {
   const today = letterToday(state)
@@ -130,26 +259,54 @@ function LetterCard({ state, update, voice, navigate }) {
   const play = () => {
     unlockSpeech()
     // 英語のあと、文字の名前と音のちがいを日本語で（フォニックスの いちばん大事なところ）
-    speak(`${item.letter}! ${item.word}! ${item.letter} is for ${item.word}!`, { ...voice, rate: voice.rate * 0.9 })
-      .then(() => speak(`「${item.name}」は、「${item.sound}」の おと。${item.wordKana}の「${item.sound}」`, { lang: 'ja-JP', rate: 1, pitch: 1.1 }))
+    speak(`${item.letter}! ${item.word}! ${item.letter} is for ${item.word}!`, {
+      ...voice,
+      rate: voice.rate * 0.9
+    }).then(() =>
+      speak(
+        `「${item.name}」は、「${item.sound}」の おと。${item.wordKana}の「${item.sound}」`,
+        { lang: 'ja-JP', rate: 1, pitch: 1.1 }
+      )
+    )
     if (!today.played) update((prev) => withLetterPlayed(prev))
   }
   return (
     <div className="letter-card-wrap">
-      <button className={`press letter-card ${today.played ? 'done' : ''}`} onClick={play}>
-        <div className="lc-label">きょうの もじ {today.played ? '✅' : '🔊'}</div>
+      <button
+        className={`press letter-card ${today.played ? 'done' : ''}`}
+        onClick={play}
+      >
+        <div className="lc-label">
+          きょうの もじ {today.played ? '✅' : '🔊'}
+        </div>
         <div className="lc-body">
-          <div className="lc-letter en">{item.letter}<span>{item.letter.toLowerCase()}</span></div>
+          <div className="lc-letter en">
+            {item.letter}
+            <span>{item.letter.toLowerCase()}</span>
+          </div>
           <div className="lc-word">
             <div style={{ fontSize: 40, lineHeight: 1 }}>{item.emoji}</div>
-            <div className="en" style={{ fontWeight: 800, fontSize: 18 }}>{item.word}</div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: 'var(--ink2)' }}>{item.wordKana}（{item.ja}）</div>
+            <div className="en" style={{ fontWeight: 800, fontSize: 18 }}>
+              {item.word}
+            </div>
+            <div
+              style={{ fontSize: 12, fontWeight: 900, color: 'var(--ink2)' }}
+            >
+              {item.wordKana}（{item.ja}）
+            </div>
           </div>
         </div>
-        <div className="lc-sound">「{item.name}」は「{item.sound}」の おと</div>
+        <div className="lc-sound">
+          「{item.name}」は「{item.sound}」の おと
+        </div>
       </button>
-      <button className="link-btn" style={{ display: 'block', margin: '6px auto 0' }} onClick={() => navigate('stickers')}>🔤 ABC アルバム {seen} / 26 ›</button>
+      <button
+        className="link-btn"
+        style={{ display: 'block', margin: '6px auto 0' }}
+        onClick={() => navigate('stickers')}
+      >
+        🔤 ABC アルバム {seen} / 26 ›
+      </button>
     </div>
   )
 }
-

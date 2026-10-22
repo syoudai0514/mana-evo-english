@@ -17,21 +17,21 @@ export default function Toeic({ adult, navigate, onStart }) {
       <AdultTop onBack={() => navigate('adultHome')} title="📘 TOEIC" />
       <div className="scroll">
         <div className="center" style={{ marginTop: 16 }}>
-          <div className="muted" style={{ fontSize: 12, fontWeight: 700 }}>いまの予想スコア（めやす）</div>
+          <div className="muted" style={{ fontSize: 12, fontWeight: 700 }}>練習結果の参考換算（未校正）</div>
           <div className="en big-score">{score ?? '---'}</div>
           <div className="muted" style={{ fontSize: 12, fontWeight: 700 }}>
             {score
-              ? <>目標 {adult.target} {score >= adult.target ? 'を達成！' : `まで あと ${adult.target - score}`}{before ? ` ・ 先週より ${score - before >= 0 ? '+' : ''}${score - before}` : ''}</>
-              : 'まずは実力診断（10問）を受けてください'}
+              ? <>目標 {adult.target} {'・本番スコアの予測ではありません'}{before ? ` ・ 先週より ${score - before >= 0 ? '+' : ''}${score - before}` : ''}</>
+              : 'まずは基礎チェック（10問）からはじめましょう'}
           </div>
         </div>
 
         <div className="a-section">
-          {!adult.diagnosed && <button className="press cta" style={{ height: 56, fontSize: 18 }} onClick={() => start('diagnosis')}>🩺 実力診断をうける（10問）</button>}
+          {!adult.diagnosed && <button className="press cta" style={{ height: 56, fontSize: 18 }} onClick={() => start('diagnosis')}>🩺 基礎チェックをはじめる（10問）</button>}
           {adult.diagnosed && (
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="press cta" style={{ height: 56, fontSize: 17, flex: 2 }} onClick={() => start('toeic')}>🎯 苦手つぶし 4問</button>
-              <button className="press btn ghost dark-ghost" style={{ flex: 1 }} onClick={() => start('diagnosis')}>もう一度診断</button>
+              <button className="press btn ghost dark-ghost" style={{ flex: 1 }} onClick={() => start('diagnosis')}>もう一度チェック</button>
             </div>
           )}
 
@@ -65,7 +65,7 @@ export default function Toeic({ adult, navigate, onStart }) {
             <div style={{ flex: 1, textAlign: 'left' }}><div className="t">TOEIC の話題で雑談</div><div className="muted s">延期・見積もり・会議…ビジネス場面を会話で</div></div>
             <span className="chip">›</span>
           </button>
-          <div className="muted s" style={{ padding: '0 4px', lineHeight: 1.6 }}>※ 問題は公式と同じ形式で AI が作ったオリジナルです。予想スコアは正答率から出した目安です。</div>
+          <div className="muted s" style={{ padding: '0 4px', lineHeight: 1.6 }}>独自の練習問題です。対応範囲は Part 2・3・4・5 と語彙で、全7パートの模試ではありません。参考換算は少数の練習結果による未校正の値で、本番スコア・目標達成を示しません。</div>
         </div>
         <div style={{ height: 30 }} />
       </div>
