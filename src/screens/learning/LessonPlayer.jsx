@@ -412,7 +412,7 @@ function LessonSession({
                     <p>{item.mouth}</p>
                     <p className="content-note">
                       おとの めやす /{item.phoneme}/。ことばの中で
-                      きいてみよう。カタカナは正しい発音そのものではありません。
+                      きいてみよう。カタカナは正しい発音そのものではありません。文字名と単語は端末の読み上げです。単独の音のお手本は未収録です。
                     </p>
                   </>
                 ) : item.mode === 'cvc' ? (
