@@ -74,6 +74,7 @@ test('roster accepts captured monsters in the inspected schema and skips future/
     rosterFromManaEvo([good]).map((i) => i.speciesId),
     ['m049']
   )
+  assert.equal(rosterFromManaEvo([good])[0].name, 'ホワミィ')
   assert.equal(rosterFromManaEvo([{ ...good, schema_version: 2 }]).length, 0)
   assert.deepEqual(rosterFromManaEvo([null]), [])
 })
