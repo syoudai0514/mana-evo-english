@@ -160,7 +160,12 @@ export function saveExam(store, key, run) {
     return {
       ...p,
       toeicSessions: Object.fromEntries(entries),
-      activeExamId: run.status === 'active' ? run.id : null
+      activeExamId:
+        run.status === 'active'
+          ? run.id
+          : p.activeExamId === run.id
+            ? null
+            : p.activeExamId || null
     }
   })
 }

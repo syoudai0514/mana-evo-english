@@ -15,7 +15,9 @@ import {
   tickExam,
   moveExam,
   examSummary,
-  finishExam
+  finishExam,
+  saveExam,
+  activeExam
 } from '../src/lib/toeicExam.js'
 test('600 validated questions retain complete 7-part distributions and unique set ownership', () => {
   assert.equal(TOEIC_QUESTIONS.length, 600)
@@ -90,4 +92,18 @@ test('timed navigation cannot cross sections before the section changes', () => 
   const run = createExam({ setId: 'toeic.mock.1', timed: true })
   assert.equal(moveExam(run, 100), run)
   assert.equal(moveExam(run, 5).index, 5)
+})
+
+test('opening a completed result preserves a different unfinished exam', () => {
+  const first = finishExam(
+      createExam({ part: 'p5', count: 5, now: 1000 }),
+      2000
+    ),
+    second = createExam({ part: 'p1', count: 5, now: 3000 })
+  let store = { version: 1, learners: {} }
+  store = saveExam(store, 'adult:one', first)
+  store = saveExam(store, 'adult:one', second)
+  store = saveExam(store, 'adult:one', first)
+  assert.equal(activeExam(store, 'adult:one').id, second.id)
+  assert.equal(Object.keys(store.learners['adult:one'].toeicSessions).length, 2)
 })

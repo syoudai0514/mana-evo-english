@@ -136,6 +136,21 @@ test('all-part practice shows a photo, supports unanswered submission, and store
   await expect(
     page.getByText('回答 1問 · 未回答 5問 · 文字ヒント 1問')
   ).toBeVisible()
+  const answerCount = () =>
+    page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('mee-adult-v1'))
+      return s.adults[s.current].answers.length
+    })
+  const before = await answerCount()
+  await page.reload()
+  await page
+    .getByRole('button', { name: '結果と解説を開く', exact: true })
+    .first()
+    .click()
+  await expect(
+    page.getByText('回答 1問 · 未回答 5問 · 文字ヒント 1問')
+  ).toBeVisible()
+  expect(await answerCount()).toBe(before)
 })
 test('timed exam pauses without revealing questions and resumes after leaving', async ({
   page

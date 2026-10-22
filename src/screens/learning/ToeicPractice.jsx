@@ -43,6 +43,12 @@ export default function ToeicPractice({
   const audio = useLessonAudio(),
     reported = useRef(new Set())
   const saved = activeExam(learning, learnerId)
+  const recent = Object.values(
+    learning.learners[learnerId]?.toeicSessions || {}
+  )
+    .filter((exam) => exam.status === 'complete')
+    .sort((a, b) => b.finishedAt - a.finishedAt)
+    .slice(0, 5)
   const runRef = useRef(run)
   const setRun = (change) => {
     const next = typeof change === 'function' ? change(runRef.current) : change
@@ -162,6 +168,36 @@ export default function ToeicPractice({
               練習では解答ごとに解説を確認できます。文字ヒントの使用も記録します。共有素材の一部の設問だけを練習する場合があります。
             </p>
           </section>
+          {recent.length > 0 && (
+            <section className="lesson-panel">
+              <h2>保存した結果・解説</h2>
+              {recent.map((exam) => {
+                const result = examSummary(exam)
+                return (
+                  <div key={exam.id} className="test-set-card">
+                    <div>
+                      <strong>{exam.label}</strong>
+                      <small>
+                        {new Date(exam.finishedAt).toLocaleDateString('ja-JP')}{' '}
+                        · {result.correct}/{result.total}正解 · 未回答
+                        {result.unanswered}問
+                      </small>
+                    </div>
+                    <button
+                      className="lesson-secondary"
+                      onClick={() => {
+                        reported.current.add(exam.id)
+                        setRun(exam)
+                        setReviewing(false)
+                      }}
+                    >
+                      結果と解説を開く
+                    </button>
+                  </div>
+                )
+              })}
+            </section>
+          )}
           <section className="lesson-panel">
             <h2>200問のセットで練習</h2>
             {TOEIC_SETS.map((set) => (
