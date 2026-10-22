@@ -45,7 +45,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
 
   const start = async (event) => {
     event?.preventDefault()
-    if (!available || busy || recordingRef.current || stopping.current) return
+    if (!available || busy || recordingRef.current || pressing.current || stopping.current) return
     pressing.current = true
     const id = ++pressId.current
     unlockSpeech()
@@ -102,6 +102,9 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
   }
 
   const bind = {
+    onKeyDown: event => { if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) start(event) },
+    onKeyUp: event => { if (event.key === ' ' || event.key === 'Enter') stop(event) },
+    onBlur: stop,
     onPointerDown: start,
     onPointerUp: stop,
     onPointerCancel: stop,

@@ -6,7 +6,7 @@ import { Hearts } from '../components/ui.jsx'
 
 export default function Result({ state, navigate, result }) {
   const { record, completed, memoryAdded } = result
-  const persona = personaOf(record.partner)
+  const persona = personaOf(record.partner, state.manaRoster)
   const voice = { ...persona.voice, rate: persona.voice.rate * levelOf(state.level).speechRate }
   const newSet = new Set(record.newPhrases)
   const said = [...new Set(record.said)].slice(-6)

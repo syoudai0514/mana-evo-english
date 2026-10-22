@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "counts": {
+    "kids-activity": 60,
+    "conversation": 216,
+    "phonics": 110,
+    "phrase": 240,
+    "shadow": 60,
+    "story": 24,
+    "world-friend": 12,
+    "listening": 36,
+    "toeic": 600
+  },
+  "kidPhraseSlots": 300,
+  "kidUniqueEnglishPhrases": 237,
+  "toeicStimuli": 309,
+  "independentlyReviewed": 0,
+  "audioFilesPreRecorded": 0,
+  "photo": {
+    "path": "/learning/toeic/photo-sheet-v1.png",
+    "sha256": "c03df621d66681e6e61dc5d7f8b001c344ba6099bfac0fd9e893eaf317bd15a6",
+    "bytes": 2954482,
+    "source": "Generated original montage, 18 cells",
+    "rights": "Project original generated image",
+    "review": "visually inspected against 18 scene descriptions"
+  },
+  "pending": [
+    "Independent English/Japanese review",
+    "Phoneme reference recordings",
+    "iOS physical-device audio validation"
+  ]
+}

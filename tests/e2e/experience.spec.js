@@ -134,7 +134,7 @@ test('TOEIC check completes ten questions and saves answers without claiming off
   await page
     .getByRole('button', { name: 'TOEIC の学習へ', exact: true })
     .click()
-  await expect(page.getByText(/全7パートの模試ではありません/)).toBeVisible()
+  await expect(page.getByText(/全7パートは/)).toBeVisible()
   await page.getByRole('button', { name: /基礎チェックをはじめる/ }).click()
   for (let index = 0; index < 10; index++) {
     await expect(page.locator('.top')).toContainText(`${index + 1}/10`)

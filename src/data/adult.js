@@ -35,6 +35,9 @@ export const ADULT_COURSES = {
 }
 
 export const TOEIC_PARTS = {
+  p1: {label:'Part 1 写真',short:'Part 1'},
+  p6: {label:'Part 6 長文穴埋め',short:'Part 6'},
+  p7: {label:'Part 7 読解',short:'Part 7'},
   p2: { label: 'Part 2 応答', short: 'Part 2' },
   p3: { label: 'Part 3 会話', short: 'Part 3' },
   p4: { label: 'Part 4 説明文', short: 'Part 4' },

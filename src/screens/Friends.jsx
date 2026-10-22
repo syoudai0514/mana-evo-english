@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { PERSONAS } from '../data/personas.js'
+import { PERSONAS, personaOf } from '../data/personas.js'
 import { unlockSpeech } from '../lib/tts.js'
 import { previewVoice } from '../lib/live.js'
 import { isSignedIn } from '../lib/auth.js'
@@ -29,7 +29,7 @@ export default function Friends({ state, update, navigate, showToast }) {
       <div className="top"><div className="title-lg" style={{ padding: '6px 2px' }}>🐾 なかま</div></div>
       <div className="scroll">
         <p className="muted" style={{ fontSize: 13, fontWeight: 700, padding: '8px 20px 0' }}>タップすると あいぼうを かえられるよ</p>
-        {Object.values(PERSONAS).map((persona) => {
+        {[...Object.values(PERSONAS), ...(state.manaRoster || []).map(item => personaOf(item.id,state.manaRoster))].map((persona) => {
           const memory = state.memory.filter((item) => item.partner === persona.id).slice(-3)
           const chosenVoice = state.voices?.[persona.id] || persona.liveVoice
           return (

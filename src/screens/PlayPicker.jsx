@@ -6,7 +6,7 @@ import { TabBar } from '../components/ui.jsx'
 
 export default function PlayPicker({ state, navigate, onStart }) {
   const [category, setCategory] = useState('all')
-  const persona = personaOf(state.profile?.partner)
+  const persona = personaOf(state.profile?.partner, state.manaRoster)
   // 役割とハプニングは画面を開くたびに振りなおす
   const rolls = useMemo(() => Object.fromEntries(SCENES.map((scene) => [scene.id, rollScene(scene)])), [])
   const playedIds = new Set(state.sessions.filter((session) => session.mode === 'play').map((session) => session.title))

@@ -23,3 +23,14 @@
 1. git status/直近コミット、このファイル、docs/CONTENT_SPEC.mdを読む。
 2. 完了したバッチは再生成しない。src/contentとtestsから件数と機能を確認。
 3. 関連テスト→ブラウザ→コミットの順にチェックポイントを残す。
+
+## チェックポイント：教材・新しい学習画面
+
+- 758教材（60活動/216会話/110音/240フレーズ/60シャドー/24物語/12友達/36聞く）＋TOEIC600問を実装。詳細はCONTENT_REPORT.json。
+- 本棚・途中保存・完了・復習への登録・分岐物語・全Partの練習/模試画面を接続済み。
+- 新規のブラウザ検証で、活動・物語・会話・聞く確認・TOEIC写真・模試の中断/再開が成功。
+- auth refresh/logout競合修正、クラウド同期/CAS/復元バックアップ、ファイル入出力、保護者のAI送信説明を実装中。
+- Supabase: `mee_private.live_buckets/live_leases` とservice-role専用RPC `mee_live_guard`を適用。8同時接続/240発行毎時をDB transactionで検証。
+- Edge `english-talk-v2` version1を新規deploy。旧english-talkは変更なし。未認証401/OPTIONS200確認、認証ユーザーの実音声は未検証。
+- DB advisor: privateテーブルは意図してクライアントpolicyなし。既存の漏えいパスワード保護が無効の警告あり（今回の変更に由来しない）。
+- 次：会話3hook/表示部品への分割、履歴復元とPWAキャッシュ、報酬受渡、全画面の回帰検証。

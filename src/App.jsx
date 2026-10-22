@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { loadState, saveState, withSessionEnd } from './lib/state.js'
 import {
   loadAdultStore, saveAdultStore, updateAdult as updateAdultIn, withAdultSession, withStudyDay, memoryForTalk, dueCards,
-  weakSkills, greetingFor
+  weakSkills, greetingFor, withAnswers
 } from './lib/adult.js'
 import { ADULT_COURSES, ADULT_PARTNERS } from './data/adult.js'
 import { pickTopic } from './data/topics.js'
@@ -28,9 +28,16 @@ import AdultMemory from './screens/AdultMemory.jsx'
 import Train from './screens/Train.jsx'
 import TrainPlayer from './screens/TrainPlayer.jsx'
 import { Toast } from './components/ui.jsx'
+import { loadLearning, saveLearning, learnerKey } from './lib/learning.js'
+import { todayKey } from './lib/state.js'
+import { exportLearningPayload, persistLearningPayload } from './lib/cloudSave.js'
+const CloudSettings = React.lazy(() => import('./screens/CloudSettings.jsx'))
+const ToeicPractice = React.lazy(() => import('./screens/learning/ToeicPractice.jsx'))
+const Library = React.lazy(() => import('./screens/learning/Library.jsx'))
+const LessonPlayer = React.lazy(() => import('./screens/learning/LessonPlayer.jsx'))
 
 // 子ども側の画面（ここでエラーになったら、子どものホームへもどす。大人側には PIN なしで入れない）
-const KID_SCREENS = new Set(['setup', 'home', 'play', 'guess', 'result', 'stickers', 'friends', 'parent', 'who'])
+const KID_SCREENS = new Set(['setup', 'home', 'play', 'guess', 'result', 'stickers', 'friends', 'parent', 'who', 'kidLibrary'])
 
 // 大人の1回の学習（きょうのメニュー、またはコース1つ）を何段階で進めるか
 function stepsFor(kind, adult, plan) {
@@ -45,6 +52,11 @@ function stepsFor(kind, adult, plan) {
 }
 
 export default function App() {
+  const [learning, setLearning] = useState(() => loadLearning())
+  const [libraryKind, setLibraryKind] = useState(null)
+  const [selectedLesson, setSelectedLesson] = useState(null)
+  const updateLearning = useCallback(fn => setLearning(prev => fn(prev)), [])
+  useEffect(() => { if (!saveLearning(learning)) showToast('教材の記録を保存できませんでした。端末の空き容量を確認してください') }, [learning])
   const [state, setState] = useState(() => loadState())
   const [adultStore, setAdultStore] = useState(() => loadAdultStore())
   // 大人がいれば、起動したら「だれが はなす？」から
@@ -177,6 +189,19 @@ export default function App() {
   }, [])
 
   const navigate = useCallback((id) => setScreen(id), [])
+  const openLibrary = useCallback((audience, kind = null) => { setLibraryKind(kind); setScreen(audience === 'adult' ? 'adultLibrary' : 'kidLibrary') }, [])
+  const openLesson = (id, audience) => { setSelectedLesson({id, audience}); setScreen('lesson') }
+  const startGuidedTalk = item => {
+    const current = adultRef.current
+    const partner = ADULT_PARTNERS[current.partner] || ADULT_PARTNERS.alex
+    const fresh = { steps: [{id:'chat',course:'chat'}], index:0, results:{}, startedAt:new Date().toISOString() }
+    runRef.current = fresh; setRun(fresh)
+    startTalk({mode:'adult',partner:partner.id,adultPartner:partner,minutes:item.estimatedMinutes,adultScene:{id:item.id,emoji:item.emoji,title:item.title.ja,about:item.about,opener:item.dialogue[0].en,openerJa:item.dialogue[0].ja},adultCtx:{name:current.name,memory:memoryForTalk(current),phrases:item.phrases.map(p=>p.en),weakSkills:[]}})
+  }
+  const onLessonCompleted = (item) => {
+    if (selectedLesson.audience === 'adult') updateAdult(current => withStudyDay(current))
+    else update(prev => ({...prev,studyDays:[...new Set([...(prev.studyDays || []),todayKey()])].slice(-365)}))
+  }
 
   const chooseAdult = useCallback((id) => {
     setAdultStore((prev) => ({ ...prev, current: id }))
@@ -199,7 +224,7 @@ export default function App() {
           }}
         />
       )}
-      {screen === 'home' && <Home {...common} topic={homeTopic} onStart={startTalk} />}
+      {screen === 'home' && <Home {...common} onLibrary={kind => openLibrary('kid',kind)} topic={homeTopic} onStart={startTalk} />}
       {screen === 'play' && <PlayPicker {...common} onStart={startTalk} />}
       {screen === 'guess' && <GuessPicker {...common} onStart={startTalk} />}
       {screen === 'talk' && talkConfig && (
@@ -218,9 +243,9 @@ export default function App() {
 
       {screen === 'who' && <Who state={state} adultStore={adultStore} updateAdultStore={updateAdultStore} onKid={() => setScreen(state.profile ? 'home' : 'setup')} onAdult={chooseAdult} />}
       {screen === 'adultPin' && <PinGate onUnlock={() => { setAdultUnlocked(true); setScreen('adultHome') }} onBack={() => setScreen('who')} />}
-      {screen === 'adultHome' && adult && <AdultHome {...adultCommon} onStart={startAdult} onSwitch={() => { setAdultUnlocked(false); setScreen('who') }} />}
+      {screen === 'adultHome' && adult && <AdultHome {...adultCommon} onLibrary={kind => openLibrary('adult',kind)} onStart={startAdult} onSwitch={() => { setAdultUnlocked(false); setScreen('who') }} />}
       {screen === 'adultMemory' && adult && <AdultMemory {...adultCommon} />}
-      {screen === 'toeicStats' && adult && <Toeic {...adultCommon} onStart={startAdult} />}
+      {screen === 'toeicStats' && adult && <Toeic {...adultCommon} onStart={startAdult} onPractice={() => setScreen('toeicPractice')} />}
       {screen === 'train' && adult && <Train {...adultCommon} onPlay={(ids) => { setTrainQueue({ ids, index: 0 }); setScreen('trainPlayer') }} />}
       {screen === 'trainPlayer' && adult && trainQueue && (
         <TrainPlayer {...adultCommon} queue={trainQueue}
@@ -233,6 +258,14 @@ export default function App() {
         <Quiz key={`q${run.startedAt}${run.index}`} {...adultCommon} kind={step.id} recasts={run.results.recasts || []} context={run.results.chatContext || ''} onDone={finishStep} />
       )}
       {screen === 'adultResult' && adult && run && <AdultResult key={run.startedAt} {...adultCommon} run={run} onHome={() => { setRun(null); setScreen('adultHome') }} />}
+      </ErrorBoundary>
+      <ErrorBoundary key={`learning:${screen}`} onReset={() => setScreen(adult ? 'adultHome' : state.profile ? 'home' : 'who')}>
+      <React.Suspense fallback={<div className="screen"><div className="lesson-empty" role="status">教材を開いています…</div></div>}>
+      {(screen === 'kidLibrary' || screen === 'adultLibrary') && <Library key={screen} adult={screen === 'adultLibrary' ? adult : null} learning={learning} learnerId={learnerKey(screen === 'adultLibrary' ? {adult} : {profile:state.profile})} initialKind={libraryKind} onOpen={id => openLesson(id,screen === 'adultLibrary' ? 'adult' : 'kid')} onBack={() => setScreen(screen === 'adultLibrary' ? 'adultHome' : 'home')} />}
+      {screen === 'lesson' && selectedLesson && <LessonPlayer key={`${selectedLesson.audience}:${selectedLesson.id}`} lessonId={selectedLesson.id} adult={selectedLesson.audience === 'adult' ? adult : null} learnerId={learnerKey(selectedLesson.audience === 'adult' ? {adult} : {profile:state.profile})} learning={learning} updateLearning={updateLearning} updateAdult={updateAdult} showToast={showToast} onBack={() => openLibrary(selectedLesson.audience,libraryKind)} onCompleted={onLessonCompleted} onTalk={startGuidedTalk} onPlayEpisode={id => {setTrainQueue({ids:[id],index:0});setScreen('trainPlayer')}} />}
+      {(screen === 'cloudSettingsKid' || screen === 'cloudSettingsAdult') && <CloudSettings state={state} adultStore={adultStore} learning={learning} update={update} showToast={showToast} onApply={({state:nextState,adultStore:nextAdult,learning:nextLearning}) => {persistLearningPayload(exportLearningPayload({state:nextState,adultStore:nextAdult,learning:nextLearning}));setState(nextState);setAdultStore(nextAdult);setLearning(nextLearning);setAdultUnlocked(false);setScreen('who')}} onBack={() => setScreen(screen === 'cloudSettingsKid' ? 'parent' : 'adultHome')} />}
+      {screen === 'toeicPractice' && adult && <ToeicPractice learning={learning} learnerId={learnerKey({adult})} updateLearning={updateLearning} onBack={() => setScreen('toeicStats')} onComplete={(run) => { import('./content/toeic.js').then(({toeicQuestion}) => {const answers = Object.entries(run.answers).map(([id,entry]) => {const q = toeicQuestion(id);return {part:q.part,skill:q.skill,correct:entry.choice===q.answerIndex,questionId:id,version:q.version,elapsedMs:entry.elapsedMs,hintUsed:run.hints.includes(id)}}); if(answers.length) updateAdult(current => withStudyDay(withAnswers(current,answers)))}) }} />}
+      </React.Suspense>
       </ErrorBoundary>
       <Toast message={toast} />
     </div>

@@ -5,7 +5,7 @@ import { lastWeekScore, partStats, predictScore, weakSkills } from '../lib/adult
 import { unlockSpeech } from '../lib/tts.js'
 import { AdultTop } from '../components/adultUi.jsx'
 
-export default function Toeic({ adult, navigate, onStart }) {
+export default function Toeic({ adult, navigate, onStart, onPractice }) {
   const score = predictScore(adult)
   const before = lastWeekScore(adult)
   const stats = partStats(adult)
@@ -27,6 +27,7 @@ export default function Toeic({ adult, navigate, onStart }) {
         </div>
 
         <div className="a-section">
+          <button className="primary-action" onClick={onPractice}>全7パート・600問の練習と模試へ →</button>
           {!adult.diagnosed && <button className="press cta" style={{ height: 56, fontSize: 18 }} onClick={() => start('diagnosis')}>🩺 基礎チェックをはじめる（10問）</button>}
           {adult.diagnosed && (
             <div style={{ display: 'flex', gap: 10 }}>
@@ -65,7 +66,7 @@ export default function Toeic({ adult, navigate, onStart }) {
             <div style={{ flex: 1, textAlign: 'left' }}><div className="t">TOEIC の話題で雑談</div><div className="muted s">延期・見積もり・会議…ビジネス場面を会話で</div></div>
             <span className="chip">›</span>
           </button>
-          <div className="muted s" style={{ padding: '0 4px', lineHeight: 1.6 }}>独自の練習問題です。対応範囲は Part 2・3・4・5 と語彙で、全7パートの模試ではありません。参考換算は少数の練習結果による未校正の値で、本番スコア・目標達成を示しません。</div>
+          <div className="muted s" style={{ padding: '0 4px', lineHeight: 1.6 }}>独自の練習問題です。基礎チェックは Part 2・3・5 と語彙を扱います。全7パートは「練習と模試」の教材から選べます。参考換算は少数の練習結果による未校正の値で、本番スコア・目標達成を示しません。</div>
         </div>
         <div style={{ height: 30 }} />
       </div>

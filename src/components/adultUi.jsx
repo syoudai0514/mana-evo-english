@@ -17,7 +17,7 @@ export function HoldMic({ hold, size = 96, label }) {
   if (!hold.available) return null
   return (
     <div className="hold-mic-wrap">
-      <div className={`mic ${hold.recording ? 'rec' : ''} ${hold.busy ? 'busy' : ''}`} style={{ width: size, height: size }} {...hold.bind} role="button" aria-label="押しながら話す">
+      <div className={`mic ${hold.recording ? 'rec' : ''} ${hold.busy ? 'busy' : ''}`} style={{ width: size, height: size }} {...hold.bind} role="button" tabIndex={0} aria-pressed={hold.recording} aria-disabled={hold.busy} aria-label="押しながら話す。キーボードではスペースかEnterを押して話す">
         <div className="ring" style={{ inset: -12, transform: `scale(${1 + hold.level * 0.35})` }} />
         <div className="core" style={{ fontSize: size * 0.42 }}>{hold.busy ? '💭' : '🎤'}</div>
       </div>

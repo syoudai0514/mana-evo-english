@@ -7,7 +7,7 @@ import { TabBar } from '../components/ui.jsx'
 const COLORS = [['#E9FBE9', '#C9E8C9'], ['#FFF1C9', '#F0DCA0'], ['#DDF0FF', '#BFD9F5'], ['#FFE3EF', '#F5C2D6']]
 
 export default function GuessPicker({ state, navigate, onStart }) {
-  const persona = personaOf(state.profile?.partner)
+  const persona = personaOf(state.profile?.partner, state.manaRoster)
   const childAsks = state.level >= 4
   return (
     <div className="screen">

@@ -1,0 +1,533 @@
+[
+  [
+    {
+      "prompt": "Where is the nearest printer?",
+      "answer": "By the meeting room.",
+      "promptJa": "いちばん近いプリンターはどこですか？",
+      "answerJa": "会議室のそばです。",
+      "skill": "location"
+    },
+    {
+      "prompt": "When does the workshop start?",
+      "answer": "At half past nine.",
+      "promptJa": "講習会はいつ始まりますか？",
+      "answerJa": "9時半です。",
+      "skill": "time"
+    },
+    {
+      "prompt": "Who ordered the replacement parts?",
+      "answer": "Maya in maintenance did.",
+      "promptJa": "交換部品を注文したのは誰ですか？",
+      "answerJa": "保守部門のマヤです。",
+      "skill": "person"
+    },
+    {
+      "prompt": "Why was the meeting postponed?",
+      "answer": "The presenter is ill.",
+      "promptJa": "会議はなぜ延期されたのですか？",
+      "answerJa": "発表者が病気です。",
+      "skill": "reason"
+    },
+    {
+      "prompt": "How much does the delivery cost?",
+      "answer": "It's included in the price.",
+      "promptJa": "配送料はいくらですか？",
+      "answerJa": "代金に含まれています。",
+      "skill": "price"
+    },
+    {
+      "prompt": "How often do you update the website?",
+      "answer": "About twice a week.",
+      "promptJa": "ウェブサイトはどのくらいの頻度で更新しますか？",
+      "answerJa": "週に2回ほどです。",
+      "skill": "frequency"
+    },
+    {
+      "prompt": "Would you like me to take notes?",
+      "answer": "Yes, that would be helpful.",
+      "promptJa": "メモを取りましょうか？",
+      "answerJa": "はい、助かります。",
+      "skill": "offer"
+    },
+    {
+      "prompt": "Could you send me the agenda?",
+      "answer": "I'll email it right away.",
+      "promptJa": "議題を送ってもらえますか？",
+      "answerJa": "すぐメールで送ります。",
+      "skill": "request"
+    },
+    {
+      "prompt": "Do you prefer tea or coffee?",
+      "answer": "Tea, with no sugar, please.",
+      "promptJa": "紅茶とコーヒーのどちらがよいですか？",
+      "answerJa": "砂糖なしの紅茶をお願いします。",
+      "skill": "choice"
+    },
+    {
+      "prompt": "Didn't you reserve a meeting room?",
+      "answer": "I tried, but they were all booked.",
+      "promptJa": "会議室を予約しなかったのですか？",
+      "answerJa": "試みましたが、全部予約済みでした。",
+      "skill": "indirect"
+    },
+    {
+      "prompt": "The copier is out of paper.",
+      "answer": "There's another box in the cupboard.",
+      "promptJa": "コピー機の紙が切れています。",
+      "answerJa": "戸棚にもう1箱あります。",
+      "skill": "statement"
+    },
+    {
+      "prompt": "How did you get to the airport?",
+      "answer": "I took the express train.",
+      "promptJa": "空港まではどうやって行きましたか？",
+      "answerJa": "急行列車に乗りました。",
+      "skill": "method"
+    },
+    {
+      "prompt": "How long will the renovations take?",
+      "answer": "Around six weeks.",
+      "promptJa": "改装にはどのくらいかかりますか？",
+      "answerJa": "6週間ほどです。",
+      "skill": "duration"
+    },
+    {
+      "prompt": "Which report do you need first?",
+      "answer": "The one about customer feedback.",
+      "promptJa": "どの報告書が先に必要ですか？",
+      "answerJa": "顧客の意見についてのものです。",
+      "skill": "selection"
+    },
+    {
+      "prompt": "Are you attending the seminar?",
+      "answer": "I'm still waiting for approval.",
+      "promptJa": "セミナーに参加しますか？",
+      "answerJa": "まだ承認を待っています。",
+      "skill": "yesNo"
+    },
+    {
+      "prompt": "Let's take a short break.",
+      "answer": "Good idea. We've been working for hours.",
+      "promptJa": "少し休憩しましょう。",
+      "answerJa": "いいですね。何時間も働いていますから。",
+      "skill": "suggestion"
+    },
+    {
+      "prompt": "Would you like to join us for lunch?",
+      "answer": "Thanks, but I brought my own today.",
+      "promptJa": "一緒に昼食を食べませんか？",
+      "answerJa": "ありがとう。でも今日は持ってきました。",
+      "skill": "invitation"
+    },
+    {
+      "prompt": "You sent the invoice yesterday, didn't you?",
+      "answer": "Yes, and I kept a copy.",
+      "promptJa": "請求書は昨日送りましたよね？",
+      "answerJa": "はい、控えも取ってあります。",
+      "skill": "tag"
+    },
+    {
+      "prompt": "I'm afraid the room is too small.",
+      "answer": "We could use the hall upstairs.",
+      "promptJa": "残念ですが、この部屋は小さすぎます。",
+      "answerJa": "上の階のホールを使えます。",
+      "skill": "problem"
+    },
+    {
+      "prompt": "Can I leave a message for Ms. Lee?",
+      "answer": "Certainly. What would you like me to tell her?",
+      "promptJa": "リーさんに伝言をお願いできますか？",
+      "answerJa": "承知しました。何とお伝えしましょうか？",
+      "skill": "phone"
+    },
+    {
+      "prompt": "Have you tried restarting the computer?",
+      "answer": "Yes, but the screen is still blank.",
+      "promptJa": "コンピューターを再起動してみましたか？",
+      "answerJa": "はい。でも画面はまだ真っ暗です。",
+      "skill": "experience"
+    },
+    {
+      "prompt": "Who should receive a copy of this email?",
+      "answer": "Everyone on the project team.",
+      "promptJa": "このメールの写しを誰に送ればよいですか？",
+      "answerJa": "プロジェクトチームの全員です。",
+      "skill": "procedure"
+    },
+    {
+      "prompt": "What time is the last train?",
+      "answer": "Just after midnight.",
+      "promptJa": "終電は何時ですか？",
+      "answerJa": "午前0時を少し過ぎた頃です。",
+      "skill": "detail"
+    },
+    {
+      "prompt": "Do you know if the store is open on Sundays?",
+      "answer": "It opens at ten, I think.",
+      "promptJa": "その店が日曜日に開いているか知っていますか？",
+      "answerJa": "確か10時に開きます。",
+      "skill": "embedded"
+    },
+    {
+      "prompt": "I'm sorry for the delay.",
+      "answer": "That's all right. We haven't started yet.",
+      "promptJa": "遅れてすみません。",
+      "answerJa": "大丈夫です。まだ始まっていません。",
+      "skill": "social"
+    }
+  ],
+  [
+    {
+      "prompt": "Where should I put these boxes?",
+      "answer": "In the storage room.",
+      "promptJa": "この箱はどこへ置けばよいですか？",
+      "answerJa": "倉庫の中です。",
+      "skill": "location"
+    },
+    {
+      "prompt": "When will the new catalog arrive?",
+      "answer": "Early next week.",
+      "promptJa": "新しいカタログはいつ届きますか？",
+      "answerJa": "来週の初めです。",
+      "skill": "time"
+    },
+    {
+      "prompt": "Who is leading the training session?",
+      "answer": "Our new department manager.",
+      "promptJa": "研修を担当するのは誰ですか？",
+      "answerJa": "新しい部門責任者です。",
+      "skill": "person"
+    },
+    {
+      "prompt": "Why are the lights still on?",
+      "answer": "The cleaning team is here.",
+      "promptJa": "なぜまだ明かりがついているのですか？",
+      "answerJa": "清掃チームが来ています。",
+      "skill": "reason"
+    },
+    {
+      "prompt": "How much is a monthly pass?",
+      "answer": "Forty dollars.",
+      "promptJa": "1か月の定期券はいくらですか？",
+      "answerJa": "40ドルです。",
+      "skill": "price"
+    },
+    {
+      "prompt": "How often is the equipment inspected?",
+      "answer": "Every three months.",
+      "promptJa": "機器はどのくらいの頻度で点検されますか？",
+      "answerJa": "3か月ごとです。",
+      "skill": "frequency"
+    },
+    {
+      "prompt": "Shall I open the window?",
+      "answer": "Please do. It's warm in here.",
+      "promptJa": "窓を開けましょうか？",
+      "answerJa": "お願いします。ここは暑いですね。",
+      "skill": "offer"
+    },
+    {
+      "prompt": "Would you mind checking this address?",
+      "answer": "Sure, give me a moment.",
+      "promptJa": "この住所を確認してもらえますか？",
+      "answerJa": "はい、少し待ってください。",
+      "skill": "request"
+    },
+    {
+      "prompt": "Should we meet here or at your office?",
+      "answer": "Let's meet at my office.",
+      "promptJa": "ここかそちらの事務所のどちらで会いますか？",
+      "answerJa": "私の事務所で会いましょう。",
+      "skill": "choice"
+    },
+    {
+      "prompt": "Haven't we met before?",
+      "answer": "Yes, at the design conference.",
+      "promptJa": "以前お会いしましたよね？",
+      "answerJa": "はい、デザインの会議で。",
+      "skill": "indirect"
+    },
+    {
+      "prompt": "I can't find the presentation file.",
+      "answer": "Check the shared folder.",
+      "promptJa": "発表用のファイルが見つかりません。",
+      "answerJa": "共有フォルダーを確認してください。",
+      "skill": "statement"
+    },
+    {
+      "prompt": "How are you sending the contract?",
+      "answer": "By registered mail.",
+      "promptJa": "契約書はどうやって送りますか？",
+      "answerJa": "書留郵便で送ります。",
+      "skill": "method"
+    },
+    {
+      "prompt": "How long have you worked here?",
+      "answer": "Since last April.",
+      "promptJa": "ここで働いてどのくらいですか？",
+      "answerJa": "昨年の4月からです。",
+      "skill": "duration"
+    },
+    {
+      "prompt": "Which entrance should we use?",
+      "answer": "The one facing the river.",
+      "promptJa": "どの入口を使えばよいですか？",
+      "answerJa": "川に面したほうです。",
+      "skill": "selection"
+    },
+    {
+      "prompt": "Did the package arrive on time?",
+      "answer": "Yes, just before lunch.",
+      "promptJa": "荷物は時間どおりに着きましたか？",
+      "answerJa": "はい、昼食の直前に。",
+      "skill": "yesNo"
+    },
+    {
+      "prompt": "Why don't we ask the sales team?",
+      "answer": "They might have useful information.",
+      "promptJa": "営業チームに聞いてみませんか？",
+      "answerJa": "役立つ情報を持っているかもしれませんね。",
+      "skill": "suggestion"
+    },
+    {
+      "prompt": "Can you come to the opening ceremony?",
+      "answer": "What time does it begin?",
+      "promptJa": "開会式に来られますか？",
+      "answerJa": "何時に始まりますか？",
+      "skill": "invitation"
+    },
+    {
+      "prompt": "The station is within walking distance, isn't it?",
+      "answer": "Yes, about ten minutes from here.",
+      "promptJa": "駅までは歩けますよね？",
+      "answerJa": "はい、ここから10分ほどです。",
+      "skill": "tag"
+    },
+    {
+      "prompt": "These instructions are confusing.",
+      "answer": "I'll show you how it works.",
+      "promptJa": "この説明は分かりにくいです。",
+      "answerJa": "使い方をお見せします。",
+      "skill": "problem"
+    },
+    {
+      "prompt": "May I speak to the events coordinator?",
+      "answer": "I'll put you through.",
+      "promptJa": "イベント担当者と話せますか？",
+      "answerJa": "おつなぎします。",
+      "skill": "phone"
+    },
+    {
+      "prompt": "Have you checked the delivery address?",
+      "answer": "Not yet. I'll do it now.",
+      "promptJa": "配送先の住所を確認しましたか？",
+      "answerJa": "まだです。今やります。",
+      "skill": "experience"
+    },
+    {
+      "prompt": "What should I do with the old equipment?",
+      "answer": "Ask the facilities manager.",
+      "promptJa": "古い機器はどうすればよいですか？",
+      "answerJa": "設備担当の責任者に聞いてください。",
+      "skill": "procedure"
+    },
+    {
+      "prompt": "What is the main item on the agenda?",
+      "answer": "The budget for next year.",
+      "promptJa": "議題の主な項目は何ですか？",
+      "answerJa": "来年度の予算です。",
+      "skill": "detail"
+    },
+    {
+      "prompt": "Can you tell me whether the fee includes lunch?",
+      "answer": "Let me check the registration form.",
+      "promptJa": "料金に昼食が含まれるか教えてもらえますか？",
+      "answerJa": "申込書を確認します。",
+      "skill": "embedded"
+    },
+    {
+      "prompt": "Thank you for arranging everything.",
+      "answer": "It was a pleasure to help.",
+      "promptJa": "すべて手配してくれてありがとう。",
+      "answerJa": "お手伝いできてうれしかったです。",
+      "skill": "social"
+    }
+  ],
+  [
+    {
+      "prompt": "Where can visitors park?",
+      "answer": "Behind the main building.",
+      "promptJa": "来客はどこに駐車できますか？",
+      "answerJa": "本館の裏です。",
+      "skill": "location"
+    },
+    {
+      "prompt": "When is the application deadline?",
+      "answer": "The end of this month.",
+      "promptJa": "応募の締切はいつですか？",
+      "answerJa": "今月末です。",
+      "skill": "time"
+    },
+    {
+      "prompt": "Who can approve this purchase?",
+      "answer": "Ask the finance director.",
+      "promptJa": "この購入を承認できるのは誰ですか？",
+      "answerJa": "財務責任者に聞いてください。",
+      "skill": "person"
+    },
+    {
+      "prompt": "Why did you choose this supplier?",
+      "answer": "They offer a longer warranty.",
+      "promptJa": "なぜこの供給業者を選びましたか？",
+      "answerJa": "保証期間が長いからです。",
+      "skill": "reason"
+    },
+    {
+      "prompt": "How much did the repairs come to?",
+      "answer": "Less than we expected.",
+      "promptJa": "修理代はいくらになりましたか？",
+      "answerJa": "予想より安く済みました。",
+      "skill": "price"
+    },
+    {
+      "prompt": "How often does the shuttle run?",
+      "answer": "Every fifteen minutes.",
+      "promptJa": "送迎バスはどのくらいの間隔で走りますか？",
+      "answerJa": "15分おきです。",
+      "skill": "frequency"
+    },
+    {
+      "prompt": "Can I get you some water?",
+      "answer": "No, thank you. I'm fine.",
+      "promptJa": "お水をお持ちしましょうか？",
+      "answerJa": "いいえ、結構です。大丈夫です。",
+      "skill": "offer"
+    },
+    {
+      "prompt": "Could you hold the door for me?",
+      "answer": "Of course. Go ahead.",
+      "promptJa": "ドアを押さえてもらえますか？",
+      "answerJa": "もちろん。どうぞ。",
+      "skill": "request"
+    },
+    {
+      "prompt": "Would morning or afternoon suit you?",
+      "answer": "The afternoon would be better.",
+      "promptJa": "午前と午後のどちらが都合がよいですか？",
+      "answerJa": "午後のほうがよいです。",
+      "skill": "choice"
+    },
+    {
+      "prompt": "Isn't the cafeteria closed today?",
+      "answer": "Actually, it's open until two.",
+      "promptJa": "今日は食堂は休みではありませんか？",
+      "answerJa": "実は2時まで開いています。",
+      "skill": "indirect"
+    },
+    {
+      "prompt": "The delivery truck hasn't arrived yet.",
+      "answer": "I'll call the driver.",
+      "promptJa": "配達のトラックがまだ来ていません。",
+      "answerJa": "運転手に電話します。",
+      "skill": "statement"
+    },
+    {
+      "prompt": "How can I reset my password?",
+      "answer": "Use the link on the login page.",
+      "promptJa": "パスワードを再設定するにはどうすればよいですか？",
+      "answerJa": "ログインページのリンクを使ってください。",
+      "skill": "method"
+    },
+    {
+      "prompt": "How long is the warranty valid?",
+      "answer": "For two years from purchase.",
+      "promptJa": "保証はどのくらい有効ですか？",
+      "answerJa": "購入から2年間です。",
+      "skill": "duration"
+    },
+    {
+      "prompt": "Which color would match the room?",
+      "answer": "The pale green one.",
+      "promptJa": "どの色が部屋に合うでしょうか？",
+      "answerJa": "薄い緑です。",
+      "skill": "selection"
+    },
+    {
+      "prompt": "Have you reviewed the proposal?",
+      "answer": "Only the first section so far.",
+      "promptJa": "提案書を確認しましたか？",
+      "answerJa": "今のところ最初の部分だけです。",
+      "skill": "yesNo"
+    },
+    {
+      "prompt": "How about moving the display near the door?",
+      "answer": "That should make it easier to see.",
+      "promptJa": "展示をドアの近くへ移しませんか？",
+      "answerJa": "そうすれば見やすくなりそうです。",
+      "skill": "suggestion"
+    },
+    {
+      "prompt": "Are you free to visit the site tomorrow?",
+      "answer": "Let me check my calendar.",
+      "promptJa": "明日現場を訪れる時間はありますか？",
+      "answerJa": "予定表を確認させてください。",
+      "skill": "invitation"
+    },
+    {
+      "prompt": "This model comes in black, doesn't it?",
+      "answer": "I'll check the catalog.",
+      "promptJa": "この機種は黒もありますよね？",
+      "answerJa": "カタログを確認します。",
+      "skill": "tag"
+    },
+    {
+      "prompt": "I may miss the deadline.",
+      "answer": "Which task is taking the longest?",
+      "promptJa": "締切に間に合わないかもしれません。",
+      "answerJa": "どの作業に最も時間がかかっていますか？",
+      "skill": "problem"
+    },
+    {
+      "prompt": "Is there someone who speaks Japanese?",
+      "answer": "Yes, I'll get my colleague.",
+      "promptJa": "日本語を話す方はいますか？",
+      "answerJa": "はい、同僚を呼んできます。",
+      "skill": "phone"
+    },
+    {
+      "prompt": "Have you used this software before?",
+      "answer": "Only during the training course.",
+      "promptJa": "このソフトを使ったことはありますか？",
+      "answerJa": "研修のときだけです。",
+      "skill": "experience"
+    },
+    {
+      "prompt": "Where should I submit my expenses?",
+      "answer": "Through the online system.",
+      "promptJa": "経費はどこへ申請すればよいですか？",
+      "answerJa": "オンラインシステムからです。",
+      "skill": "procedure"
+    },
+    {
+      "prompt": "What happened to the old sign?",
+      "answer": "It was damaged in the storm.",
+      "promptJa": "古い看板はどうなりましたか？",
+      "answerJa": "嵐で壊れました。",
+      "skill": "detail"
+    },
+    {
+      "prompt": "Do you remember where we parked?",
+      "answer": "Near the west exit.",
+      "promptJa": "どこに駐車したか覚えていますか？",
+      "answerJa": "西口の近くです。",
+      "skill": "embedded"
+    },
+    {
+      "prompt": "Congratulations on your promotion.",
+      "answer": "Thank you. I'm looking forward to the new role.",
+      "promptJa": "昇進おめでとうございます。",
+      "answerJa": "ありがとう。新しい役割を楽しみにしています。",
+      "skill": "social"
+    }
+  ]
+]

@@ -53,6 +53,11 @@ export const PERSONAS = {
 
 export const PERSONA_IDS = Object.keys(PERSONAS)
 
-export function personaOf(id) {
-  return PERSONAS[id] || PERSONAS.howamy
+export function personaOf(id, roster = []) {
+  if (PERSONAS[id]) return PERSONAS[id]
+  const owned = Array.isArray(roster) ? roster.find(item => item.id === id && /^m\d{3,4}$/.test(item.speciesId)) : null
+  if (!owned) return PERSONAS.howamy
+  const base = PERSONAS.howamy
+  const safeName = String(owned.name || owned.speciesId).replace(/[\r\n<>]/g,'').slice(0,24)
+  return {...base,id:owned.id,speciesId:owned.speciesId,name:safeName,nameEn:owned.speciesId,image:`https://mana-evo.vercel.app/monsters/${owned.speciesId}.webp`,tagline:['mana-evoから きた なかま','いっしょに えいごで あそぼう'],personality:`You are a gentle, cheerful fantasy creature and a kind friend. Your nickname is ${JSON.stringify(safeName)}. Keep all interaction age-appropriate and use short English sentences.`}
 }

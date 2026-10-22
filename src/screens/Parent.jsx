@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { LEVELS, levelOf } from '../data/levels.js'
 import { PERSONAS, personaOf } from '../data/personas.js'
 import { pickTopic } from '../data/topics.js'
 import { PIN_KEY, initialState, todaySummary } from '../lib/state.js'
-import { currentEmail, isSignedIn, signIn, signOut } from '../lib/auth.js'
+import { currentEmail, isSignedIn, signIn, signOut, subscribeAuth } from '../lib/auth.js'
 import { isMockMode } from '../lib/config.js'
 import { speak, unlockSpeech } from '../lib/tts.js'
 import { TabBar } from '../components/ui.jsx'
+import PrivacyPanel from '../components/PrivacyPanel.jsx'
 
 function storedPin() {
   try { return localStorage.getItem(PIN_KEY) || '' } catch { return '' }
@@ -79,6 +80,7 @@ export function PinGate({ onUnlock, onBack }) {
 
 export function LoginCard({ showToast }) {
   const [signedIn, setSignedIn] = useState(isSignedIn())
+  useEffect(() => subscribeAuth(() => setSignedIn(isSignedIn())), [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -166,7 +168,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
   const level = levelOf(state.level)
   const card = homeCard(state)
   const kidSessions = [...state.sessions].reverse().filter((session) => session.mode !== 'adult').slice(0, 8)
-  const persona = personaOf(state.profile?.partner)
+  const persona = personaOf(state.profile?.partner, state.manaRoster)
 
   if (view === 'settings') {
     return (
@@ -253,6 +255,8 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
         </div>
 
         <LoginCard showToast={showToast} />
+        <PrivacyPanel showToast={showToast} />
+        <div className="card"><button className="primary-action" onClick={() => navigate('cloudSettingsKid')}>保存・連携・データ管理へ →</button></div>
 
         {card && (
           <div className="card home-card">

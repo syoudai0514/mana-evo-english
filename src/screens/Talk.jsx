@@ -8,7 +8,7 @@ import { nextReading, cleanHint, tidyKidsJa } from '../lib/kana.js'
 import { Recorder, micSupported, setPlaybackSession } from '../lib/recorder.js'
 import { speak, stopSpeech, unlockSpeech } from '../lib/tts.js'
 import { sendTurn, TalkError } from '../lib/talk.js'
-import { LiveSession, reportLiveProblem, requestLiveToken } from '../lib/live.js'
+import { LiveSession, reportLiveProblem, requestLiveToken, releaseLiveLease } from '../lib/live.js'
 import { Transcriber } from '../lib/transcriber.js'
 import { Annotator } from '../lib/annotator.js'
 import { buildAdultAnnotatorPrompt, buildAdultLiveSystemPrompt } from '../data/adult.js'
@@ -86,7 +86,7 @@ function keysWanted() {
 }
 
 export default function Talk({ state, update, config, onFinish, showToast, onAdultCard }) {
-  const persona = config.adultPartner ? adultPersona(config.adultPartner) : personaOf(config.partner)
+  const persona = config.adultPartner ? adultPersona(config.adultPartner) : personaOf(config.partner, state.manaRoster)
   const adult = config.mode === 'adult'
   const level = levelOf(adult ? 5 : state.level)
   const mode = MODES[config.mode] || MODES.free
@@ -185,6 +185,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const makeContext = (turn) => ({
     mode: config.mode,
     persona: persona.id,
+    personaDetails: persona,
     level: stateRef.current.level,
     nickname: stateRef.current.profile?.nickname,
     topic: config.topic,
@@ -447,7 +448,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           const granted = await requestLiveToken(attempt, 'voice')
           model = granted.model
           const key = `${model}:${setup.hints}:${setup.resume}`
-          if (tried.has(key)) continue
+          if (tried.has(key)) { releaseLiveLease(granted.leaseId); continue }
           tried.add(key)
           const transcription = setup.hints ? transcriptionHints() : {}
           const session = createLiveSession({ ...granted, transcription, card: setup.card, resume: setup.resume })
@@ -496,9 +497,10 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     return { languageCodes: ['en-US', 'ja-JP'], customVocabulary: [...words].filter(Boolean).slice(0, 40) }
   }
 
-  const createLiveSession = ({ token, model, transcription = {}, card = null, resume = false, resumeHandle = '' }) => {
+  const createLiveSession = ({ token, model, leaseId, transcription = {}, card = null, resume = false, resumeHandle = '' }) => {
     return new LiveSession({
       transcription,
+      leaseId,
       card,
       resume,
       resumeHandle,
@@ -1099,7 +1101,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
               <>
                 <div style={{ fontSize: 44, marginTop: 4 }}>👪</div>
                 <p style={{ fontWeight: 900, marginTop: 6, fontSize: 18 }}>おうちのひとを よんでね</p>
-                <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>「おうちのひと」→「AIのせつぞく」から mana-evo と同じアカウントでログインできます</p>
+                <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>「おうちのひと」→「AIのせつぞく」からログインし、音声の送信・保存について確認してください</p>
               </>
             )}
             <button className={stopped === 'offline' ? 'press btn ghost' : 'press cta'} style={{ marginTop: stopped === 'offline' ? 10 : 16, height: 56, fontSize: 18, width: '100%' }} onClick={finish}>{stopped === 'offline' ? 'おわる' : 'わかった'}</button>

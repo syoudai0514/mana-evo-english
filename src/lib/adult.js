@@ -194,7 +194,7 @@ export function withoutCard(adult, id) {
 // ---------- TOEIC ----------
 
 export function withAnswers(adult, answers, date = new Date()) {
-  const rows = answers.map((item) => ({ part: item.part, skill: item.skill, correct: Boolean(item.correct), date: date.toISOString() }))
+  const rows = answers.map((item) => ({ part: item.part, skill: item.skill, correct: Boolean(item.correct), date: date.toISOString(), ...(item.questionId ? {questionId:item.questionId,version:item.version,elapsedMs:item.elapsedMs,hintUsed:Boolean(item.hintUsed)} : {}) }))
   return { ...adult, answers: [...adult.answers, ...rows].slice(-LIMITS.answers) }
 }
 
