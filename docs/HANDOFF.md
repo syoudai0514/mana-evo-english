@@ -1,3 +1,11 @@
+# 現在の依頼（2026-10-22追記）
+
+ユーザーが全Issueの実装を依頼。最新の進捗は [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) を参照。
+前回の「最初の小バッチのみ」は今回の依頼で拡張済み。段階的に検証しながら最終目標数まで進める。
+PR #12はmainへマージ済み。現在の作業ブランチは `feat/complete-learning-backlog`。
+
+---
+
 # 次のモデルへ：体験刷新の引き継ぎ
 
 ## 依頼と範囲
