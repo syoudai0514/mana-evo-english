@@ -73,7 +73,12 @@ function LessonSession({
       kind: item.kind,
       audioEvents: draft.audioEvents || []
     }
-    updateLearning((prev) => completeLesson(prev, learnerId, item, result))
+    if (
+      updateLearning((prev) =>
+        completeLesson(prev, learnerId, item, result)
+      ) === false
+    )
+      return
     onCompleted?.(item, result)
     setFinished(true)
   }
@@ -94,7 +99,12 @@ function LessonSession({
   }
   const sendReport = () => {
     if (!report.trim()) return
-    updateLearning((prev) => reportContent(prev, learnerId, item.id, report))
+    if (
+      updateLearning((prev) =>
+        reportContent(prev, learnerId, item.id, report)
+      ) === false
+    )
+      return
     setReporting(false)
     setReport('')
     showToast('内容の報告をこの端末に保存しました。設定から書き出せます')

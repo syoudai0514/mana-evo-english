@@ -274,7 +274,9 @@ test('foundation enrollment respects the selected limit and can report, skip and
     )
     .toBe(3)
   await page.getByRole('button', { name: 'ホームにもどる' }).click()
-  await page.getByRole('button', {name:'今日の復習 3枚',exact:true}).click()
+  await page
+    .getByRole('button', { name: '今日の復習 3枚', exact: true })
+    .click()
   await page.getByRole('button', { name: '誤りを報告', exact: true }).click()
   await page
     .getByRole('textbox', { name: /気になる点/ })
@@ -298,4 +300,48 @@ test('foundation enrollment respects the selected limit and can report, skip and
       })
     )
     .toEqual([2, 1])
+})
+
+test('failed lesson storage does not advance or claim completion', async ({
+  page
+}) => {
+  await kid(page)
+  await page.getByRole('button', { name: /ふかふか ベッド/ }).click()
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem
+    Storage.prototype.setItem = function (key, value) {
+      if (key === 'mee-learning-v1')
+        throw new DOMException('Full', 'QuotaExceededError')
+      return original.call(this, key, value)
+    }
+  })
+  await page
+    .getByRole('button', { name: 'ぼうけんを はじめる', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: 'ぼうけんを はじめる', exact: true })
+  ).toBeVisible()
+  await expect(page.locator('.lesson-progress-label')).toHaveCount(0)
+  await expect(
+    page.getByText(
+      '教材の記録を保存できませんでした。端末の空き容量を確認してください',
+      { exact: true }
+    )
+  ).toBeVisible()
+})
+
+test('TOEIC answer survives an immediate reload before explanation', async ({
+  page
+}) => {
+  await adult(page)
+  await page.goto('/?mock=1#/toeicPractice')
+  await page.getByLabel('パート', { exact: true }).selectOption('p1')
+  await page.getByRole('button', { name: 'このパートを練習する' }).click()
+  await page.locator('.exam-options button').first().click()
+  await page.reload()
+  await page.getByRole('button', { name: /のつづき.*1\/6回答/ }).click()
+  await expect(page.locator('.exam-options button').first()).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  )
 })

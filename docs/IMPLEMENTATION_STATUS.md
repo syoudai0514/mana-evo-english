@@ -45,7 +45,7 @@
 
 ## 確認結果とPR
 
-- 英語PR: [#13](https://github.com/syoudai0514/mana-evo-english/pull/13)。67ロジック＋24アプリE2E＋2オフラインE2Eが成功。GitHub CI #39 でもすべて成功。テーマ重複整理後は幅/拡大の8件とbuildを再確認。
+- 英語PR: [#13](https://github.com/syoudai0514/mana-evo-english/pull/13)。67ロジック＋24アプリE2E＋2オフラインE2EがGitHub CI #39で成功。テーマ整理後のCI #40で「つぎへ」直後の再読込による保存遅延を検出し、React effect後の保存から操作時の同期保存へ修正。教材/TOEICは保存に成功してから表示を進め、容量不足時は進行・完了を主張しない。再開/容量不足を各5回、TOEIC即時再読込を含む変更範囲を再検証。最新テスト構成はロジック67件・ブラウザー28件。最新CIはPRのChecksを参照。
 - 受取側: [mana-evo #276](https://github.com/syoudai0514/mana-evo/pull/276)（仕様合意用Draft）。既存Vite8.2.2がauditで失敗したため8.2.4へ更新。次のCI #1476はaudit/全テスト/build/release-readiness/WebKit E2Eまで成功。
 - Vercelは作業ブランチのプレビューをREADYにした。保護付きURL: https://mana-evo-english-git-feat-complete-learning-backlog-syoudai1984.vercel.app/ 。ユーザーのVercelログインが必要な場合がある。mainへはマージしていない。
 - #1–#11すべてに実装と未完了の受入項目をコメント済み。

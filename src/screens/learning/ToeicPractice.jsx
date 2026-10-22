@@ -32,7 +32,7 @@ export default function ToeicPractice({
   onBack,
   onComplete
 }) {
-  const [run, setRun] = useState(null),
+  const [run, publishRun] = useState(null),
     [part, setPart] = useState('all'),
     [count, setCount] = useState(10),
     [now, setNow] = useState(Date.now()),
@@ -43,9 +43,19 @@ export default function ToeicPractice({
   const audio = useLessonAudio(),
     reported = useRef(new Set())
   const saved = activeExam(learning, learnerId)
-  useEffect(() => {
-    if (run) updateLearning((prev) => saveExam(prev, learnerId, run))
-  }, [run, learnerId, updateLearning])
+  const runRef = useRef(run)
+  const setRun = (change) => {
+    const next = typeof change === 'function' ? change(runRef.current) : change
+    if (next === runRef.current) return true
+    if (
+      next &&
+      updateLearning((prev) => saveExam(prev, learnerId, next)) === false
+    )
+      return false
+    runRef.current = next
+    publishRun(next)
+    return true
+  }
   useEffect(() => {
     if (!run?.timed || run.status !== 'active') return
     const t = setInterval(() => {

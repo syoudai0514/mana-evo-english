@@ -20,17 +20,29 @@ export function useLessonSession({
     ...initial,
     ...learnerProgress(learning, learnerId).drafts[item.id]
   }))
+  const draftRef = useRef(draft)
   const updateRef = useRef(updateLearning)
   updateRef.current = updateLearning
+  const commit = (next) => {
+    if (
+      updateRef.current((prev) =>
+        saveLessonDraft(prev, learnerId, item.id, next)
+      ) === false
+    )
+      return false
+    draftRef.current = next
+    setDraft(next)
+    return true
+  }
   useEffect(() => {
     updateRef.current((prev) =>
-      saveLessonDraft(prev, learnerId, item.id, draft)
+      saveLessonDraft(prev, learnerId, item.id, draftRef.current)
     )
-  }, [draft, item.id, learnerId])
+  }, [item.id, learnerId])
   const patch = (value) =>
-    setDraft((prev) => ({
-      ...prev,
-      ...(typeof value === 'function' ? value(prev) : value)
-    }))
-  return { draft, patch, restart: () => setDraft(initial) }
+    commit({
+      ...draftRef.current,
+      ...(typeof value === 'function' ? value(draftRef.current) : value)
+    })
+  return { draft, patch, restart: () => commit(initial) }
 }

@@ -7,6 +7,7 @@ PR #12はmainへマージ済み。現在の作業ブランチは `feat/complete-
 
 今回の実装は **758教材＋TOEIC600問**。 [英語PR #13](https://github.com/syoudai0514/mana-evo-english/pull/13) にpush済み。完成扱いにする前の確認待ちは進捗表の右列を参照。
 - `src/content/`: 固定ID/version/権利/draft付き。`scripts/content-report.mjs` で数える。
+- 教材/TOEIC保存は画面のReact effectに戻さない。操作時にlocalStorageへ保存を確定してからUIを進める。即時再読込と容量不足のE2Eを維持する。
 - `src/screens/learning/`: 本棚/教材/全Part練習。`src/lib/learning.js` は別キーで既存保存を維持。
 - `src/lib/cloudSave.js` / `CloudSettings.jsx`: 英語専用CAS/保全/復元、親PIN、JSON入出力。
 - `src/lib/englishRewards.js`: 一方向outbox。受取側は [mana-evo PR #276](https://github.com/syoudai0514/mana-evo/pull/276) に仕様と実装（Draft）。

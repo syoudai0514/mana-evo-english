@@ -100,16 +100,8 @@ export default function App() {
   const [selectedLesson, setSelectedLesson] = useState(
     initialRoute?.lesson || null
   )
-  const updateLearning = useCallback(
-    (fn) => setLearning((prev) => fn(prev)),
-    []
-  )
-  useEffect(() => {
-    if (!saveLearning(learning))
-      showToast(
-        '教材の記録を保存できませんでした。端末の空き容量を確認してください'
-      )
-  }, [learning])
+  const learningRef = useRef(learning)
+  learningRef.current = learning
   const [state, setState] = useState(() => loadState())
   const [adultStore, setAdultStore] = useState(() => loadAdultStore())
   // 大人がいれば、起動したら「だれが はなす？」から
@@ -179,6 +171,23 @@ export default function App() {
     clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(''), 2400)
   }, [])
+
+  // Commit before publishing UI state, so reload immediately after a tap is safe.
+  const updateLearning = useCallback(
+    (fn) => {
+      const next = fn(learningRef.current)
+      if (!saveLearning(next)) {
+        showToast(
+          '教材の記録を保存できませんでした。端末の空き容量を確認してください'
+        )
+        return false
+      }
+      learningRef.current = next
+      setLearning(next)
+      return true
+    },
+    [showToast]
+  )
 
   const startTalk = useCallback((config) => {
     primePlayback() // タップの中で、相棒の声を鳴らせる状態にしておく（iPhone）
@@ -709,6 +718,7 @@ export default function App() {
                 )
                 setState(nextState)
                 setAdultStore(nextAdult)
+                learningRef.current = nextLearning
                 setLearning(nextLearning)
                 setAdultUnlocked(false)
                 setParentUnlocked(false)
