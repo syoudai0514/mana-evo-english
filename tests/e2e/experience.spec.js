@@ -96,7 +96,6 @@ test('adult starts without a child profile, creates PIN, reaches login, and keep
   await page.getByRole('button', { name: '学習とログインの設定' }).click()
   await expect(page.getByLabel('メールアドレス')).toBeVisible()
   await page.reload()
-  await page.getByRole('button', { name: /🌿ゆう|🌿 ゆう/ }).click()
   await expect(page.getByText('保護者PINを入力', { exact: true })).toBeVisible()
   for (const digit of ['1', '2', '3', '4'])
     await page.getByRole('button', { name: digit, exact: true }).click()

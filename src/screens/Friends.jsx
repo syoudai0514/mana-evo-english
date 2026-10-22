@@ -42,7 +42,7 @@ export default function Friends({ state, update, navigate, showToast }) {
                   showToast(`${persona.name}と おはなし するよ！`)
                 }}
               >
-                <img src={persona.image} alt="" className={current === persona.id ? 'monster-float' : ''} />
+                <img src={persona.image} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src='/monsters/m049.webp'}} alt="" className={current === persona.id ? 'monster-float' : ''} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontWeight: 900, fontSize: 18 }}>{persona.name}</span>

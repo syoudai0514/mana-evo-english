@@ -2,6 +2,7 @@
 // API キーはブラウザに置かず、english-talk から使い捨ての接続キー（ephemeral token）をもらって直接つなぐ。
 import { SUPABASE_ANON_KEY, TALK_ENDPOINT } from './config.js'
 import { getAccessToken } from './auth.js'
+import {safeDiagnostic} from '../../supabase/functions/english-talk-v2/policy.js'
 import { aiConsent } from './privacy.js'
 import { PcmPlayer, audioInfo, sampleRateOf } from './player.js'
 
@@ -55,7 +56,7 @@ export async function reportLiveProblem(info) {
     await fetch(TALK_ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'live-log', info: { ...info, ua: navigator.userAgent } })
+      body: JSON.stringify({ action: 'live-log', info: safeDiagnostic({ ...info, ua: navigator.userAgent }) })
     })
   } catch {}
 }

@@ -1,13 +1,145 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {initialState,STATE_KEY} from '../src/lib/state.js'
-import {initialAdultStore} from '../src/lib/adult.js'
-import {initialLearning} from '../src/lib/learning.js'
-import {exportLearningPayload,decideCloudSync,rosterFromManaEvo,parseLearningFile,payloadHash,persistLearningPayload,createSaveClient} from '../src/lib/cloudSave.js'
-const payload=()=>exportLearningPayload({state:initialState(),adultStore:initialAdultStore(),learning:initialLearning()})
-test('cloud sync only chooses automatic-safe direction; divergent progress stays a conflict',()=>{assert.equal(decideCloudSync({localHash:'a',remoteHash:'b',revision:2,meta:null}),'conflict');assert.equal(decideCloudSync({localHash:'a',remoteHash:'b',revision:2,meta:{hash:'a',revision:1}}),'download');assert.equal(decideCloudSync({localHash:'b',remoteHash:'a',revision:1,meta:{hash:'a',revision:1}}),'upload');assert.equal(decideCloudSync({localHash:'a',remoteHash:'a',revision:1}),'same')})
-test('roster accepts captured monsters in the inspected schema and skips future/malformed data',()=>{const good={schema_version:1,payload:{appId:'mana-evo',saveSchemaVersion:1,gameEnvelope:{gameByProfile:{p1:{box:{one:{speciesId:'m049',caughtAt:100,level:8},two:{speciesId:'m186',caughtAt:0},bad:{speciesId:'<script>',caughtAt:100}}}}}}};assert.deepEqual(rosterFromManaEvo([good]).map(i=>i.speciesId),['m049']);assert.equal(rosterFromManaEvo([{...good,schema_version:2}]).length,0);assert.deepEqual(rosterFromManaEvo([null]),[])})
-test('backup parser rejects unrelated formats and excludes auth and PIN from exports',()=>{const p=payload();assert.deepEqual(Object.keys(p).sort(),['adultStore','appId','learning','schemaVersion','state']);assert.throws(()=>parseLearningFile('{"appId":"mana-evo"}'));assert.throws(()=>parseLearningFile(JSON.stringify({...p,schemaVersion:2})));assert.equal(parseLearningFile(JSON.stringify(p)).state.profile,null)})
-test('hash is stable across object-key order and changes when actual progress changes',async()=>{assert.equal(await payloadHash({b:2,a:1}),await payloadHash({a:1,b:2}));assert.notEqual(await payloadHash({a:1}),await payloadHash({a:2}))})
-test('partial local restore failure rolls the stores back',()=>{const map=new Map([[STATE_KEY,'original']]);let writes=0;const storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>{if(++writes===3)throw new Error('quota');map.set(k,v)},removeItem:k=>map.delete(k)};assert.throws(()=>persistLearningPayload(payload(),storage));assert.equal(map.get(STATE_KEY),'original');assert.equal(map.size,1)})
-test('compare-and-swap rejects a lost lease and never sends a write to mana-evo',async()=>{const p=payload(),paths=[];const client=createSaveClient({storage:{getItem:()=>null,setItem:()=>{}},getUser:async()=>({id:'u'}),getToken:async()=>'test',fetcher:async(url,options)=>{paths.push([url,options.method]);return {ok:true,json:async()=>[{revision:3,schema_version:1,payload:p}]}}});await assert.rejects(client.upload(p,{userId:'u',row:{revision:2},remoteHash:await payloadHash(p)}),/別の端末/);assert.ok(paths.every(([path,method])=>method==='GET'&&path.includes('mana-evo-english')))})
+import { initialState, STATE_KEY } from '../src/lib/state.js'
+import { initialAdultStore } from '../src/lib/adult.js'
+import { initialLearning } from '../src/lib/learning.js'
+import {
+  exportLearningPayload,
+  decideCloudSync,
+  rosterFromManaEvo,
+  parseLearningFile,
+  payloadHash,
+  persistLearningPayload,
+  createSaveClient
+} from '../src/lib/cloudSave.js'
+const payload = () =>
+  exportLearningPayload({
+    state: initialState(),
+    adultStore: initialAdultStore(),
+    learning: initialLearning()
+  })
+test('cloud sync only chooses automatic-safe direction; divergent progress stays a conflict', () => {
+  assert.equal(
+    decideCloudSync({
+      localHash: 'a',
+      remoteHash: 'b',
+      revision: 2,
+      meta: null
+    }),
+    'conflict'
+  )
+  assert.equal(
+    decideCloudSync({
+      localHash: 'a',
+      remoteHash: 'b',
+      revision: 2,
+      meta: { hash: 'a', revision: 1 }
+    }),
+    'download'
+  )
+  assert.equal(
+    decideCloudSync({
+      localHash: 'b',
+      remoteHash: 'a',
+      revision: 1,
+      meta: { hash: 'a', revision: 1 }
+    }),
+    'upload'
+  )
+  assert.equal(
+    decideCloudSync({ localHash: 'a', remoteHash: 'a', revision: 1 }),
+    'same'
+  )
+})
+test('roster accepts captured monsters in the inspected schema and skips future/malformed data', () => {
+  const good = {
+    schema_version: 1,
+    payload: {
+      appId: 'mana-evo',
+      saveSchemaVersion: 1,
+      gameEnvelope: {
+        gameByProfile: {
+          p1: {
+            box: {
+              one: { speciesId: 'm049', caughtAt: 100, level: 8 },
+              two: { speciesId: 'm186', caughtAt: 0 },
+              bad: { speciesId: '<script>', caughtAt: 100 }
+            }
+          }
+        }
+      }
+    }
+  }
+  assert.deepEqual(
+    rosterFromManaEvo([good]).map((i) => i.speciesId),
+    ['m049']
+  )
+  assert.equal(rosterFromManaEvo([{ ...good, schema_version: 2 }]).length, 0)
+  assert.deepEqual(rosterFromManaEvo([null]), [])
+})
+test('backup parser rejects unrelated formats and excludes auth and PIN from exports', () => {
+  const p = payload()
+  assert.deepEqual(Object.keys(p).sort(), [
+    'adultStore',
+    'appId',
+    'learning',
+    'schemaVersion',
+    'state'
+  ])
+  assert.throws(() => parseLearningFile('{"appId":"mana-evo"}'))
+  assert.throws(() =>
+    parseLearningFile(JSON.stringify({ ...p, schemaVersion: 2 }))
+  )
+  assert.equal(parseLearningFile(JSON.stringify(p)).state.profile, null)
+})
+test('hash is stable across object-key order and changes when actual progress changes', async () => {
+  assert.equal(
+    await payloadHash({ b: 2, a: 1 }),
+    await payloadHash({ a: 1, b: 2 })
+  )
+  assert.notEqual(await payloadHash({ a: 1 }), await payloadHash({ a: 2 }))
+})
+test('partial local restore failure rolls the stores back', () => {
+  const map = new Map([[STATE_KEY, 'original']])
+  let writes = 0
+  const storage = {
+    getItem: (k) => map.get(k) ?? null,
+    setItem: (k, v) => {
+      if (++writes === 3) throw new Error('quota')
+      map.set(k, v)
+    },
+    removeItem: (k) => map.delete(k)
+  }
+  assert.throws(() => persistLearningPayload(payload(), storage))
+  assert.equal(map.get(STATE_KEY), 'original')
+  assert.equal(map.size, 1)
+})
+test('compare-and-swap rejects a lost lease and never sends a write to mana-evo', async () => {
+  const p = payload(),
+    paths = []
+  const client = createSaveClient({
+    storage: { getItem: () => null, setItem: () => {} },
+    getUser: async () => ({ id: 'u' }),
+    getToken: async () => 'test',
+    fetcher: async (url, options) => {
+      paths.push([url, options.method])
+      return {
+        ok: true,
+        json: async () => [{ revision: 3, schema_version: 1, payload: p }]
+      }
+    }
+  })
+  await assert.rejects(
+    client.upload(p, {
+      userId: 'u',
+      row: { revision: 2 },
+      remoteHash: await payloadHash(p)
+    }),
+    /別の端末/
+  )
+  assert.ok(
+    paths.every(
+      ([path, method]) => method === 'GET' && path.includes('mana-evo-english')
+    )
+  )
+})

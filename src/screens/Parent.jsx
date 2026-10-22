@@ -155,13 +155,13 @@ function homeCard(state) {
   return null
 }
 
-export default function Parent({ state, update, navigate, showToast, onStart }) {
-  const [unlocked, setUnlocked] = useState(false)
+export default function Parent({ state, update, navigate, showToast, onStart, initiallyUnlocked=false, onUnlocked }) {
+  const [unlocked, setUnlocked] = useState(initiallyUnlocked)
   const [detail, setDetail] = useState(null)
   const [view, setView] = useState('main') // main | settings
   const [nickname, setNickname] = useState(state.profile?.nickname || '')
 
-  if (!unlocked) return <PinGate onUnlock={() => setUnlocked(true)} onBack={() => navigate('home')} />
+  if (!unlocked) return <PinGate onUnlock={() => {setUnlocked(true);onUnlocked?.()}} onBack={() => navigate('home')} />
   if (detail) return <SessionDetail session={detail} nickname={state.profile?.nickname} onBack={() => setDetail(null)} />
 
   const summary = todaySummary(state)

@@ -1,54 +1,83 @@
-// App shell cache. Navigation is network-first so a new deploy shows up on the
-// next launch; hashed build assets, images and fonts are cache-first.
-const CACHE = 'mee-v2'
-const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/monsters/m049.webp', '/monsters/m186.webp']
-
+// Build injects a content-derived cache name. APIs and authentication are never cached.
+const CACHE = 'mee-__BUILD_VERSION__'
+const PREFIX = 'mee-'
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()))
-})
-
-self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
+    (async () => {
+      const response = await fetch('/precache.json', { cache: 'no-store' })
+      if (!response.ok) throw new Error('precache unavailable')
+      const manifest = await response.json()
+      const cache = await caches.open(CACHE)
+      await cache.addAll(manifest.files)
+      await self.skipWaiting()
+    })()
   )
 })
-
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const all = (await caches.keys()).filter(
+        (key) => key.startsWith(PREFIX) && key !== CACHE
+      )
+      for (const key of all.slice(0, -1)) await caches.delete(key)
+      await self.clients.claim()
+    })()
+  )
+})
 self.addEventListener('fetch', (event) => {
-  const { request } = event
+  const request = event.request
   if (request.method !== 'GET') return
   const url = new URL(request.url)
-  if (url.hostname.endsWith('supabase.co')) return
-
+  if (
+    url.origin !== location.origin &&
+    url.hostname !== 'fonts.googleapis.com' &&
+    url.hostname !== 'fonts.gstatic.com'
+  )
+    return
+  if (
+    url.origin === location.origin &&
+    (url.pathname.startsWith('/api/') || url.pathname.includes('/auth/'))
+  )
+    return
   if (request.mode === 'navigate') {
-    // 電車の弱い電波で待たされないよう、3秒たったら保存してある画面を出す（新しい版は裏で保存して次回に）
-    const network = fetch(request).then((response) => {
-      // 駅の Wi-Fi のログイン画面やエラー画面を保存しない
-      if (response.ok && response.type === 'basic' && !response.redirected) {
-        const copy = response.clone()
-        caches.open(CACHE).then((cache) => cache.put('/', copy))
+    const network = fetch(request).then(async (response) => {
+      if (response.ok && !response.redirected && response.type === 'basic') {
+        const cache = await caches.open(CACHE)
+        await cache.put('/', response.clone())
       }
       return response
     })
-    const slow = new Promise((resolve) => setTimeout(resolve, 3000)).then(() => caches.match('/'))
+    const offline = caches.open(CACHE).then((cache) => cache.match('/'))
     event.respondWith(
-      Promise.race([network.catch(() => caches.match('/')), slow.then((hit) => hit || network)])
-        .then((response) => response || network)
-        .catch(() => caches.match('/'))
+      Promise.race([
+        network.catch(() => offline),
+        new Promise((resolve) => setTimeout(resolve, 2500))
+          .then(() => offline)
+          .then((hit) => hit || network)
+      ]).then((response) => response || Response.error())
     )
+    event.waitUntil(network.catch(() => {}))
     return
   }
-
-  const cacheable = url.origin === location.origin || url.hostname.endsWith('gstatic.com') || url.hostname.endsWith('googleapis.com')
-  if (!cacheable) return
+  const hashed = /^\/assets\/.+-[a-zA-Z0-9_-]+\.(js|css)$/.test(url.pathname)
+  const staticFile =
+    hashed ||
+    /^\/(monsters|icons|learning)\//.test(url.pathname) ||
+    url.pathname.endsWith('.webmanifest') ||
+    url.origin !== location.origin
+  if (!staticFile) return
   event.respondWith(
-    caches.match(request).then((hit) => hit || fetch(request).then((response) => {
+    (async () => {
+      const cache = await caches.open(CACHE)
+      const hit =
+        (await cache.match(request)) ||
+        (hashed ? await caches.match(request) : undefined)
+      if (hit) return hit
+      const response = await fetch(request)
       if (response.ok || response.type === 'opaque') {
-        const copy = response.clone()
-        caches.open(CACHE).then((cache) => cache.put(request, copy))
+        await cache.put(request, response.clone())
       }
       return response
-    }))
+    })()
   )
 })

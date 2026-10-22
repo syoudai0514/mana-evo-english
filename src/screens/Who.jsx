@@ -65,7 +65,7 @@ export default function Who({
             >
               <span className="entry-icon">
                 {state.profile ? (
-                  <img src={persona.image} alt="" />
+                  <img src={persona.image} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src='/monsters/m049.webp'}} alt="" />
                 ) : (
                   <Icon name="spark" size={30} />
                 )}

@@ -25,7 +25,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); return }
   if (!import.meta.env.PROD || !hiddenAt || Date.now() - hiddenAt < 30 * 60000) return
   const playing = [...document.querySelectorAll('audio')].some((element) => !element.paused)
-  if (playing || document.querySelector('.screen.talk, .train-player')) return
+  if (playing || document.querySelector('.lesson-player, .toeic-exam') || document.querySelector('.screen.talk, .train-player')) return
   const current = document.querySelector('script[type="module"][src*="/assets/"]')?.getAttribute('src')
   fetch('/', { cache: 'no-store' })
     .then((response) => (response.ok ? response.text() : ''))

@@ -127,7 +127,7 @@ export default function Home({
                   aria-label={`${persona.name}に あいさつする`}
                 >
                   <img
-                    src={persona.image}
+                    src={persona.image} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src='/monsters/m049.webp'}}
                     alt={persona.name}
                     className={wiggle ? 'monster-wiggle' : 'monster-float'}
                   />

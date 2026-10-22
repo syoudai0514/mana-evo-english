@@ -2,6 +2,7 @@
 // 指示文は英語で書く（Gemini にそのまま渡す）。
 
 export const TRAIN_KINDS = {
+  curated: {id:'curated',emoji:'📚',bg:'#36564d',title:'場面で聞く36本',about:'教材ライブラリで選んで音声を準備',minutes:4,flow:true,curated:true},
   chat: { id: 'chat', emoji: '🎙️', bg: '#2E5B52', title: 'Alex と Sam の雑談', about: 'ネイティブの速さの会話', minutes: 6, flow: true },
   mine: { id: 'mine', emoji: '🔁', bg: '#3A3560', title: 'あなたの会話をネイティブ版で', about: '最近 Alex と話した内容を、自然な英語の会話に', minutes: 5, flow: true },
   toeic: { id: 'toeic', emoji: '📘', bg: '#3D3A25', title: 'TOEIC Part 3・4 リスニング', about: '会話を聞いて、タップで答える 5問', minutes: 5, flow: false },
