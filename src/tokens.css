@@ -1,0 +1,27 @@
+/* Shared theme; screen-specific palettes override these tokens locally. */
+:root {
+  --ink: #263b35;
+  --ink2: #64766d;
+  --ink3: #9c98b5;
+  --line: #e4e8df;
+  --coral: #ff6b5b;
+  --coral-d: #e04a3b;
+  --sun: #ffc83d;
+  --sun-d: #e5a400;
+  --mint: #2fc79f;
+  --mint-d: #1ba07d;
+  --sky: #4aa8ff;
+  --sky-d: #2a84db;
+  --grape: #8b6cf0;
+  --grape-d: #6a4cd0;
+  --pink: #ff8fc0;
+  --pink-d: #e06a9e;
+  --bg: #f7f8f1;
+  --forest: #216a57;
+  --paper: #fbfaf5;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --jp:
+    'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+  --en: 'Baloo 2', 'Zen Maru Gothic', system-ui, sans-serif;
+}

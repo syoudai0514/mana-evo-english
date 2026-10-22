@@ -1,15 +1,4 @@
 /* Experience foundation. Legacy lesson layouts stay compact; discovery pages expand. */
-:root {
-  --forest: #216a57;
-  --paper: #fbfaf5;
-  --ink: #263b35;
-  --ink2: #64766d;
-  --line: #e4e8df;
-  --bg: #f7f8f1;
-}
-body {
-  background: #e8ece5;
-}
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -22,18 +11,10 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
-.app {
-  max-width: 600px;
-  box-shadow: 0 0 60px #253c3510;
-}
 .app[data-view='who'],
 .app[data-view='home'],
 .app[data-view='adultHome'] {
   max-width: 1180px;
-}
-.scroll {
-  min-height: 0;
-  scrollbar-width: thin;
 }
 .experience-header {
   display: flex;
