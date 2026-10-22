@@ -1,3 +1,4 @@
+import MANA_SPECIES_NAMES from '../data/mana-species-names.json' with { type: 'json' }
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js'
 import { getAccessToken, getCurrentUser } from './auth.js'
 import { loadState, STATE_KEY } from './state.js'
@@ -410,10 +411,12 @@ export function rosterFromManaEvo(rows) {
             id,
             speciesId,
             sourceProfile: profileId,
-            name: String(monster.nickname || monster.name || speciesId).slice(
-              0,
-              24
-            ),
+            name: String(
+              monster.nickname ||
+                monster.name ||
+                MANA_SPECIES_NAMES[speciesId] ||
+                speciesId
+            ).slice(0, 24),
             level: Math.max(1, Math.min(999, Number(monster.level) || 1))
           })
       }
