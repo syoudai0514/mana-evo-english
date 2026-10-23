@@ -1,3 +1,5 @@
+import {useTalkVoice} from '../hooks/useTalkVoice.js'
+import TalkVoiceControls from '../components/talk/TalkVoiceControls.jsx'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { kidTurnLimit, levelOf } from '../data/levels.js'
@@ -198,12 +200,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     maxTurns: mode.maxTurns
   })
 
-  const say = useCallback(async (line, index) => {
-    if (config.parentReads || !line) return
-    setTalkingIndex(index)
-    await speak(line, voice)
-    setTalkingIndex(-1)
-  }, [config.parentReads, voice.pitch, voice.rate])
+  const {say,replay,autoVoice,voiceMuted,voiceError,toggleVoice}=useTalkVoice({parentReads:config.parentReads,live,liveAudio,voice,latest,latestPartnerIndex,setTalkingIndex,finished})
 
   const finish = useCallback((stopped = false) => {
     if (finished.current) return
@@ -502,7 +499,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       card,
       resume,
       resumeHandle,
-      muted: Boolean(config.parentReads),
+      muted: voiceMuted.current,
       token,
       model,
       system: config.adultCtx
@@ -685,6 +682,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
     if (finished.current) { session.close(); return }
     // 前の接続がまだ残っていたら閉じる（2つの接続から声が重ならないように）
     if (live.current && live.current !== session) live.current.close()
+    session.muted=voiceMuted.current
     live.current = session
     setEngine('live')
     if (!transcriber.current) {
@@ -955,16 +953,8 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   }
 
   // 🔊：Live の声が残っていればそれを、なければ端末の読み上げで
-  const replay = (turn, index) => {
-    unlockSpeech()
-    const audio = liveAudio.current.get(turn.opener ? 'opener' : turn.turnId)
-    if (live.current && audio) return live.current.replay(audio)
-    setTalkingIndex(index)
-    speak(turn.text, voice).then(() => setTalkingIndex(-1))
-  }
-
   const cycleReading = () => update((prev) => ({ ...prev, reading: nextReading(prev.reading) }))
-  const readingPolicy = config.parentReads ? 'show' : level.reading
+  const readingPolicy = !autoVoice ? 'show' : level.reading
 
   return (
     <div className={`screen talk ${adult ? 'adult' : ''} ${config.adultCtx ? 'dark' : ''}`} style={{ '--glow': persona.theme.glow }}>
@@ -980,8 +970,9 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         ) : <div style={{ width: 42 }} />}
       </div>
 
+      <TalkVoiceControls {...{autoVoice,toggleVoice,voiceError}}/>
       <div className="talk-log" ref={logRef}>
-        {config.parentReads && (
+        {!autoVoice && (
           <div className="center"><span className="tag" style={{ background: '#fff', color: 'var(--grape)', fontSize: 12, padding: '5px 12px' }}>👨‍👦 おうちのひとが {persona.name}の セリフを よんでね</span></div>
         )}
         {turns.map((turn, index) => turn.who === 'partner' ? (

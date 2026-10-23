@@ -280,7 +280,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
 
         <div style={{ display: 'flex', gap: 10, padding: '12px 20px 24px' }}>
           <button className="press btn primary" style={{ flex: 1, height: 52 }} onClick={() => navigate('who')}>🧔 大人モードへ</button>
-          <button className="press btn ghost" style={{ flex: 1, height: 52 }} onClick={() => { unlockSpeech(); onStart({ mode: 'free', partner: persona.id, topic: pickTopic({ recentIds: state.recentTopics }), parentReads: true }) }}>👨‍👦 親子モード</button>
+          <button className="press btn ghost" style={{ flex: 1, height: 52 }} onClick={() => { unlockSpeech(); onStart({ mode: 'free', partner: persona.id, topic: pickTopic({ recentIds: state.recentTopics }), parentReads: true }) }}>👨‍👦 親子で読む（音声OFF）</button>
         </div>
       </div>
       <TabBar current="parent" onNavigate={navigate} />
