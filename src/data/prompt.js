@@ -79,7 +79,7 @@ function modeRules(ctx) {
 }
 
 export function buildSystemPrompt(ctx) {
-  const persona = personaOf(ctx.persona)
+  const persona = ctx.personaDetails || personaOf(ctx.persona)
   const level = levelOf(ctx.level)
   const nickname = ctx.nickname || 'friend'
   const maxTurns = ctx.maxTurns || 10
@@ -152,7 +152,7 @@ Screen card: after EVERY reply you speak, call the function show_card exactly on
 - memory: new lasting facts about the child (likes, pets, wishes), short English. end: true only when you said goodbye.`
 
 export function buildLiveSystemPrompt(ctx) {
-  const persona = personaOf(ctx.persona)
+  const persona = ctx.personaDetails || personaOf(ctx.persona)
   const level = levelOf(ctx.level)
   const nickname = ctx.nickname || 'friend'
   const maxTurns = ctx.maxTurns || 10

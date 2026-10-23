@@ -2,6 +2,8 @@
 // API キーはブラウザに置かず、english-talk から使い捨ての接続キー（ephemeral token）をもらって直接つなぐ。
 import { SUPABASE_ANON_KEY, TALK_ENDPOINT } from './config.js'
 import { getAccessToken } from './auth.js'
+import {safeDiagnostic} from '../../supabase/functions/english-talk-v2/policy.js'
+import { aiConsent } from './privacy.js'
 import { PcmPlayer, audioInfo, sampleRateOf } from './player.js'
 
 let audioInfoSent = false // 鳴らし方の情報は、起動ごとに1回だけログへ
@@ -54,13 +56,19 @@ export async function reportLiveProblem(info) {
     await fetch(TALK_ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'live-log', info: { ...info, ua: navigator.userAgent } })
+      body: JSON.stringify({ action: 'live-log', info: safeDiagnostic({ ...info, ua: navigator.userAgent }) })
     })
   } catch {}
 }
 
+export async function releaseLiveLease(leaseId) {
+  if (!leaseId) return
+  try {const token=await getAccessToken();if(!token)return;await fetch(TALK_ENDPOINT,{method:'POST',keepalive:true,headers:{Authorization:`Bearer ${token}`,apikey:SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({action:'live-release',leaseId})})}catch{}
+}
+
 // purpose: 'voice'（会話・速さ優先）/ 'text'（読みづくり・賢さ優先）
 export async function requestLiveToken(liveModel = 'auto', purpose = 'voice', retried = false) {
+  if (!aiConsent()) throw Object.assign(new Error('AI会話の送信・保存について設定で確認してください'), {code:'auth'})
   // ログインの更新に失敗：期限切れ・取り消し（400/401）だけを「ログインが必要」に。通信の失敗は「つながらない」
   let token = null
   try {
@@ -111,7 +119,9 @@ export class LiveSession {
   // card: 'nonblocking'（声を止めずにカードを渡す）/ 'blocking' / null
   // resume: 切れても続きからつなぎなおせるようにする（resumeHandle があればその続きから）
   // functions：show_card 以外の関数を渡すとき（大人の問題づくりなど）。届いたら handlers.onTool(name, args)
-  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, functions = null, resume = false, resumeHandle = '' }) {
+  constructor({ token, model, leaseId, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, functions = null, resume = false, resumeHandle = '' }) {
+    this.leaseId = leaseId
+    this.leaseReleased = false
     this.card = card
     this.functions = functions
     this.resume = resume
@@ -211,6 +221,7 @@ export class LiveSession {
       // error のあとには必ず close が来るので、理由（code / reason）は onclose で受け取る
       ws.onerror = () => {}
       ws.onclose = (event) => {
+        this.releaseLease()
         clearTimeout(timer)
         clearTimeout(this.stallTimer)
         this.dead = true
@@ -262,12 +273,12 @@ export class LiveSession {
       if (typeof part.text === 'string' && !part.thought) this.textBuffer += part.text
       // 録音用（電車モードの番組づくり）：鳴らさずに声のデータだけ受けとる
       if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '')) this.handlers.onAudio?.(part.inlineData.data, sampleRateOf(part.inlineData.mimeType))
-      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted && !this.dropAudio) {
+      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.dropAudio) {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])
         this.chunks += 1
         this.chunkMs = Math.round((part.inlineData.data.length * 0.75 / 2 / rate) * 1000) // 1つの細切れの長さ（ログ用）
-        this.player.push(part.inlineData.data, rate)
+        if (!this.muted) this.player.push(part.inlineData.data, rate)
       }
     }
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
@@ -360,7 +371,8 @@ export class LiveSession {
   }
 
   replay(audio) {
-    this.wake()
+    // A requested replay must wake playback even when automatic speech is muted.
+    this.player.ensure()
     this.player.stop()
     for (const [data, rate] of audio) this.player.push(data, rate)
   }
@@ -374,7 +386,14 @@ export class LiveSession {
     return this.player.playing
   }
 
+  releaseLease() {
+    if (!this.leaseId || this.leaseReleased) return
+    this.leaseReleased = true
+    void releaseLiveLease(this.leaseId)
+  }
+
   close() {
+    this.releaseLease()
     this.closedByUs = true
     clearTimeout(this.stallTimer)
     this.player.close()

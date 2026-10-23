@@ -6,7 +6,7 @@ import { Hearts } from '../components/ui.jsx'
 
 export default function Result({ state, navigate, result }) {
   const { record, completed, memoryAdded } = result
-  const persona = personaOf(record.partner)
+  const persona = personaOf(record.partner, state.manaRoster)
   const voice = { ...persona.voice, rate: persona.voice.rate * levelOf(state.level).speechRate }
   const newSet = new Set(record.newPhrases)
   const said = [...new Set(record.said)].slice(-6)
@@ -30,7 +30,7 @@ export default function Result({ state, navigate, result }) {
           <div style={{ fontWeight: 900, fontSize: 15, marginTop: 4 }}>{said.length ? 'たくさん おはなし できたね！' : 'おはなし してくれて ありがとう！'}</div>
         </div>
         <div style={{ position: 'relative', height: 180 }}>
-          <img src={persona.image} alt="" className="monster-float" style={{ position: 'absolute', left: '50%', top: 6, width: 170, height: 170, marginLeft: -85, objectFit: 'contain' }} />
+          <img src={persona.image} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src='/monsters/m049.webp'}} alt="" className="monster-float" style={{ position: 'absolute', left: '50%', top: 6, width: 170, height: 170, marginLeft: -85, objectFit: 'contain' }} />
           <div style={{ position: 'absolute', right: 56, top: 24, fontSize: 28 }}>💕</div>
           <div style={{ position: 'absolute', left: 60, top: 70, fontSize: 20 }}>✨</div>
         </div>

@@ -1,3 +1,24 @@
+# 現在の依頼（2026-10-22追記）
+
+ユーザーが全Issueの実装を依頼。最新の進捗は [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) を参照。
+前回の「最初の小バッチのみ」は今回の依頼で拡張済み。段階的に検証しながら最終目標数まで進める。
+PR #12はmainへマージ済み。現在の作業ブランチは `feat/complete-learning-backlog`。
+
+
+今回の実装は **758教材＋TOEIC600問**。 [英語PR #13](https://github.com/syoudai0514/mana-evo-english/pull/13) にpush済み。完成扱いにする前の確認待ちは進捗表の右列を参照。
+- `src/content/`: 固定ID/version/権利/draft付き。`scripts/content-report.mjs` で数える。
+- 教材/TOEIC保存は画面のReact effectに戻さない。操作時にlocalStorageへ保存を確定してからUIを進める。即時再読込と容量不足のE2Eを維持する。
+- `src/screens/learning/`: 本棚/教材/全Part練習。`src/lib/learning.js` は別キーで既存保存を維持。
+- `src/lib/cloudSave.js` / `CloudSettings.jsx`: 英語専用CAS/保全/復元、親PIN、JSON入出力。
+- `src/lib/englishRewards.js`: 一方向outbox。受取側は [mana-evo PR #276](https://github.com/syoudai0514/mana-evo/pull/276) に仕様と実装（Draft）。
+- `src/hooks/talk/` / `src/components/talk/`: 会話の責務分割。`routes.js` と履歴hookで再開。
+- Backendは新しい `english-talk-v2` とguard migrationを適用済み。旧関数は維持。
+- 受入完了まではIssueを自動closeしない。録音/教材の独立レビュー/実機/実ログインをmock成功で代用しない。
+
+以下は前回PRの履歴。新しいスコープと進捗は上記を優先する。
+
+---
+
 # 次のモデルへ：体験刷新の引き継ぎ
 
 ## 依頼と範囲

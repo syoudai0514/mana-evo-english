@@ -36,7 +36,7 @@ export function stopSpeech() {
 export function speak(text, { pitch = 1, rate = 0.9, gender = 'female', lang = 'en-US' } = {}) {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis
-    if (!synth || !text) return resolve()
+    if (!synth || !text) return resolve({completed:false,reason:'unavailable'})
     synth.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
     const voice = lang.startsWith('en') ? pickVoice(gender) : null
@@ -45,8 +45,9 @@ export function speak(text, { pitch = 1, rate = 0.9, gender = 'female', lang = '
     utterance.pitch = pitch
     utterance.rate = rate
     // onend が来ない端末でも止まらないよう、文の長さから上限時間を決める
-    const timer = setTimeout(resolve, 2500 + text.length * 120 / rate)
-    utterance.onend = utterance.onerror = () => { clearTimeout(timer); resolve() }
+    const timer = setTimeout(()=>resolve({completed:false,reason:'timeout'}), 2500 + text.length * 120 / rate)
+    utterance.onend = () => { clearTimeout(timer); resolve({completed:true}) }
+    utterance.onerror = () => { clearTimeout(timer); resolve({completed:false,reason:'error'}) }
     synth.speak(utterance)
   })
 }

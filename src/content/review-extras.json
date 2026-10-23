@@ -1,0 +1,179 @@
+{
+  "repair": [
+    ["Could you say that again, please?", "もう一度言ってもらえますか？"],
+    [
+      "Could you speak a little more slowly?",
+      "もう少しゆっくり話してもらえますか？"
+    ],
+    ["I didn't catch the last word.", "最後の言葉が聞き取れませんでした。"],
+    ["What does that word mean?", "その言葉はどういう意味ですか？"],
+    ["Could you write it down for me?", "それを書いてもらえますか？"],
+    ["How do you spell your name?", "お名前はどうつづりますか？"],
+    ["Do you mean this one?", "こちらのことですか？"],
+    ["Let me check that I understood.", "理解できたか確認させてください。"],
+    ["Are you saying we should wait?", "待ったほうがいいということですか？"],
+    ["Did you say fifteen or fifty?", "15と言いましたか、それとも50ですか？"],
+    ["Could you give me an example?", "例を挙げてもらえますか？"],
+    [
+      "Could you explain that in simpler words?",
+      "もっと簡単な言葉で説明してもらえますか？"
+    ],
+    [
+      "I'm not sure I follow you.",
+      "お話をきちんと理解できているか自信がありません。"
+    ],
+    ["Which part should I do first?", "どの部分から始めればいいですか？"],
+    ["Could you show me how it works?", "使い方を見せてもらえますか？"],
+    [
+      "Where can I find more information?",
+      "詳しい情報はどこで見つかりますか？"
+    ],
+    ["Is there another way to say that?", "別の言い方はありますか？"],
+    ["I know the word in Japanese.", "日本語ではその言葉がわかります。"],
+    ["I don't know the English word yet.", "その英語はまだわかりません。"],
+    ["It's something you use for cooking.", "料理に使うものです。"],
+    ["Let me try saying that again.", "もう一度言ってみます。"],
+    ["What I meant was next Friday.", "私が言いたかったのは来週の金曜日です。"],
+    ["Sorry, I meant the blue one.", "すみません、青いほうのことです。"],
+    ["Let me say that another way.", "別の言い方をさせてください。"],
+    ["I need a moment to think.", "少し考える時間が必要です。"],
+    ["Could we go back to the first point?", "最初の点に戻れますか？"],
+    ["Can I ask a quick question?", "少し質問してもいいですか？"],
+    [
+      "Please let me finish this thought.",
+      "この考えを最後まで話させてください。"
+    ],
+    ["I may have misunderstood the date.", "日付を取り違えたかもしれません。"],
+    [
+      "Thanks for explaining that to me.",
+      "説明してくれてありがとうございます。"
+    ],
+    ["That makes much more sense now.", "今はずっとよくわかりました。"],
+    [
+      "Could you repeat the address, please?",
+      "住所をもう一度言ってもらえますか？"
+    ],
+    [
+      "Would you mind typing that in the chat?",
+      "それをチャットに入力してもらえますか？"
+    ],
+    ["The connection is breaking up.", "接続が途切れています。"],
+    ["I can hear you clearly now.", "今ははっきり聞こえます。"],
+    [
+      "Could you move closer to the microphone?",
+      "マイクにもう少し近づいてもらえますか？"
+    ],
+    ["Is that the final price?", "それが最終的な価格ですか？"],
+    [
+      "Does that include the delivery charge?",
+      "それに配送料は含まれていますか？"
+    ],
+    ["Should I bring anything with me?", "何か持っていくものはありますか？"],
+    [
+      "Please correct me if I've misunderstood.",
+      "取り違えていたら訂正してください。"
+    ]
+  ],
+  "opinion": [
+    ["I think this is a good start.", "よい出発点だと思います。"],
+    [
+      "In my opinion, we need more time.",
+      "私の意見では、もっと時間が必要です。"
+    ],
+    ["I agree with your main point.", "主な点には賛成です。"],
+    ["I see what you mean.", "おっしゃる意味はわかります。"],
+    ["I'm not sure I agree with that.", "その点には賛成しかねます。"],
+    ["Could we look at it another way?", "別の見方も考えられますか？"],
+    ["I'd prefer to start with a small group.", "少人数から始めたいです。"],
+    ["What do you think about this idea?", "この考えをどう思いますか？"],
+    ["Which option would you choose?", "どちらの選択肢を選びますか？"],
+    ["I would choose the simpler option.", "私なら簡単なほうを選びます。"],
+    ["The main advantage is the lower cost.", "主な利点は費用が低いことです。"],
+    ["My biggest concern is the deadline.", "いちばん気になるのは締切です。"],
+    [
+      "That could work if we plan carefully.",
+      "慎重に計画すれば、うまくいくかもしれません。"
+    ],
+    [
+      "We should compare both options first.",
+      "まず両方の選択肢を比べるべきです。"
+    ],
+    ["I don't have a strong preference.", "特に強い希望はありません。"],
+    ["Either day would be fine with me.", "私にはどちらの日でも大丈夫です。"],
+    [
+      "I'd rather meet in the morning.",
+      "どちらかといえば午前中に会いたいです。"
+    ],
+    [
+      "It depends on how much time we have.",
+      "使える時間がどのくらいあるかによります。"
+    ],
+    ["I can see advantages to both.", "どちらにも利点があると思います。"],
+    ["Let's ask the team before deciding.", "決める前にチームに聞きましょう。"],
+    [
+      "Would it help to try a different approach?",
+      "違う方法を試すとよいでしょうか？"
+    ],
+    [
+      "We might be able to combine these ideas.",
+      "これらの考えを組み合わせられるかもしれません。"
+    ],
+    [
+      "I like the idea, but I have a question.",
+      "その考えはいいと思いますが、質問があります。"
+    ],
+    [
+      "What would happen if the plan changed?",
+      "計画が変わったらどうなりますか？"
+    ],
+    ["We need a backup plan as well.", "予備の計画も必要です。"],
+    [
+      "Could we test it before making a commitment?",
+      "本決まりにする前に試せますか？"
+    ],
+    ["I'm open to other suggestions.", "ほかの提案も歓迎します。"],
+    ["That seems fair to everyone.", "それならみんなに公平だと思います。"],
+    [
+      "I hadn't thought about that possibility.",
+      "その可能性は考えていませんでした。"
+    ],
+    [
+      "Your example helped me understand the problem.",
+      "あなたの例で問題を理解できました。"
+    ],
+    [
+      "I still have some doubts about the schedule.",
+      "日程についてはまだ少し不安があります。"
+    ],
+    [
+      "Could we make the instructions clearer?",
+      "説明をもっとわかりやすくできますか？"
+    ],
+    [
+      "The results suggest we should try again.",
+      "結果を見ると、もう一度試したほうがよさそうです。"
+    ],
+    [
+      "I would need more information to decide.",
+      "決めるにはもっと情報が必要です。"
+    ],
+    [
+      "Let's focus on the most urgent issue.",
+      "最も急ぎの問題に集中しましょう。"
+    ],
+    [
+      "I'd like to hear everyone's opinion first.",
+      "まず皆さんの意見を聞きたいです。"
+    ],
+    [
+      "We seem to agree on the goal.",
+      "目標については意見が一致しているようです。"
+    ],
+    ["Perhaps we could meet halfway.", "お互いに歩み寄れるかもしれません。"],
+    ["I'm happy to go with that plan.", "その計画で進めることに賛成です。"],
+    [
+      "Let's review the decision after a month.",
+      "1か月後にこの決定を見直しましょう。"
+    ]
+  ]
+}

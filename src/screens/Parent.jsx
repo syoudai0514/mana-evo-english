@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { LEVELS, levelOf } from '../data/levels.js'
 import { PERSONAS, personaOf } from '../data/personas.js'
 import { pickTopic } from '../data/topics.js'
 import { PIN_KEY, initialState, todaySummary } from '../lib/state.js'
-import { currentEmail, isSignedIn, signIn, signOut } from '../lib/auth.js'
+import { currentEmail, isSignedIn, signIn, signOut, subscribeAuth } from '../lib/auth.js'
 import { isMockMode } from '../lib/config.js'
 import { speak, unlockSpeech } from '../lib/tts.js'
 import { TabBar } from '../components/ui.jsx'
+import PrivacyPanel from '../components/PrivacyPanel.jsx'
 
 function storedPin() {
   try { return localStorage.getItem(PIN_KEY) || '' } catch { return '' }
@@ -79,6 +80,7 @@ export function PinGate({ onUnlock, onBack }) {
 
 export function LoginCard({ showToast }) {
   const [signedIn, setSignedIn] = useState(isSignedIn())
+  useEffect(() => subscribeAuth(() => setSignedIn(isSignedIn())), [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -153,20 +155,20 @@ function homeCard(state) {
   return null
 }
 
-export default function Parent({ state, update, navigate, showToast, onStart }) {
-  const [unlocked, setUnlocked] = useState(false)
+export default function Parent({ state, update, navigate, showToast, onStart, initiallyUnlocked=false, onUnlocked }) {
+  const [unlocked, setUnlocked] = useState(initiallyUnlocked)
   const [detail, setDetail] = useState(null)
   const [view, setView] = useState('main') // main | settings
   const [nickname, setNickname] = useState(state.profile?.nickname || '')
 
-  if (!unlocked) return <PinGate onUnlock={() => setUnlocked(true)} onBack={() => navigate('home')} />
+  if (!unlocked) return <PinGate onUnlock={() => {setUnlocked(true);onUnlocked?.()}} onBack={() => navigate('home')} />
   if (detail) return <SessionDetail session={detail} nickname={state.profile?.nickname} onBack={() => setDetail(null)} />
 
   const summary = todaySummary(state)
   const level = levelOf(state.level)
   const card = homeCard(state)
   const kidSessions = [...state.sessions].reverse().filter((session) => session.mode !== 'adult').slice(0, 8)
-  const persona = personaOf(state.profile?.partner)
+  const persona = personaOf(state.profile?.partner, state.manaRoster)
 
   if (view === 'settings') {
     return (
@@ -253,6 +255,8 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
         </div>
 
         <LoginCard showToast={showToast} />
+        <PrivacyPanel showToast={showToast} />
+        <div className="card"><button className="primary-action" onClick={() => navigate('cloudSettingsKid')}>保存・連携・データ管理へ →</button></div>
 
         {card && (
           <div className="card home-card">
@@ -280,7 +284,7 @@ export default function Parent({ state, update, navigate, showToast, onStart }) 
 
         <div style={{ display: 'flex', gap: 10, padding: '12px 20px 24px' }}>
           <button className="press btn primary" style={{ flex: 1, height: 52 }} onClick={() => navigate('who')}>🧔 大人モードへ</button>
-          <button className="press btn ghost" style={{ flex: 1, height: 52 }} onClick={() => { unlockSpeech(); onStart({ mode: 'free', partner: persona.id, topic: pickTopic({ recentIds: state.recentTopics }), parentReads: true }) }}>👨‍👦 親子モード</button>
+          <button className="press btn ghost" style={{ flex: 1, height: 52 }} onClick={() => { unlockSpeech(); onStart({ mode: 'free', partner: persona.id, topic: pickTopic({ recentIds: state.recentTopics }), parentReads: true }) }}>👨‍👦 親子で読む（音声OFF）</button>
         </div>
       </div>
       <TabBar current="parent" onNavigate={navigate} />

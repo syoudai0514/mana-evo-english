@@ -17,7 +17,7 @@ export default function Who({
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('🌿')
   const [target, setTarget] = useState('730')
-  const persona = personaOf(state.profile?.partner)
+  const persona = personaOf(state.profile?.partner, state.manaRoster)
   const add = (event) => {
     event.preventDefault()
     if (!name.trim() || !validToeicTarget(target)) return
@@ -65,7 +65,7 @@ export default function Who({
             >
               <span className="entry-icon">
                 {state.profile ? (
-                  <img src={persona.image} alt="" />
+                  <img src={persona.image} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src='/monsters/m049.webp'}} alt="" />
                 ) : (
                   <Icon name="spark" size={30} />
                 )}

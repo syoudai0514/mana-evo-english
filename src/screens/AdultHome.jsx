@@ -10,6 +10,7 @@ import { unlockSpeech } from '../lib/tts.js'
 import { readAloud } from '../lib/reader.js'
 import { Brand, Icon, WeekTrail } from '../components/experience.jsx'
 import { LoginCard } from './Parent.jsx'
+import PrivacyPanel from '../components/PrivacyPanel.jsx'
 
 const FOCUS = {
   speak: {
@@ -76,7 +77,7 @@ export default function AdultHome({
   navigate,
   showToast,
   onStart,
-  onSwitch
+  onSwitch, onLibrary
 }) {
   const [short, setShort] = useState(true)
   const [settings, setSettings] = useState(false)
@@ -108,6 +109,7 @@ export default function AdultHome({
         showToast={showToast}
         onBack={() => setSettings(false)}
         onSwitch={onSwitch}
+        navigate={navigate}
       />
     )
   return (
@@ -238,6 +240,7 @@ export default function AdultHome({
               </button>
             </aside>
           </div>
+          <section className="new-library-banner"><span>📚</span><div><h2>場面から選べる教材ライブラリ</h2><p>ガイド会話・聞く練習・フレーズ・声に出す練習</p></div><button className="primary-action" onClick={() => onLibrary('conversation')}>教材を選ぶ <Icon name="arrow" /></button></section>
           <div className="adult-lower-grid">
             <section className="plan-panel">
               <div className="section-heading">
@@ -364,7 +367,7 @@ function AdultSettings({
   updateAdultStore,
   showToast,
   onBack,
-  onSwitch
+  onSwitch, navigate
 }) {
   const [name, setName] = useState(adult.name)
   const [target, setTarget] = useState(String(adult.target))
@@ -381,6 +384,8 @@ function AdultSettings({
       <div className="scroll">
         <div className="a-section">
           <LoginCard showToast={showToast} />
+          <PrivacyPanel showToast={showToast} />
+          <div className="a-card"><button className="primary-action" onClick={() => navigate('cloudSettingsAdult')}>保存・連携・データ管理へ →</button></div>
           <div className="a-card">
             <div className="field">
               <label htmlFor="settings-name">よび名</label>

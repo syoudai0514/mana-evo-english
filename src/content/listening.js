@@ -1,0 +1,83 @@
+import { CONVERSATION_SCENES, CONVERSATION_LESSONS } from './conversations.js'
+import { line, metadata } from './shared.js'
+export const LISTENING_LESSONS = ['daily', 'work', 'travel'].flatMap(
+  (category) =>
+    CONVERSATION_SCENES.filter((item) => item.category === category).map(
+      (scene, i) => {
+        const level = ['A1', 'A2', 'B1'][Math.floor(i / 4)]
+        const phrases = [
+          ...scene.phrases,
+          line('Could you say that once more?', 'もう一度言ってもらえますか？'),
+          line('Thank you for your help.', '手伝ってくれてありがとう。')
+        ]
+        const lesson = CONVERSATION_LESSONS.find(
+          (item) => item.sceneId === scene.id && item.level === level
+        )
+        const script = lesson.dialogue
+          .slice(0, 6)
+          .map((row) => ({
+            ...row,
+            speaker: row.speaker === 'learner' ? 'Alex' : 'Sam'
+          }))
+        return {
+          ...metadata(
+            `listening.${category}.${String(i + 1).padStart(3, '0')}`,
+            'listening',
+            scene.title,
+            level,
+            3 + (i % 4)
+          ),
+          category,
+          categoryLabel: scene.categoryLabel,
+          emoji: scene.emoji,
+          goals: [
+            '会話の用件をとらえる',
+            '5つの表現を聞いてまねる',
+            '3問で意味を確認する'
+          ],
+          phrases,
+          script,
+          sourceLessonId: `${scene.id}.${level.toLowerCase()}`,
+          checks: [
+            {
+              question: '最初の用件を伝える表現は？',
+              choices: [
+                scene.phrases[0],
+                line('I would like a refund.', '返金してほしいです。'),
+                line('The train has already left.', '電車はもう出ました。')
+              ],
+              answer: 0
+            },
+            {
+              question: `「${scene.phrases[1].ja}」はどれ？`,
+              choices: [
+                scene.phrases[1],
+                line('Please wait outside.', '外で待ってください。'),
+                line('I will call you tomorrow.', '明日電話します。')
+              ],
+              answer: 0
+            },
+            {
+              question: '聞き取れなかったときに使えるのは？',
+              choices: [
+                phrases[3],
+                line('Everything is ready.', 'すべて準備ができています。'),
+                line('I live near the station.', '駅の近くに住んでいます。')
+              ],
+              answer: 0
+            }
+          ],
+          audioPlan: {
+            phases: [
+              'dialogue',
+              'slow-repeat',
+              'phrase-ja-en-en',
+              'dialogue-repeat'
+            ],
+            pauseSeconds: 3,
+            status: 'prepare-on-device'
+          }
+        }
+      }
+    )
+)

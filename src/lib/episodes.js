@@ -97,7 +97,8 @@ export function cardsScript(adult, count = 12) {
 
 // 話す人ひとりぶんの読み手。1行ずつ読ませて、その声（24kHz）を受けとる
 class Voice {
-  constructor(speaker) {
+  constructor(speaker, {slow=false}={}) {
+    this.slow=slow
     this.speaker = speaker
     this.session = null
     this.chunks = []
@@ -114,7 +115,7 @@ class Voice {
     const granted = await requestLiveToken('auto', 'voice')
     const session = new LiveSession({
       ...granted,
-      system: narratorPrompt(this.speaker),
+      system: narratorPrompt(this.speaker)+(this.slow?'\nRead at a slow learner-friendly pace, about 80 percent of normal speed. Keep every word and do not add commentary.':''),
       voiceName: (SPEAKERS[this.speaker] || SPEAKERS.N).voice,
       muted: true,
       handlers: {
@@ -245,13 +246,15 @@ export async function renderLines(lines, onProgress = () => {}) {
   }
   const bySpeaker = new Map()
   lines.forEach((line, index) => {
-    if (!bySpeaker.has(line.speaker)) bySpeaker.set(line.speaker, [])
-    bySpeaker.get(line.speaker).push(index)
+    const voiceKey=JSON.stringify([line.speaker,Boolean(line.slow)])
+    if (!bySpeaker.has(voiceKey)) bySpeaker.set(voiceKey, [])
+    bySpeaker.get(voiceKey).push(index)
   })
   const voices = []
   try {
-    await Promise.all([...bySpeaker.entries()].map(async ([speaker, indexes]) => {
-      const voice = new Voice(speaker)
+    await Promise.all([...bySpeaker.entries()].map(async ([voiceKey, indexes]) => {
+      const [speaker,slow]=JSON.parse(voiceKey)
+      const voice = new Voice(speaker,{slow})
       voices.push(voice)
       for (const index of indexes) {
         const audio = await voice.read(lines[index].say)

@@ -157,7 +157,7 @@ export function withCards(adult, phrases, from = '', date = new Date()) {
     fresh.push({ id: `c${date.getTime().toString(36)}${fresh.length}${Math.random().toString(36).slice(2, 6)}`, en, ja, from, created: date.toISOString(), due: date.getTime(), interval: 0, reps: 0, lapses: 0 })
   }
   if (!fresh.length) return adult
-  return { ...adult, cards: [...adult.cards, ...fresh].slice(-LIMITS.cards) }
+  return { ...adult, cards: [...adult.cards, ...fresh.slice(0,Math.max(0,LIMITS.cards-adult.cards.length))] }
 }
 
 // grade: 'again'（わからない）/ 'hard'（あやしい）/ 'good'（言えた）
@@ -194,7 +194,7 @@ export function withoutCard(adult, id) {
 // ---------- TOEIC ----------
 
 export function withAnswers(adult, answers, date = new Date()) {
-  const rows = answers.map((item) => ({ part: item.part, skill: item.skill, correct: Boolean(item.correct), date: date.toISOString() }))
+  const rows = answers.map((item) => ({ part: item.part, skill: item.skill, correct: Boolean(item.correct), date: date.toISOString(), ...(item.questionId ? {questionId:item.questionId,version:item.version,elapsedMs:item.elapsedMs,hintUsed:Boolean(item.hintUsed)} : {}) }))
   return { ...adult, answers: [...adult.answers, ...rows].slice(-LIMITS.answers) }
 }
 

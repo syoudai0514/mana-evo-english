@@ -96,7 +96,6 @@ test('adult starts without a child profile, creates PIN, reaches login, and keep
   await page.getByRole('button', { name: '学習とログインの設定' }).click()
   await expect(page.getByLabel('メールアドレス')).toBeVisible()
   await page.reload()
-  await page.getByRole('button', { name: /🌿ゆう|🌿 ゆう/ }).click()
   await expect(page.getByText('保護者PINを入力', { exact: true })).toBeVisible()
   for (const digit of ['1', '2', '3', '4'])
     await page.getByRole('button', { name: digit, exact: true }).click()
@@ -134,7 +133,7 @@ test('TOEIC check completes ten questions and saves answers without claiming off
   await page
     .getByRole('button', { name: 'TOEIC の学習へ', exact: true })
     .click()
-  await expect(page.getByText(/全7パートの模試ではありません/)).toBeVisible()
+  await expect(page.getByText(/全7パートは/)).toBeVisible()
   await page.getByRole('button', { name: /基礎チェックをはじめる/ }).click()
   for (let index = 0; index < 10; index++) {
     await expect(page.locator('.top')).toContainText(`${index + 1}/10`)

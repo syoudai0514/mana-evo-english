@@ -1,0 +1,1514 @@
+[
+  {
+    "id": "adult.daily.001",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "朝のあいさつ",
+    "phrases": [
+      {
+        "en": "How are you today?",
+        "ja": "きょうの調子はどうですか？"
+      },
+      {
+        "en": "I'm a little tired, but I'm fine.",
+        "ja": "少し疲れていますが、元気です。"
+      },
+      {
+        "en": "Would you like some tea?",
+        "ja": "お茶はいかがですか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.002",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "天気の話",
+    "phrases": [
+      {
+        "en": "It's a lovely day, isn't it?",
+        "ja": "いい天気ですね。"
+      },
+      {
+        "en": "Yes, it's perfect for a walk.",
+        "ja": "ええ、散歩にぴったりです。"
+      },
+      {
+        "en": "Shall we walk to the park?",
+        "ja": "公園まで歩きませんか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.003",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "趣味を伝える",
+    "phrases": [
+      {
+        "en": "I enjoy taking photos.",
+        "ja": "写真を撮るのが好きです。"
+      },
+      {
+        "en": "What do you like to photograph?",
+        "ja": "どんなものを撮るのが好きですか？"
+      },
+      {
+        "en": "Mostly flowers and old buildings.",
+        "ja": "主に花や古い建物です。"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.004",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "週末の出来事",
+    "phrases": [
+      {
+        "en": "I went hiking on Saturday.",
+        "ja": "土曜日にハイキングへ行きました。"
+      },
+      {
+        "en": "That sounds fun. Was it difficult?",
+        "ja": "楽しそうですね。大変でしたか？"
+      },
+      {
+        "en": "Not really. The trail was quite easy.",
+        "ja": "それほどでもありません。道はかなり歩きやすかったです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.005",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "好きな食べ物",
+    "phrases": [
+      {
+        "en": "Do you have a favorite dish?",
+        "ja": "好きな料理はありますか？"
+      },
+      {
+        "en": "I love vegetable curry.",
+        "ja": "野菜カレーが大好きです。"
+      },
+      {
+        "en": "I make it about once a week.",
+        "ja": "週に一度くらい作ります。"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.006",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "買い物をする",
+    "phrases": [
+      {
+        "en": "Do you have this in a smaller size?",
+        "ja": "これの小さいサイズはありますか？"
+      },
+      {
+        "en": "Let me check in the back.",
+        "ja": "奥を確認してみます。"
+      },
+      {
+        "en": "Could I try it on?",
+        "ja": "試着してもいいですか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.007",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "予定を決める",
+    "phrases": [
+      {
+        "en": "Are you free on Sunday afternoon?",
+        "ja": "日曜日の午後は空いていますか？"
+      },
+      {
+        "en": "Yes, after two o'clock.",
+        "ja": "ええ、2時以降なら空いています。"
+      },
+      {
+        "en": "Let's meet outside the station.",
+        "ja": "駅の外で会いましょう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.008",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "運動の習慣",
+    "phrases": [
+      {
+        "en": "I try to walk every morning.",
+        "ja": "毎朝歩くようにしています。"
+      },
+      {
+        "en": "How long do you usually walk?",
+        "ja": "いつもどれくらい歩きますか？"
+      },
+      {
+        "en": "About twenty minutes before breakfast.",
+        "ja": "朝食の前に20分ほどです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.009",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "予約の電話",
+    "phrases": [
+      {
+        "en": "I'd like to make an appointment.",
+        "ja": "予約をしたいのですが。"
+      },
+      {
+        "en": "Would tomorrow morning work for you?",
+        "ja": "明日の午前中はいかがですか？"
+      },
+      {
+        "en": "Do you have anything after ten?",
+        "ja": "10時より後の枠はありますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.010",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "図書館で聞く",
+    "phrases": [
+      {
+        "en": "Where can I find books about gardening?",
+        "ja": "園芸の本はどこにありますか？"
+      },
+      {
+        "en": "They're on the second floor.",
+        "ja": "2階にあります。"
+      },
+      {
+        "en": "Can I borrow three books at a time?",
+        "ja": "一度に3冊借りられますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.011",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "近所の人に話す",
+    "phrases": [
+      {
+        "en": "I've just moved into this building.",
+        "ja": "この建物に引っ越してきたばかりです。"
+      },
+      {
+        "en": "Welcome! Let me know if you need anything.",
+        "ja": "ようこそ！何か必要なら教えてください。"
+      },
+      {
+        "en": "Is there a grocery store nearby?",
+        "ja": "近くに食料品店はありますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.daily.012",
+    "category": "daily",
+    "categoryLabel": "日常",
+    "emoji": "☕",
+    "title": "来週の計画",
+    "phrases": [
+      {
+        "en": "I'm thinking of visiting a museum.",
+        "ja": "美術館へ行こうかと思っています。"
+      },
+      {
+        "en": "There's a new exhibition downtown.",
+        "ja": "街の中心部で新しい展示があります。"
+      },
+      {
+        "en": "Would you like to come with me?",
+        "ja": "一緒に行きませんか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.001",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "自己紹介",
+    "phrases": [
+      {
+        "en": "I'm in charge of customer support.",
+        "ja": "カスタマーサポートを担当しています。"
+      },
+      {
+        "en": "It's great to finally meet you.",
+        "ja": "ようやくお会いできてうれしいです。"
+      },
+      {
+        "en": "How long have you worked here?",
+        "ja": "ここで働いてどれくらいですか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.002",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "会議を始める",
+    "phrases": [
+      {
+        "en": "Shall we start with the sales report?",
+        "ja": "売上報告から始めましょうか？"
+      },
+      {
+        "en": "Sure. I have the figures right here.",
+        "ja": "はい。数字はここにあります。"
+      },
+      {
+        "en": "Let's leave time for questions.",
+        "ja": "質問の時間も残しておきましょう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.003",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "進捗を報告する",
+    "phrases": [
+      {
+        "en": "We've finished the first draft.",
+        "ja": "最初の草案ができました。"
+      },
+      {
+        "en": "Great. What's the next step?",
+        "ja": "いいですね。次の段階は何ですか？"
+      },
+      {
+        "en": "We'll review it with the design team.",
+        "ja": "デザインチームと確認します。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.004",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "締切を調整する",
+    "phrases": [
+      {
+        "en": "Could we move the deadline to Friday?",
+        "ja": "締切を金曜日に変更できますか？"
+      },
+      {
+        "en": "Friday should be fine.",
+        "ja": "金曜日なら大丈夫だと思います。"
+      },
+      {
+        "en": "I'll send the revised schedule today.",
+        "ja": "修正した日程を今日送ります。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.005",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "手伝いを頼む",
+    "phrases": [
+      {
+        "en": "Could you help me check these numbers?",
+        "ja": "この数字の確認を手伝ってもらえますか？"
+      },
+      {
+        "en": "Of course. Which part is urgent?",
+        "ja": "もちろんです。どの部分が急ぎですか？"
+      },
+      {
+        "en": "The totals on the last page.",
+        "ja": "最後のページの合計です。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.006",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "説明を確認する",
+    "phrases": [
+      {
+        "en": "Do you mean the monthly report?",
+        "ja": "月次報告書という意味ですか？"
+      },
+      {
+        "en": "Yes, the one for September.",
+        "ja": "はい、9月分のものです。"
+      },
+      {
+        "en": "I'll send it before lunch.",
+        "ja": "昼食前に送ります。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.007",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "提案をする",
+    "phrases": [
+      {
+        "en": "Why don't we test it with a small group?",
+        "ja": "少人数のグループで試してみませんか？"
+      },
+      {
+        "en": "That would help us find problems early.",
+        "ja": "そうすれば早めに問題を見つけられますね。"
+      },
+      {
+        "en": "We could start with five users.",
+        "ja": "利用者5人から始められます。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.008",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "意見を伝える",
+    "phrases": [
+      {
+        "en": "I agree with the goal, but I'm worried about the timing.",
+        "ja": "目標には賛成ですが、時期が心配です。"
+      },
+      {
+        "en": "What would you suggest instead?",
+        "ja": "代わりに何を提案しますか？"
+      },
+      {
+        "en": "Perhaps we could launch in two stages.",
+        "ja": "2段階に分けて公開するのはどうでしょう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.009",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "資料を依頼する",
+    "phrases": [
+      {
+        "en": "Could you send me the latest version?",
+        "ja": "最新版を送ってもらえますか？"
+      },
+      {
+        "en": "I'll share the link in a moment.",
+        "ja": "すぐにリンクを共有します。"
+      },
+      {
+        "en": "Please include the cost estimate too.",
+        "ja": "費用の見積もりもお願いします。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.010",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "問題を共有する",
+    "phrases": [
+      {
+        "en": "We've found a problem with the payment page.",
+        "ja": "支払いページに問題が見つかりました。"
+      },
+      {
+        "en": "Does it affect all customers?",
+        "ja": "すべてのお客様に影響しますか？"
+      },
+      {
+        "en": "Only those using older browsers.",
+        "ja": "古いブラウザーを使っている方だけです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.011",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "休暇を相談する",
+    "phrases": [
+      {
+        "en": "I'd like to take next Monday off.",
+        "ja": "来週の月曜日に休みを取りたいです。"
+      },
+      {
+        "en": "Have you arranged cover for your tasks?",
+        "ja": "仕事の引き継ぎは手配しましたか？"
+      },
+      {
+        "en": "Yes, Maya has agreed to help.",
+        "ja": "はい、マヤが手伝ってくれることになっています。"
+      }
+    ]
+  },
+  {
+    "id": "adult.work.012",
+    "category": "work",
+    "categoryLabel": "仕事",
+    "emoji": "💼",
+    "title": "フィードバック",
+    "phrases": [
+      {
+        "en": "The introduction is clear and easy to follow.",
+        "ja": "導入部は明確で分かりやすいです。"
+      },
+      {
+        "en": "Is there anything I should change?",
+        "ja": "何か変えたほうがよい点はありますか？"
+      },
+      {
+        "en": "I'd add one example to the conclusion.",
+        "ja": "結論に例を1つ加えるとよいと思います。"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.001",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "空港で搭乗口を聞く",
+    "phrases": [
+      {
+        "en": "Which gate does the flight to Sydney leave from?",
+        "ja": "シドニー行きはどの搭乗口から出ますか？"
+      },
+      {
+        "en": "It leaves from gate twenty-two.",
+        "ja": "22番搭乗口からです。"
+      },
+      {
+        "en": "How long does it take to walk there?",
+        "ja": "そこまで歩いて何分かかりますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.002",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "ホテルのチェックイン",
+    "phrases": [
+      {
+        "en": "I have a reservation under the name Sato.",
+        "ja": "佐藤の名前で予約しています。"
+      },
+      {
+        "en": "May I see your passport, please?",
+        "ja": "パスポートを拝見できますか？"
+      },
+      {
+        "en": "Is breakfast included?",
+        "ja": "朝食は含まれていますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.003",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "部屋の問題を伝える",
+    "phrases": [
+      {
+        "en": "The air conditioner isn't working.",
+        "ja": "エアコンが動きません。"
+      },
+      {
+        "en": "We'll send someone up right away.",
+        "ja": "すぐに係の者を向かわせます。"
+      },
+      {
+        "en": "Could I change rooms if it can't be fixed?",
+        "ja": "直らなければ部屋を変更できますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.004",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "レストランで注文",
+    "phrases": [
+      {
+        "en": "I'd like the grilled fish, please.",
+        "ja": "焼き魚をお願いします。"
+      },
+      {
+        "en": "Would you like rice or potatoes with that?",
+        "ja": "付け合わせはご飯とジャガイモのどちらがよいですか？"
+      },
+      {
+        "en": "Rice, please. And a glass of water.",
+        "ja": "ご飯と、お水を一杯お願いします。"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.005",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "食事の制限を伝える",
+    "phrases": [
+      {
+        "en": "Does this dish contain peanuts?",
+        "ja": "この料理にピーナッツは入っていますか？"
+      },
+      {
+        "en": "I'll check with the chef.",
+        "ja": "シェフに確認します。"
+      },
+      {
+        "en": "I have a peanut allergy.",
+        "ja": "ピーナッツアレルギーがあります。"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.006",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "道をたずねる",
+    "phrases": [
+      {
+        "en": "How do I get to the city museum?",
+        "ja": "市立博物館へはどう行けばよいですか？"
+      },
+      {
+        "en": "Go straight and turn left at the bridge.",
+        "ja": "まっすぐ進んで橋のところで左へ曲がってください。"
+      },
+      {
+        "en": "Is it within walking distance?",
+        "ja": "歩いて行ける距離ですか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.007",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "電車の切符を買う",
+    "phrases": [
+      {
+        "en": "Two return tickets to Oxford, please.",
+        "ja": "オックスフォードまで往復切符を2枚お願いします。"
+      },
+      {
+        "en": "Would you like to travel today?",
+        "ja": "今日ご利用ですか？"
+      },
+      {
+        "en": "Yes. Can we return on any train?",
+        "ja": "はい。帰りはどの電車でも乗れますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.008",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "バスに乗る",
+    "phrases": [
+      {
+        "en": "Does this bus stop at the market?",
+        "ja": "このバスは市場に止まりますか？"
+      },
+      {
+        "en": "Yes, it's the fourth stop.",
+        "ja": "はい、4つ目の停留所です。"
+      },
+      {
+        "en": "Could you let me know when we get there?",
+        "ja": "着いたら教えてもらえますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.009",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "お土産を選ぶ",
+    "phrases": [
+      {
+        "en": "Was this made locally?",
+        "ja": "これは地元で作られたものですか？"
+      },
+      {
+        "en": "Yes, by an artist in this town.",
+        "ja": "はい、この町の作家が作りました。"
+      },
+      {
+        "en": "Could you wrap it as a gift?",
+        "ja": "贈り物用に包んでもらえますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.010",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "チェックアウト",
+    "phrases": [
+      {
+        "en": "Could we leave our bags here until three?",
+        "ja": "3時まで荷物をここに置けますか？"
+      },
+      {
+        "en": "Certainly. We'll keep them in the luggage room.",
+        "ja": "もちろんです。荷物室でお預かりします。"
+      },
+      {
+        "en": "Where can we collect them later?",
+        "ja": "後でどこで受け取れますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.011",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "落とし物を伝える",
+    "phrases": [
+      {
+        "en": "I left a blue jacket on the train.",
+        "ja": "電車に青い上着を忘れました。"
+      },
+      {
+        "en": "Do you remember which carriage you were in?",
+        "ja": "どの車両に乗っていたか覚えていますか？"
+      },
+      {
+        "en": "I was near the front of the train.",
+        "ja": "電車の前のほうにいました。"
+      }
+    ]
+  },
+  {
+    "id": "adult.travel.012",
+    "category": "travel",
+    "categoryLabel": "旅行",
+    "emoji": "🧳",
+    "title": "観光案内で相談",
+    "phrases": [
+      {
+        "en": "What would you recommend for a rainy day?",
+        "ja": "雨の日には何がおすすめですか？"
+      },
+      {
+        "en": "The science museum has an indoor exhibition.",
+        "ja": "科学博物館には屋内展示があります。"
+      },
+      {
+        "en": "Do we need to book tickets in advance?",
+        "ja": "事前に切符を予約する必要がありますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.001",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "初対面の会話",
+    "phrases": [
+      {
+        "en": "How do you know the host?",
+        "ja": "主催者とはどのようなお知り合いですか？"
+      },
+      {
+        "en": "We used to work together.",
+        "ja": "以前一緒に働いていました。"
+      },
+      {
+        "en": "Have you been to one of these events before?",
+        "ja": "このような会に来たことはありますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.002",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "友人を誘う",
+    "phrases": [
+      {
+        "en": "Would you like to have lunch sometime?",
+        "ja": "今度一緒に昼食を食べませんか？"
+      },
+      {
+        "en": "I'd love to. How about next week?",
+        "ja": "ぜひ。来週はいかがですか？"
+      },
+      {
+        "en": "Tuesday or Thursday would work for me.",
+        "ja": "私は火曜日か木曜日なら都合がよいです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.003",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "誘いを断る",
+    "phrases": [
+      {
+        "en": "Thanks for inviting me, but I can't make it.",
+        "ja": "誘ってくれてありがとう。でも参加できません。"
+      },
+      {
+        "en": "No problem. Maybe another time.",
+        "ja": "大丈夫です。また今度。"
+      },
+      {
+        "en": "I hope you all have a lovely evening.",
+        "ja": "皆さんで素敵な夜を過ごしてください。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.004",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "お礼を言う",
+    "phrases": [
+      {
+        "en": "Thank you for helping me move.",
+        "ja": "引っ越しを手伝ってくれてありがとう。"
+      },
+      {
+        "en": "You're welcome. I'm glad I could help.",
+        "ja": "どういたしまして。役に立ててうれしいです。"
+      },
+      {
+        "en": "Let me buy you dinner sometime.",
+        "ja": "今度夕食をごちそうさせてください。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.005",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "謝る",
+    "phrases": [
+      {
+        "en": "I'm sorry I'm late.",
+        "ja": "遅れてすみません。"
+      },
+      {
+        "en": "Don't worry. I've only just arrived.",
+        "ja": "気にしないで。私も来たばかりです。"
+      },
+      {
+        "en": "The bus was delayed by traffic.",
+        "ja": "渋滞でバスが遅れました。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.006",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "気持ちを話す",
+    "phrases": [
+      {
+        "en": "I've been feeling a bit overwhelmed lately.",
+        "ja": "最近少し余裕がなくなっています。"
+      },
+      {
+        "en": "Would it help to talk about it?",
+        "ja": "話すと少し楽になりそうですか？"
+      },
+      {
+        "en": "Thanks. I could use someone to listen.",
+        "ja": "ありがとう。話を聞いてもらえると助かります。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.007",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "相手を励ます",
+    "phrases": [
+      {
+        "en": "You put a lot of effort into this.",
+        "ja": "これにたくさん努力しましたね。"
+      },
+      {
+        "en": "Thanks. I was nervous about showing it.",
+        "ja": "ありがとう。見せるのに緊張していました。"
+      },
+      {
+        "en": "The hard work really shows.",
+        "ja": "頑張ったことがよく伝わります。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.008",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "好みの違いを話す",
+    "phrases": [
+      {
+        "en": "I prefer quiet places to crowded ones.",
+        "ja": "混んだ場所より静かな場所が好きです。"
+      },
+      {
+        "en": "I see. Shall we try the cafe by the river?",
+        "ja": "そうですか。川沿いのカフェにしてみましょうか？"
+      },
+      {
+        "en": "That sounds much better to me.",
+        "ja": "そのほうがずっとよさそうです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.009",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "お願いを断る",
+    "phrases": [
+      {
+        "en": "I'm afraid I don't have time this week.",
+        "ja": "あいにく今週は時間がありません。"
+      },
+      {
+        "en": "Thanks for letting me know.",
+        "ja": "知らせてくれてありがとう。"
+      },
+      {
+        "en": "I could help for an hour on Saturday.",
+        "ja": "土曜日なら1時間手伝えます。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.010",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "連絡を取り直す",
+    "phrases": [
+      {
+        "en": "It's been a long time. How have you been?",
+        "ja": "久しぶりですね。元気でしたか？"
+      },
+      {
+        "en": "I've been well. A lot has changed.",
+        "ja": "元気です。いろいろ変わりました。"
+      },
+      {
+        "en": "I'd love to hear what you've been doing.",
+        "ja": "最近どうしていたかぜひ聞きたいです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.011",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "誤解を解く",
+    "phrases": [
+      {
+        "en": "I didn't mean to sound rude.",
+        "ja": "失礼な言い方をするつもりではありませんでした。"
+      },
+      {
+        "en": "Thanks for explaining. I understand now.",
+        "ja": "説明してくれてありがとう。今は分かりました。"
+      },
+      {
+        "en": "What I meant was that I needed more time.",
+        "ja": "言いたかったのは、もう少し時間が必要だということです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.people.012",
+    "category": "people",
+    "categoryLabel": "人間関係",
+    "emoji": "🤝",
+    "title": "近況を聞く",
+    "phrases": [
+      {
+        "en": "How is your new job going?",
+        "ja": "新しい仕事はどうですか？"
+      },
+      {
+        "en": "I'm still learning, but the team is kind.",
+        "ja": "まだ勉強中ですが、チームは親切です。"
+      },
+      {
+        "en": "What's been the biggest change?",
+        "ja": "いちばん大きく変わったことは何ですか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.001",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "朝のしたく",
+    "phrases": [
+      {
+        "en": "It's time to get dressed.",
+        "ja": "着替える時間だよ。"
+      },
+      {
+        "en": "Can I wear my blue shirt?",
+        "ja": "青いシャツを着てもいい？"
+      },
+      {
+        "en": "Of course. Let's find your socks too.",
+        "ja": "もちろん。靴下も探そう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.002",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "朝ごはん",
+    "phrases": [
+      {
+        "en": "Would you like some toast or cereal?",
+        "ja": "トーストとシリアル、どっちがいい？"
+      },
+      {
+        "en": "Toast, please. Can I have some jam?",
+        "ja": "トーストがいい。ジャムもいい？"
+      },
+      {
+        "en": "Yes. Let's put a little on your toast.",
+        "ja": "いいよ。トーストに少しつけよう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.003",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "出かける前",
+    "phrases": [
+      {
+        "en": "Have you got everything you need?",
+        "ja": "必要なものは全部持った？"
+      },
+      {
+        "en": "I can't find my water bottle.",
+        "ja": "水筒が見つからない。"
+      },
+      {
+        "en": "Let's look on the kitchen table.",
+        "ja": "台所のテーブルを見てみよう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.004",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "公園で遊ぶ",
+    "phrases": [
+      {
+        "en": "Would you like a turn on the swing?",
+        "ja": "ブランコに乗ってみる？"
+      },
+      {
+        "en": "Yes, but not too high.",
+        "ja": "うん。でも高すぎないようにね。"
+      },
+      {
+        "en": "Tell me when you want to stop.",
+        "ja": "止めたいときは言ってね。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.005",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "順番を待つ",
+    "phrases": [
+      {
+        "en": "Let's wait for our turn.",
+        "ja": "順番を待とう。"
+      },
+      {
+        "en": "Can I go after that child?",
+        "ja": "あの子の次にやってもいい？"
+      },
+      {
+        "en": "Yes. Thank you for waiting.",
+        "ja": "うん。待ってくれてありがとう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.006",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "片付け",
+    "phrases": [
+      {
+        "en": "Let's put the blocks in the box.",
+        "ja": "積み木を箱に入れよう。"
+      },
+      {
+        "en": "Can you help me with these?",
+        "ja": "これを手伝ってくれる？"
+      },
+      {
+        "en": "Sure. We can do it together.",
+        "ja": "もちろん。一緒にやろう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.007",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "着替えを手伝う",
+    "phrases": [
+      {
+        "en": "Would you like to try it yourself?",
+        "ja": "自分でやってみたい？"
+      },
+      {
+        "en": "Yes, but this button is hard.",
+        "ja": "うん。でもこのボタンが難しい。"
+      },
+      {
+        "en": "Take your time. I'm right here.",
+        "ja": "ゆっくりでいいよ。ここにいるからね。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.008",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "気持ちを受け止める",
+    "phrases": [
+      {
+        "en": "You look upset. Do you want a hug?",
+        "ja": "悲しそうだね。ぎゅっとしてほしい？"
+      },
+      {
+        "en": "I wanted to play a little longer.",
+        "ja": "もう少し遊びたかった。"
+      },
+      {
+        "en": "I understand. Leaving can be hard.",
+        "ja": "そうだよね。帰るのは寂しいよね。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.009",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "ほめる",
+    "phrases": [
+      {
+        "en": "You kept trying even when it was difficult.",
+        "ja": "難しくても何度もやってみたね。"
+      },
+      {
+        "en": "I finally did it!",
+        "ja": "やっとできた！"
+      },
+      {
+        "en": "You found a way that worked for you.",
+        "ja": "自分に合ったやり方を見つけたね。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.010",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "お風呂",
+    "phrases": [
+      {
+        "en": "Let's check if the water is warm enough.",
+        "ja": "お湯がちょうどいいか確認しよう。"
+      },
+      {
+        "en": "Can I bring my toy boat?",
+        "ja": "おもちゃの船を持ってきてもいい？"
+      },
+      {
+        "en": "Yes. Let's wash your hands first.",
+        "ja": "いいよ。先に手を洗おう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.011",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "寝る前の絵本",
+    "phrases": [
+      {
+        "en": "Which book shall we read tonight?",
+        "ja": "今夜はどの本を読もうか？"
+      },
+      {
+        "en": "The one about the little bear.",
+        "ja": "小さなクマのお話がいい。"
+      },
+      {
+        "en": "Let's get comfortable and open the book.",
+        "ja": "ゆったり座って本を開こう。"
+      }
+    ]
+  },
+  {
+    "id": "adult.parenting.012",
+    "category": "parenting",
+    "categoryLabel": "おうち英語",
+    "emoji": "🌱",
+    "title": "おやすみ",
+    "phrases": [
+      {
+        "en": "I'm glad we had time together today.",
+        "ja": "今日は一緒に過ごせてうれしかったよ。"
+      },
+      {
+        "en": "Can we go to the park tomorrow?",
+        "ja": "明日、公園に行ける？"
+      },
+      {
+        "en": "We'll see how the weather is. Sleep well.",
+        "ja": "お天気を見てみようね。おやすみ。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.001",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "納期の確認",
+    "phrases": [
+      {
+        "en": "When can we expect the delivery?",
+        "ja": "配達はいつ頃になりますか？"
+      },
+      {
+        "en": "It should arrive by Wednesday.",
+        "ja": "水曜日までには届く予定です。"
+      },
+      {
+        "en": "Could you send me the tracking number?",
+        "ja": "追跡番号を送ってもらえますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.002",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "見積もりを頼む",
+    "phrases": [
+      {
+        "en": "Could you prepare a quote for fifty chairs?",
+        "ja": "椅子50脚の見積もりを作ってもらえますか？"
+      },
+      {
+        "en": "Certainly. Do you have a preferred model?",
+        "ja": "承知しました。希望の型はありますか？"
+      },
+      {
+        "en": "We'd like the same model as last time.",
+        "ja": "前回と同じ型をお願いします。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.003",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "請求書の確認",
+    "phrases": [
+      {
+        "en": "There seems to be an error on this invoice.",
+        "ja": "この請求書に間違いがあるようです。"
+      },
+      {
+        "en": "Could you tell me which item is incorrect?",
+        "ja": "どの項目が間違っているか教えてもらえますか？"
+      },
+      {
+        "en": "We've been charged for an extra box.",
+        "ja": "箱1つ分多く請求されています。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.004",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "会場を予約する",
+    "phrases": [
+      {
+        "en": "Is the conference room available on the tenth?",
+        "ja": "10日に会議室は空いていますか？"
+      },
+      {
+        "en": "It's free from one until five.",
+        "ja": "1時から5時まで空いています。"
+      },
+      {
+        "en": "We need seating for about thirty people.",
+        "ja": "30人ほど座れるようにしたいです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.005",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "研修の案内",
+    "phrases": [
+      {
+        "en": "Is attendance at the workshop required?",
+        "ja": "その講習会への参加は必須ですか？"
+      },
+      {
+        "en": "Yes, for all new employees.",
+        "ja": "はい、新入社員は全員参加です。"
+      },
+      {
+        "en": "Where can I find the registration form?",
+        "ja": "登録用紙はどこにありますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.006",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "製品の返品",
+    "phrases": [
+      {
+        "en": "I'd like to return an item that arrived damaged.",
+        "ja": "破損した状態で届いた商品を返品したいです。"
+      },
+      {
+        "en": "I'm sorry about that. Do you have the order number?",
+        "ja": "申し訳ありません。注文番号はお分かりですか？"
+      },
+      {
+        "en": "Yes. Can you arrange a replacement?",
+        "ja": "はい。交換品を手配してもらえますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.007",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "出張を手配する",
+    "phrases": [
+      {
+        "en": "Could you book a hotel near the exhibition center?",
+        "ja": "展示場の近くのホテルを予約してもらえますか？"
+      },
+      {
+        "en": "How many nights will you be staying?",
+        "ja": "何泊の予定ですか？"
+      },
+      {
+        "en": "Three nights, starting on the twelfth.",
+        "ja": "12日から3泊です。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.008",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "採用面接",
+    "phrases": [
+      {
+        "en": "What interests you about this position?",
+        "ja": "この職種のどんな点に興味がありますか？"
+      },
+      {
+        "en": "I'd like to use my experience in customer service.",
+        "ja": "接客の経験を活かしたいと考えています。"
+      },
+      {
+        "en": "Could you describe a difficult situation you handled?",
+        "ja": "対応した難しい状況について説明してもらえますか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.009",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "契約を相談する",
+    "phrases": [
+      {
+        "en": "Could we review the payment terms?",
+        "ja": "支払い条件を確認できますか？"
+      },
+      {
+        "en": "We normally require payment within thirty days.",
+        "ja": "通常は30日以内のお支払いをお願いしています。"
+      },
+      {
+        "en": "Would an initial deposit be acceptable?",
+        "ja": "最初に手付金を支払う形でもよいですか？"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.010",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "施設のメンテナンス",
+    "phrases": [
+      {
+        "en": "The elevator will be out of service tomorrow.",
+        "ja": "明日はエレベーターが使用できません。"
+      },
+      {
+        "en": "How long will the repairs take?",
+        "ja": "修理にはどれくらいかかりますか？"
+      },
+      {
+        "en": "We expect it to be working again by four.",
+        "ja": "4時までには復旧する見込みです。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.011",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "イベントの変更",
+    "phrases": [
+      {
+        "en": "The opening ceremony has been moved indoors.",
+        "ja": "開会式は屋内に変更されました。"
+      },
+      {
+        "en": "Will the starting time remain the same?",
+        "ja": "開始時刻は同じですか？"
+      },
+      {
+        "en": "Yes. Please arrive at the main hall by nine.",
+        "ja": "はい。9時までに大ホールへお越しください。"
+      }
+    ]
+  },
+  {
+    "id": "adult.business.012",
+    "category": "business",
+    "categoryLabel": "TOEICの業務場面",
+    "emoji": "🏢",
+    "title": "顧客の要望を聞く",
+    "phrases": [
+      {
+        "en": "Which features are most important to your team?",
+        "ja": "チームにとって最も重要な機能はどれですか？"
+      },
+      {
+        "en": "We need to share files securely.",
+        "ja": "ファイルを安全に共有する必要があります。"
+      },
+      {
+        "en": "Could you show us how the permissions work?",
+        "ja": "権限の仕組みを見せてもらえますか？"
+      }
+    ]
+  }
+]

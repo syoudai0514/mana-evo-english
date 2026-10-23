@@ -6,6 +6,7 @@ mana-evo の英語に特化した姉妹アプリ。mana-evo のモンスター�
 公開先：https://mana-evo-english.vercel.app/（main に入ると Vercel が自動で公開）
 
 - 再開・引き継ぎ：[`docs/HANDOFF.md`](docs/HANDOFF.md)
+- 全Issueの実装状況：[`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) / 件数：[`docs/CONTENT_REPORT.json`](docs/CONTENT_REPORT.json)
 - 横断レビュー：[`docs/review/2026-10-21.md`](docs/review/2026-10-21.md)
 - 定量的な制作計画：[`docs/CONTENT_BACKLOG.md`](docs/CONTENT_BACKLOG.md) / [`docs/CONTENT_SPEC.md`](docs/CONTENT_SPEC.md)
 - コンセプト：[`docs/CONCEPT.md`](docs/CONCEPT.md)
@@ -21,13 +22,14 @@ mana-evo の英語に特化した姉妹アプリ。mana-evo のモンスター�
 | 会話指示の組み立て | `src/data/prompt.js`（大人は `src/data/adult.js`） |
 | 大人モードの記録（記憶・復習カード・TOEIC・予想スコア） | `src/lib/adult.js` |
 | 録音（16kHz WAV）・読み上げ・ログイン・状態 | `src/lib/` |
-| Gemini 中継（Supabase Edge Function） | `supabase/functions/english-talk/` |
+| Gemini 中継（Supabase Edge Function） | `supabase/functions/english-talk-v2/`（旧版も保持） |
 
-- 会話は Gemini Live API（リアルタイム音声）。`english-talk` が使い捨て接続キーを発行し、ブラウザが直接つなぐ（`src/lib/live.js`）
+- 会話は Gemini Live API（リアルタイム音声）。`english-talk-v2` が使い捨て接続キーを発行し、ブラウザが直接つなぐ（`src/lib/live.js`）
 - 読み・ひらがなの意味・ヒント・記憶は、音を鳴らさない裏方の Live が関数 `show_card` で渡す（`src/lib/annotator.js`。大人の TOEIC 問題 `make_questions`・発音のコツ `pron_tips` も同じしくみ）。子どもの声は Gemini 3.5 Transcribe Live で文字にして相棒に渡す（`src/lib/transcriber.js`）。モデルの利用可否・料金・上限は接続先の契約と現行仕様を確認してください
 - Live が切れたらつなぎなおし、だめなら「つながらなかったよ」を出す。1回ずつ送る方式（`sendTurn`）は確認用の `?mock=1` だけで使う
-- `english-talk` はログイン中（mana-evo と同じ app-save-hub アカウント）のユーザーだけが使える
-- 記録は端末内（localStorage）に保存
+- `english-talk-v2` はログイン中（mana-evo と同じ app-save-hub アカウント）のユーザーだけが使える
+- 記録は端末内（localStorage）。設定で競合を確認して英語専用クラウド保存/保全/復元が可能。音声はIndexedDB、PINとログイン情報はエクスポートしない。
+- 本棚に758教材（全件draft）と、TOEIC全7Part600問。端末TTSで練習できる。独立した英文/音声レビュー・単独音の録音・iOS実機確認は未完了。
 
 ## Supabase の設定（初回だけ）
 

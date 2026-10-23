@@ -1,0 +1,249 @@
+import seeds from './story-seeds.json' with { type: 'json' }
+import { line, metadata } from './shared.js'
+export const STORIES = seeds.map((seed) => ({
+  ...metadata(seed.id, 'story', seed.title, 'Pre-A1', 4),
+  theme: seed.theme,
+  emoji: seed.emoji,
+  goals: [
+    'みじかい おはなしを きく',
+    'ふたつの あんから えらぶ',
+    'じぶんの おわりかたを つくる'
+  ],
+  phrases: [
+    line(`Let's ${seed.a}.`, seed.aJa),
+    line(`Let's ${seed.b}.`, seed.bJa),
+    line('We can help each other.', 'たすけあえるね。')
+  ],
+  start: 'start',
+  nodes: {
+    start: {
+      id: 'start',
+      line: line(
+        `Hello! Here is ${seed.hero}. ${seed.problem}`,
+        `${seed.heroJa}が いるよ。${seed.problemJa}`
+      ),
+      choices: [
+        { ...line(`Let's ${seed.a}.`, seed.aJa), next: 'help-a' },
+        { ...line(`Let's ${seed.b}.`, seed.bJa), next: 'help-b' }
+      ]
+    },
+    'help-a': {
+      id: 'help-a',
+      line: line(
+        `Good idea! We can ${seed.a} together. What shall we do next?`,
+        `いいね！${seed.aJa}んだね。つぎは どうしよう？`
+      ),
+      choices: [
+        {
+          ...line('Ask a friend to help.', 'ともだちも さそう。'),
+          next: 'finish-a'
+        },
+        {
+          ...line('Try it slowly.', 'ゆっくり やってみよう。'),
+          next: 'finish-b'
+        }
+      ]
+    },
+    'help-b': {
+      id: 'help-b',
+      line: line(
+        `Good idea! We can ${seed.b} together. What shall we do next?`,
+        `いいね！${seed.bJa}んだね。つぎは どうしよう？`
+      ),
+      choices: [
+        { ...line('Work together.', 'いっしょに やろう。'), next: 'finish-a' },
+        {
+          ...line(
+            'Take a little rest first.',
+            'すこし やすんでからに しよう。'
+          ),
+          next: 'finish-b'
+        }
+      ]
+    },
+    'finish-a': {
+      id: 'finish-a',
+      line: line(
+        'We did it! Everyone has something to share. How shall our story end?',
+        'できた！みんなで わけあえたね。さいごは どうする？'
+      ),
+      choices: [
+        {
+          ...line('Have a little party.', 'ちいさな パーティー。'),
+          next: 'party'
+        },
+        {
+          ...line('Tell a friend the story.', 'ともだちに おはなしする。'),
+          next: 'quiet'
+        }
+      ]
+    },
+    'finish-b': {
+      id: 'finish-b',
+      line: line(
+        'A little rest helps. Now we have a new idea! How shall our story end?',
+        'ひとやすみしたら、あたらしい あんが うかんだよ！さいごは どうする？'
+      ),
+      choices: [
+        {
+          ...line('Celebrate together.', 'いっしょに よろこぶ。'),
+          next: 'party'
+        },
+        { ...line('Rest and smile.', 'にこにこ やすむ。'), next: 'quiet' }
+      ]
+    },
+    party: {
+      id: 'party',
+      line: line(
+        `Hooray! We helped ${seed.hero}. Let's celebrate together!`,
+        `やったね！${seed.heroJa}を たすけたよ。いっしょに おいわい！`
+      ),
+      end: true
+    },
+    quiet: {
+      id: 'quiet',
+      line: line(
+        `What a lovely day with ${seed.hero}! Tomorrow is another adventure.`,
+        `${seed.heroJa}と すてきな いちにちだったね。あしたも ぼうけんが まっているよ。`
+      ),
+      end: true
+    }
+  }
+}))
+const FRIENDS = [
+  [
+    'Canada',
+    'カナダ',
+    'Mia',
+    'ミア',
+    '🦊',
+    'I like drawing little animals.',
+    'ちいさな どうぶつの えを かくのが すき。'
+  ],
+  [
+    'Canada',
+    'カナダ',
+    'Noah',
+    'ノア',
+    '🦉',
+    'I enjoy reading funny stories.',
+    'おもしろい おはなしを よむのが すき。'
+  ],
+  [
+    'Kenya',
+    'ケニア',
+    'Amani',
+    'アマニ',
+    '🐰',
+    'I like building things with blocks.',
+    'つみきで つくるのが すき。'
+  ],
+  [
+    'Kenya',
+    'ケニア',
+    'Nia',
+    'ニア',
+    '🐱',
+    'I love singing with my friends.',
+    'ともだちと うたうのが だいすき。'
+  ],
+  [
+    'Brazil',
+    'ブラジル',
+    'Lia',
+    'リア',
+    '🦋',
+    'I like finding shapes in clouds.',
+    'くもの かたちを みつけるのが すき。'
+  ],
+  [
+    'Brazil',
+    'ブラジル',
+    'Rui',
+    'ルイ',
+    '🐢',
+    'I enjoy making paper boats.',
+    'かみの ふねを つくるのが すき。'
+  ],
+  [
+    'Australia',
+    'オーストラリア',
+    'Kai',
+    'カイ',
+    '🐻',
+    'I love painting with blue and green.',
+    'あおと みどりで えを かくのが すき。'
+  ],
+  [
+    'Australia',
+    'オーストラリア',
+    'Ava',
+    'エイバ',
+    '🐧',
+    'I like playing quiet guessing games.',
+    'しずかな あてっこあそびが すき。'
+  ],
+  [
+    'India',
+    'インド',
+    'Tara',
+    'タラ',
+    '🐘',
+    'I enjoy growing flowers in pots.',
+    'はちで はなを そだてるのが すき。'
+  ],
+  [
+    'India',
+    'インド',
+    'Ravi',
+    'ラビ',
+    '🐦',
+    'I like counting the stars.',
+    'ほしを かぞえるのが すき。'
+  ],
+  [
+    'Finland',
+    'フィンランド',
+    'Ella',
+    'エラ',
+    '🐿️',
+    'I love making cards for friends.',
+    'ともだちに カードを つくるのが だいすき。'
+  ],
+  [
+    'Finland',
+    'フィンランド',
+    'Leo',
+    'レオ',
+    '🦁',
+    'I like dancing to silly songs.',
+    'おもしろい うたに あわせて おどるのが すき。'
+  ]
+]
+export const WORLD_FRIENDS = FRIENDS.map(
+  ([country, countryJa, name, nameJa, emoji, hobby, hobbyJa], i) => ({
+    ...metadata(
+      `world.${String(i + 1).padStart(3, '0')}`,
+      'world-friend',
+      `${nameJa}と あそぼう`,
+      'Pre-A1',
+      3
+    ),
+    country,
+    countryJa,
+    name,
+    nameJa,
+    emoji,
+    fictional: true,
+    about:
+      '想像のともだちとの練習です。実在の人と通話しません。国に暮らす人の好みは一人ひとり違います。',
+    goals: ['あいさつする', 'すきなことを きく', 'じぶんの すきを つたえる'],
+    phrases: [
+      line(`Hi! I'm ${name}.`, `こんにちは！${nameJa}だよ。`),
+      line(hobby, hobbyJa),
+      line('What do you like doing?', 'なにを するのが すき？'),
+      line('That sounds fun!', 'たのしそう！'),
+      line('See you next time!', 'また あそぼうね！')
+    ]
+  })
+)

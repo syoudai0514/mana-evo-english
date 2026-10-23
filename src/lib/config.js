@@ -3,7 +3,7 @@
 export const SUPABASE_URL = 'https://wdwbmvpipbdpomqulsrj.supabase.co'
 export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indkd2JtdnBpcGJkcG9tcXVsc3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4ODA3MjYsImV4cCI6MjEwMzQ1NjcyNn0.Z4Jd15Vyl22qYXod35xk3vdzCBb3cvZcxIXIq85mqEU'
-export const TALK_ENDPOINT = `${SUPABASE_URL}/functions/v1/english-talk`
+export const TALK_ENDPOINT = `${SUPABASE_URL}/functions/v1/english-talk-v2`
 export const APP_ID = 'mana-evo-english'
 
 // ?mock=1 で、AIを呼ばずに端末内のダミー相手と会話する（画面確認用）

@@ -260,7 +260,7 @@ export default function TrainPlayer({ adult, updateAdult, queue, onNext, onExit,
       )}
 
       <div className="train-dock">
-        <div className="prog"><i style={{ width: `${episode ? Math.min(100, (time / episode.duration) * 100) : 0}%` }} /></div>
+        {episode?.mock&&<p role="status" className="content-note">画面確認用の音です。英語の読み上げ音声ではありません。</p>}<div className="prog"><i style={{ width: `${episode ? Math.min(100, (time / episode.duration) * 100) : 0}%` }} /></div>
         <div className="muted s" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}><span>{clock(time)}</span><span>{clock(episode?.duration)}</span></div>
         <div className="ctrl">
           <button className="b" aria-label="前の文" onClick={() => jump(-1)}>⏮</button>

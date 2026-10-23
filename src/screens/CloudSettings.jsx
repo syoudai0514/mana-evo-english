@@ -1,0 +1,293 @@
+import React, { useRef, useState } from 'react'
+import {
+  createSaveClient,
+  exportLearningPayload,
+  parseLearningFile,
+  hydrateLearningPayload,
+  keepRecovery,
+  rosterFromManaEvo
+} from '../lib/cloudSave.js'
+import { downloadJson } from '../lib/privacy.js'
+import { getCurrentUser } from '../lib/auth.js'
+import { manaEvoProfiles, chooseRewardTarget } from '../lib/englishRewards.js'
+import PrivacyPanel from '../components/PrivacyPanel.jsx'
+const client = createSaveClient()
+export default function CloudSettings({
+  state,
+  adultStore,
+  learning,
+  onApply,
+  update,
+  onBack,
+  showToast
+}) {
+  const [profiles, setProfiles] = useState([]),
+    [rosterAccount, setRosterAccount] = useState(null)
+  const [status, setStatus] = useState(null),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(''),
+    [confirm, setConfirm] = useState(null),
+    [message, setMessage] = useState('')
+  const input = useRef(null)
+  const payload = () => exportLearningPayload({ state, adultStore, learning })
+  const run = async (fn) => {
+    setBusy(true)
+    setError('')
+    try {
+      await fn()
+    } catch (e) {
+      setError(e.message || '処理を完了できませんでした')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const inspect = () =>
+    run(async () => {
+      const result = await client.inspect(payload())
+      setStatus(result)
+      setMessage(
+        result.action === 'same'
+          ? '端末とクラウドの記録は同じです。'
+          : result.action === 'upload'
+            ? '端末の記録をクラウドへ保存できます。'
+            : result.action === 'download'
+              ? 'クラウドの記録をこの端末に復元できます。'
+              : '両方に違う記録があります。下の操作で、残す記録を選んでください。'
+      )
+    })
+  const act = () =>
+    run(async () => {
+      if (confirm === 'upload') {
+        await client.upload(payload(), status)
+        setMessage('クラウドに保存しました。')
+      } else if (confirm === 'download') {
+        const restored = await client.download(payload(), status)
+        onApply(restored)
+        setMessage(
+          '以前の端末データをバックアップして、クラウドの記録を復元しました。'
+        )
+      } else if (confirm === 'delete') {
+        keepRecovery(payload())
+        onApply(
+          hydrateLearningPayload(
+            parseLearningFile(
+              JSON.stringify({
+                appId: 'mana-evo-english',
+                schemaVersion: 1,
+                state: {
+                  version: 1,
+                  profile: null,
+                  level: 1,
+                  reading: 'hira',
+                  friendship: { howamy: 0, niji: 0 },
+                  stickers: [],
+                  sessions: [],
+                  memory: [],
+                  utterances: [],
+                  phrasesSaid: {},
+                  recentTopics: [],
+                  streak: { last: null, count: 0 },
+                  model: { date: null, startIndex: 0, done: false }
+                },
+                adultStore: {
+                  version: 1,
+                  current: null,
+                  adults: {},
+                  order: [],
+                  pinRequired: true
+                },
+                learning: { version: 1, learners: {} }
+              })
+            )
+          )
+        )
+        setMessage(
+          '学習記録を初期化しました。復元用バックアップは端末に残っています。'
+        )
+      }
+      setStatus(null)
+      setConfirm(null)
+    })
+  const loadRoster = () =>
+    run(async () => {
+      const owner = await getCurrentUser()
+      const rows = await client.readManaEvo()
+      if ((await getCurrentUser())?.id !== owner?.id)
+        throw new Error('アカウントが切り替わりました')
+      setRosterAccount(owner.id)
+      setProfiles(manaEvoProfiles(rows))
+      const roster = rosterFromManaEvo(rows)
+      update((prev) => ({ ...prev, manaRoster: roster }))
+      setMessage(
+        `${roster.length}種類のなかまを読み込みました。「なかま」画面で選べます。`
+      )
+      showToast('mana-evoの記録を読み込みました')
+    })
+  return (
+    <div className="screen adult-dark">
+      <div className="top">
+        <button className="icon-btn" onClick={onBack} aria-label="設定から戻る">
+          ‹
+        </button>
+        <h1 className="title-lg">保存・連携・データ管理</h1>
+      </div>
+      <div className="scroll lesson-scroll">
+        <PrivacyPanel showToast={showToast} />
+        <section className="lesson-panel">
+          <h2>クラウドに保存</h2>
+          <p>
+            同じmana-evoアカウントを使います。子供と大人の会話の記憶、復習カード、教材の進み具合を含みます。ログイン情報・PIN・保存した音声ファイルは含みません。
+          </p>
+          <button className="primary-action" disabled={busy} onClick={inspect}>
+            同期状況を確認する
+          </button>
+          {message && <p role="status">{message}</p>}
+          {status && status.action !== 'same' && (
+            <div className="cloud-actions">
+              <button
+                className="lesson-secondary"
+                disabled={busy}
+                onClick={() => setConfirm('upload')}
+              >
+                この端末の記録をクラウドへ
+              </button>
+              {status.row && (
+                <button
+                  className="lesson-secondary"
+                  disabled={busy}
+                  onClick={() => setConfirm('download')}
+                >
+                  クラウドの記録をこの端末へ
+                </button>
+              )}
+            </div>
+          )}
+          <p className="content-note">
+            競合時は勝手に結合しません。上書き前の記録を復元候補として保存し、更新番号が変わった場合は処理を中止します。
+          </p>
+        </section>
+        <section className="lesson-panel">
+          <h2>mana-evoのなかま</h2>
+          <p>
+            手持ちのモンスターを読み、英語のおしゃべり相手として選べます。mana-evoのセーブを書き換えることはありません。
+          </p>
+          <button
+            className="lesson-secondary"
+            disabled={busy}
+            onClick={loadRoster}
+          >
+            なかまを読み込む
+          </button>
+          <h3>英語のごほうびを受け取る人</h3>
+          <p>
+            子供の教材を完了すると、選んだ人に1日1個の星を用意します。英語の記録をクラウドへ保存し、mana-evoの保護者画面で受け取ります。
+          </p>
+          <label>
+            受取先
+            <select
+              aria-label="ごほうびの受取先"
+              disabled={busy || !profiles.length}
+              value={
+                state.englishRewards?.accountId === rosterAccount
+                  ? state.englishRewards?.targetProfileId || ''
+                  : ''
+              }
+              onChange={(e) => {
+                const id = e.target.value
+                if (id)
+                  update((prev) => chooseRewardTarget(prev, rosterAccount, id))
+              }}
+            >
+              <option value="">なかまを読み込んで選ぶ</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="content-note">
+            受け取りにはmana-evo側の対応版が必要です。受領済みの同じ日付の報酬は二重に付与しません。
+          </p>
+          <p className="content-note">
+            登録・取得済みのなかまだけが対象です。対応していない新しい保存形式は読み飛ばします。
+          </p>
+        </section>
+        <section className="lesson-panel">
+          <h2>端末の記録をファイルに保存</h2>
+          <button
+            className="lesson-secondary"
+            onClick={() =>
+              downloadJson('mana-evo-english-backup.json', payload())
+            }
+          >
+            学習記録を書き出す
+          </button>
+          <p>
+            書き出しには会話の記憶・教材のメモ・内容の報告も含まれます。ファイルを安全な場所に保管してください。
+          </p>
+          <input
+            ref={input}
+            type="file"
+            accept="application/json,.json"
+            aria-label="復元する学習記録ファイル"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              void run(async () => {
+                if (file.size > 5_000_000)
+                  throw new Error('ファイルが大きすぎます')
+                const data = parseLearningFile(await file.text())
+                keepRecovery(payload())
+                onApply(hydrateLearningPayload(data))
+                setMessage(
+                  '現在の記録をバックアップして、ファイルから復元しました'
+                )
+              })
+            }}
+          />
+        </section>
+        <section className="lesson-panel">
+          <h2>この端末の学習記録を初期化</h2>
+          <p>
+            プロフィール・会話・復習カード・教材の履歴を初期化します。クラウドの記録は削除されません。
+          </p>
+          <button
+            className="lesson-secondary"
+            disabled={busy}
+            onClick={() => setConfirm('delete')}
+          >
+            初期化する…
+          </button>
+        </section>
+        {confirm && (
+          <div
+            className="lesson-panel"
+            role="alertdialog"
+            aria-label="データ操作の確認"
+          >
+            <h2>記録の変更を確認</h2>
+            <p>
+              {confirm === 'upload'
+                ? 'クラウド側の以前の記録を保全したうえで、この端末の内容を保存します。'
+                : confirm === 'download'
+                  ? '現在の端末の内容を保全したうえで、クラウド側の内容に置き換えます。'
+                  : '現在の内容を復元用に保全して、この端末の学習記録を初期化します。'}
+            </p>
+            <button className="primary-action" disabled={busy} onClick={act}>
+              {busy ? '処理中…' : 'この内容で実行する'}
+            </button>
+            <button className="help-button" onClick={() => setConfirm(null)}>
+              やめる
+            </button>
+          </div>
+        )}
+        {error && (
+          <p className="cloud-error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}

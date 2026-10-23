@@ -20,9 +20,9 @@ export default function Home({
   navigate,
   showToast,
   topic,
-  onStart
+  onStart, onLibrary
 }) {
-  const persona = personaOf(state.profile?.partner)
+  const persona = personaOf(state.profile?.partner, state.manaRoster)
   const level = levelOf(state.level)
   const [wiggle, setWiggle] = useState(false)
   const done = modelToday(state).done && state.liveDate !== todayKey()
@@ -127,7 +127,7 @@ export default function Home({
                   aria-label={`${persona.name}に あいさつする`}
                 >
                   <img
-                    src={persona.image}
+                    src={persona.image} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src='/monsters/m049.webp'}}
                     alt={persona.name}
                     className={wiggle ? 'monster-wiggle' : 'monster-float'}
                   />
@@ -208,6 +208,7 @@ export default function Home({
               </section>
             </aside>
           </div>
+          <section className="new-library-banner"><span>🌈</span><div><h2>ぼうけんの ほんだな</h2><p>60の ぼうけん・もじと おと・おはなし・せかいの ともだち</p></div><button className="primary-action" onClick={() => onLibrary('kids-activity')}>えらぶ <Icon name="arrow" /></button></section>
           <section className="play-section">
             <div className="section-heading">
               <div>

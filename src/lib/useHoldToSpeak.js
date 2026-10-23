@@ -8,6 +8,7 @@ import { stopSpeech, unlockSpeech } from './tts.js'
 import { primePlayback } from './audio.js'
 
 export function useHoldToSpeak({ vocabulary = [], onText }) {
+  const mounted = useRef(true)
   const [recording, setRecordingState] = useState(false)
   const recordingRef = useRef(false) // 描きかえ前でも分かるように
   const setRecording = (value) => { recordingRef.current = value; setRecordingState(value) }
@@ -32,7 +33,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     recorder.current = new Recorder()
     recorder.current.onLevel = setLevel
     setPlaybackSession() // マイクは押している間だけ開く
-    return () => { recorder.current?.release(); transcriber.current?.close() }
+    return () => { mounted.current = false; pressing.current = false; recorder.current?.release(); transcriber.current?.close() }
   }, [])
 
   const flush = () => {
@@ -45,7 +46,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
 
   const start = async (event) => {
     event?.preventDefault()
-    if (!available || busy || recordingRef.current || stopping.current) return
+    if (!mounted.current || !available || busy || recordingRef.current || pressing.current || stopping.current) return
     pressing.current = true
     const id = ++pressId.current
     unlockSpeech()
@@ -63,7 +64,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     try {
       await rec.start()
       // マイクが開くまでに指を離していたら、マイクを閉じて終わり
-      if (!pressing.current || pressId.current !== id) { rec.stop(); rec.release(); if (began.current) transcriber.current.end(); return }
+      if (!mounted.current || !pressing.current || pressId.current !== id) { rec.stop(); rec.release(); if (began.current) transcriber.current.end(); return }
       setRecording(true)
     } catch {
       pressing.current = false
@@ -87,6 +88,7 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
     stopping.current = true
     setTimeout(async () => {
       stopping.current = false
+      if (!mounted.current) { rec.stop(); rec.release(); return }
       if (!rec.hasTake) { rec.release(); return }
       const audio = rec.stop()
       rec.release()
@@ -96,12 +98,16 @@ export function useHoldToSpeak({ vocabulary = [], onText }) {
       if (!transcriber.current.ready) await Promise.race([transcriber.current.ensure(), new Promise((resolve) => setTimeout(resolve, 2500))])
       flush()
       const text = began.current ? await transcriber.current.end() : ''
+      if (!mounted.current) return
       setBusy(false)
       onTextRef.current?.(text, id)
     }, 300)
   }
 
   const bind = {
+    onKeyDown: event => { if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) start(event) },
+    onKeyUp: event => { if (event.key === ' ' || event.key === 'Enter') stop(event) },
+    onBlur: stop,
     onPointerDown: start,
     onPointerUp: stop,
     onPointerCancel: stop,
