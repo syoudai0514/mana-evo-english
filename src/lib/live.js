@@ -273,12 +273,12 @@ export class LiveSession {
       if (typeof part.text === 'string' && !part.thought) this.textBuffer += part.text
       // 録音用（電車モードの番組づくり）：鳴らさずに声のデータだけ受けとる
       if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '')) this.handlers.onAudio?.(part.inlineData.data, sampleRateOf(part.inlineData.mimeType))
-      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.muted && !this.dropAudio) {
+      if (part.inlineData?.data && /^audio\//.test(part.inlineData.mimeType || '') && !this.dropAudio) {
         const rate = sampleRateOf(part.inlineData.mimeType)
         this.turnAudio.push([part.inlineData.data, rate])
         this.chunks += 1
         this.chunkMs = Math.round((part.inlineData.data.length * 0.75 / 2 / rate) * 1000) // 1つの細切れの長さ（ログ用）
-        this.player.push(part.inlineData.data, rate)
+        if (!this.muted) this.player.push(part.inlineData.data, rate)
       }
     }
     if (content.inputTranscription?.text) this.handlers.onChildText?.(content.inputTranscription.text)
@@ -371,7 +371,8 @@ export class LiveSession {
   }
 
   replay(audio) {
-    this.wake()
+    // A requested replay must wake playback even when automatic speech is muted.
+    this.player.ensure()
     this.player.stop()
     for (const [data, rate] of audio) this.player.push(data, rate)
   }

@@ -1,3 +1,5 @@
+import { useTalkVoice } from '../hooks/useTalkVoice.js'
+import TalkVoiceControls from '../components/talk/TalkVoiceControls.jsx'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { levelOf } from '../data/levels.js'
@@ -291,15 +293,17 @@ export default function Talk({
     maxTurns: mode.maxTurns
   })
 
-  const say = useCallback(
-    async (line, index) => {
-      if (config.parentReads || !line) return
-      setTalkingIndex(index)
-      await speak(line, voice)
-      setTalkingIndex(-1)
-    },
-    [config.parentReads, voice.pitch, voice.rate]
-  )
+  const { say, replay, autoVoice, voiceMuted, voiceError, toggleVoice } =
+    useTalkVoice({
+      parentReads: config.parentReads,
+      live,
+      liveAudio,
+      voice,
+      latest,
+      latestPartnerIndex,
+      setTalkingIndex,
+      finished
+    })
 
   const finish = useCallback(
     (stopped = false) => {
@@ -846,7 +850,7 @@ export default function Talk({
       card,
       resume,
       resumeHandle,
-      muted: Boolean(config.parentReads),
+      muted: voiceMuted.current,
       token,
       model,
       system: config.adultCtx
@@ -1133,6 +1137,7 @@ export default function Talk({
     }
     // 前の接続がまだ残っていたら閉じる（2つの接続から声が重ならないように）
     if (live.current && live.current !== session) live.current.close()
+    session.muted = voiceMuted.current
     live.current = session
     setEngine('live')
     if (!transcriber.current) {
@@ -1335,17 +1340,9 @@ export default function Talk({
   }
 
   // 🔊：Live の声が残っていればそれを、なければ端末の読み上げで
-  const replay = (turn, index) => {
-    unlockSpeech()
-    const audio = liveAudio.current.get(turn.opener ? 'opener' : turn.turnId)
-    if (live.current && audio) return live.current.replay(audio)
-    setTalkingIndex(index)
-    speak(turn.text, voice).then(() => setTalkingIndex(-1))
-  }
-
   const cycleReading = () =>
     update((prev) => ({ ...prev, reading: nextReading(prev.reading) }))
-  const readingPolicy = config.parentReads ? 'show' : level.reading
+  const readingPolicy = !autoVoice ? 'show' : level.reading
 
   useEffect(() => {
     onExitReady?.(() => finish(true))
@@ -1402,9 +1399,10 @@ export default function Talk({
         )}
       </div>
 
+      <TalkVoiceControls {...{ autoVoice, toggleVoice, voiceError }} />
       <TalkTranscript
         {...{
-          config,
+          config: { ...config, parentReads: !autoVoice },
           persona,
           turns,
           talkingIndex,
