@@ -463,3 +463,11 @@ img { -webkit-user-drag: none; }
 .abc-slot span:last-child { font-size: 18px; }
 .abc-slot.empty { background: rgba(255,255,255,.5); box-shadow: none; border: 2px dashed #E2DDF0; color: #D5D1E6; }
 .plan-step { color: inherit; font: inherit; border: none; cursor: pointer; }
+
+/* Speech preference stays visible while a parent reads along. */
+.talk-voice-controls { margin: 0 14px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; flex: none; }
+.talk-voice-toggle { min-height: 44px; padding: 9px 14px; border-radius: 16px; border: 1px solid var(--line); background: #fff; color: #275d4b; font-size: 12px; font-weight: 800; }
+.talk-voice-controls > span { font-size: 11px; line-height: 1.7; color: var(--ink2); }
+.talk-voice-controls [role='status'] { color: #a03529; }
+.adult-dark .talk-voice-toggle { background: #263d34; color: #ebf7dc; }
+.adult-dark .talk-voice-controls > span { color: #d3dfcc; }
