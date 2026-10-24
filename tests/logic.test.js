@@ -459,3 +459,23 @@ test('the daily plan follows the adult focus', async () => {
   assert.deepEqual(todayPlan(adult, { short: true, focus: 'toeic' }).map((step) => step.id), ['toeic'])
   assert.deepEqual(todayPlan(adult, { short: false, focus: 'toeic' }).map((step) => step.id), ['toeic', 'chat'])
 })
+
+test('long train programmes are built from chapters with whole-programme timing', async () => {
+  const { chapterCount, estimate } = await import('../src/data/programs.js')
+  const { withChapter, tailOf } = await import('../src/lib/programMaker.js')
+  const { partAt } = await import('../src/screens/TrainPlayer.jsx').catch(() => ({}))
+  assert.equal(chapterCount('talk', 30), 6)
+  assert.equal(chapterCount('toeic', 20), 4)
+  assert.equal(chapterCount('cards', 10), 1)
+  assert.ok(estimate('talk', 30).megabytes <= 12)
+  let episode = { chapters: [], lines: [], tips: [], sets: [], summary: '', duration: 0 }
+  episode = withChapter(episode, { title: '1', lines: [{ speaker: 'Alex', en: 'Hi', start: 0.3, end: 1 }], duration: 60, tips: [], summary: 'a' })
+  episode = withChapter(episode, { title: '2', lines: [{ speaker: 'Sam', en: 'Q', start: 0.3, end: 2, set: 0, question: true }], duration: 30, tips: [], sets: [{ answer: 1 }], summary: 'b' })
+  assert.deepEqual(episode.chapters.map((chapter) => chapter.start), [0, 60])
+  assert.equal(episode.lines[1].start, 60.3)
+  assert.equal(episode.lines[1].part, 1)
+  assert.equal(episode.sets[0].end, 62)
+  assert.equal(episode.duration, 90)
+  assert.equal(tailOf(episode, 1), 'Sam: Q')
+  if (partAt) assert.deepEqual(partAt(episode.chapters, 75), { part: 1, local: 15 })
+})

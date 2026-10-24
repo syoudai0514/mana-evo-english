@@ -27,7 +27,7 @@ export function recentTranscript(adult) {
   return session.turns.map((turn) => `${turn.who === 'partner' ? 'Alex' : 'Me'}: ${turn.text}`).join('\n').slice(-2500)
 }
 
-async function askWriter(system, declaration, message) {
+export async function askWriter(system, declaration, message) {
   const tool = new SilentTool({ system, declaration, step: 'episode-script', timeoutMs: 70000, ways: [['3.8', 'realtime'], ['3-flash', 'realtime']] })
   try {
     return await tool.ask(message)
@@ -73,6 +73,10 @@ export function listeningScript(reply) {
     for (const line of setLines) lines.push({ ...line, say: line.en, set: index })
     // 本番と同じく、問題文も読む（ここで止めて答えてもらう）
     lines.push({ speaker: 'N', en: String(set.question_en), ja: '', say: String(set.question_en), set: index, question: true })
+    // 考える間（5秒）のあとに答えと解説。「答える」なら問題文で止まり、答えたあとここが流れる。「聞き流し」はそのまま続く
+    const letter = 'ABCD'[set.answer]
+    lines.push({ speaker: 'N', en: `The answer is ${letter}. ${choices[set.answer]}`, ja: `正解は ${letter}`, say: `The answer is ${letter}. ${choices[set.answer]}`, set: index, answer: true, pauseBefore: 5 })
+    if (set.explain_ja) lines.push({ speaker: 'JA', en: '', ja: String(set.explain_ja), say: String(set.explain_ja), set: index, answer: true })
     sets.push({ part: set.part === 'p4' ? 'p4' : 'p3', question_en: String(set.question_en), choices, answer: set.answer, explain_ja: String(set.explain_ja || '') })
   }
   if (!sets.length) throw Object.assign(new Error('no sets'), { code: 'script' })
