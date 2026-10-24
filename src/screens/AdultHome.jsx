@@ -81,10 +81,10 @@ export default function AdultHome({
   const [short, setShort] = useState(true)
   const [settings, setSettings] = useState(false)
   const partner = ADULT_PARTNERS[adult.partner] || ADULT_PARTNERS.alex
-  const focus = Object.hasOwn(FOCUS, adult.focus) ? adult.focus : 'speak'
+  const focus = FOCUS[adult.focus] ? adult.focus : 'speak' // （Object.hasOwn は古い iPhone で動かない）
   const active = FOCUS[focus]
   const greeting = greetingFor(adult)
-  const plan = todayPlan(adult, { short })
+  const plan = todayPlan(adult, { short, focus })
   const minutes = plan.reduce((sum, step) => sum + step.minutes, 0)
   const due = dueCards(adult, Date.now(), 999).length
   const start = (kind, steps) => {

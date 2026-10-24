@@ -339,12 +339,20 @@ export function withStudyDay(adult, date = new Date()) {
 // ---------- きょうのメニュー ----------
 
 // short：時間がない日の「5分だけ」
-export function todayPlan(adult, { now = Date.now(), short = false } = {}) {
+// focus：大人が選んだ「いまの目標」（speak 話す / toeic / listen 聞く）。メニューの中身を少し変える
+export function todayPlan(adult, { now = Date.now(), short = false, focus = adult.focus } = {}) {
   const due = dueCards(adult, now, short ? 6 : 12).length
+  const toeic = { id: adult.diagnosed ? 'toeic' : 'diagnosis', count: adult.diagnosed ? 4 : 10, minutes: adult.diagnosed ? 3 : 6 }
   const steps = []
   if (due) steps.push({ id: 'review', count: due, minutes: short ? 2 : 3 })
+  // TOEIC が目標なら、短い日もミニ問題を入れて、話すのは短く
+  if (focus === 'toeic') {
+    steps.push(short && adult.diagnosed ? toeic : { ...toeic, ...(short ? { id: 'toeic', count: 4, minutes: 3 } : {}) })
+    if (!short) steps.push({ id: 'chat', minutes: 4 })
+    return steps
+  }
   if (!short && shadowSentences(adult).length >= 2) steps.push({ id: 'shadow', count: 3, minutes: 3 })
   steps.push({ id: 'chat', minutes: short ? 3 : 6 })
-  if (!short) steps.push({ id: adult.diagnosed ? 'toeic' : 'diagnosis', count: adult.diagnosed ? 4 : 10, minutes: adult.diagnosed ? 3 : 6 })
+  if (!short) steps.push(toeic)
   return steps
 }

@@ -45,9 +45,15 @@ export function speak(text, { pitch = 1, rate = 0.9, gender = 'female', lang = '
     utterance.pitch = pitch
     utterance.rate = rate
     // onend が来ない端末でも止まらないよう、文の長さから上限時間を決める
-    const timer = setTimeout(()=>resolve({completed:false,reason:'timeout'}), 2500 + text.length * 120 / rate)
+    // onend が来ない iPhone もあるので、時間切れは「失敗」ではなく「わからない」
+    const timer = setTimeout(()=>resolve({completed:null,reason:'timeout'}), 2500 + text.length * 120 / rate)
     utterance.onend = () => { clearTimeout(timer); resolve({completed:true}) }
-    utterance.onerror = () => { clearTimeout(timer); resolve({completed:false,reason:'error'}) }
+    // 別の読み上げで止めた（interrupted / canceled）のは失敗ではない
+    utterance.onerror = (event) => {
+      clearTimeout(timer)
+      const stopped = event?.error === 'interrupted' || event?.error === 'canceled'
+      resolve({completed:stopped ? null : false,reason:event?.error || 'error'})
+    }
     synth.speak(utterance)
   })
 }

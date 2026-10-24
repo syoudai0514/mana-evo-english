@@ -451,3 +451,11 @@ test('a line is accepted when the transcript is cut short but the voice is long 
   assert.equal(sameLine('Ah, the action! I get that.', 'Ah, the So it is all about the excitement and adventure of it', 4), false)
   assert.equal(sameLine('Morning, Sam! You look a bit worn out today, everything okay?', 'Morning. Yeah, just a bit of a late night. Not sleeping great', 4), false)
 })
+
+test('the daily plan follows the adult focus', async () => {
+  const { newAdult, todayPlan } = await import('../src/lib/adult.js')
+  const adult = { ...newAdult(), diagnosed: true }
+  assert.deepEqual(todayPlan(adult, { short: true, focus: 'speak' }).map((step) => step.id), ['chat'])
+  assert.deepEqual(todayPlan(adult, { short: true, focus: 'toeic' }).map((step) => step.id), ['toeic'])
+  assert.deepEqual(todayPlan(adult, { short: false, focus: 'toeic' }).map((step) => step.id), ['toeic', 'chat'])
+})

@@ -67,6 +67,9 @@ export function useTalkVoice({
       stopSpeech()
       live.current?.player?.stop()
       setVoiceError('')
+      // 相棒がまだ返事を作っている途中は、古い声を流さない（新しい返事のはじめが消えるので）
+      if (live.current?.generating) return
+      generation.current++
       const audio = liveAudio.current.get(turn.opener ? 'opener' : turn.turnId)
       if (live.current && audio?.length) {
         try {

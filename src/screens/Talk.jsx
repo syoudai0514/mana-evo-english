@@ -49,6 +49,15 @@ const FALLBACK_HINTS = [
   { en: 'No!', kana: 'ノー！', ja: 'ううん', emoji: '🙅' }
 ]
 
+// 大人の時間つき会話のあと、次にやること
+const NEXT_LABEL = {
+  study: '📘 お勉強へ すすむ ▶',
+  toeic: '📘 TOEIC ミニ問題へ ▶',
+  diagnosis: '📘 TOEIC 診断へ ▶',
+  review: '🔁 復習へ ▶',
+  shadow: '🎧 シャドーイングへ ▶'
+}
+
 function openerTurn(config) {
   if (config.mode === 'free' && config.topic) {
     const { en, kana, ja } = config.topic.opener
@@ -125,6 +134,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
   const speakJapanese = (text) => { if (text) { unlockSpeech(); speak(text, { lang: 'ja-JP', rate: 1, pitch: 1.1 }) } }
   // 相棒の英語の声が鳴り終わってから日本語を読む（声が重ならないように）
   const speakJapaneseAfterVoice = (text, tries = 0) => {
+    if (voiceMuted.current) return // 音声OFF（おうちのひとが読む）のときは、自分から読まない
     if (live.current?.speaking && tries < 50) { setTimeout(() => speakJapaneseAfterVoice(text, tries + 1), 300); return }
     speakJapanese(text)
   }
@@ -495,6 +505,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
   const createLiveSession = ({ token, model, transcription = {}, card = null, resume = false, resumeHandle = '' }) => {
     return new LiveSession({
+      watchdog: true, // 返事のとちゅうで止まったら つなぎなおす（音声OFFでも）
       transcription,
       card,
       resume,
@@ -612,6 +623,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         if (finished.current) { session.close(); return }
       }
       session.probing = false
+      session.muted = voiceMuted.current // つなぎなおしている間に 音声ON/OFF を変えていても、今の設定で
       live.current = session
       setEngine('live')
       if (!resumed) {
@@ -651,6 +663,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
           .map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] }))
         fresh.sendHistory(history)
       }
+      fresh.muted = voiceMuted.current
       live.current = fresh
       old.close()
     } catch (error) {
@@ -914,6 +927,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
       return
     }
     setPickedHint(hint)
+    live.current?.player?.stop() // 相棒の声が残っていたら止めてから（声が重ならないように）
     // はじめの数回は「もういちど タップで こたえよう」も声で教える（字が読めなくてもわかるように）
     const teach = !adult && hintTeach.current < 3
     if (teach) hintTeach.current += 1
@@ -970,7 +984,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
         ) : <div style={{ width: 42 }} />}
       </div>
 
-      <TalkVoiceControls {...{autoVoice,toggleVoice,voiceError}}/>
+      {!adult && <TalkVoiceControls {...{autoVoice,toggleVoice,voiceError}}/>}
       <div className="talk-log" ref={logRef}>
         {!autoVoice && (
           <div className="center"><span className="tag" style={{ background: '#fff', color: 'var(--grape)', fontSize: 12, padding: '5px 12px' }}>👨‍👦 おうちのひとが {persona.name}の セリフを よんでね</span></div>
@@ -1032,7 +1046,7 @@ export default function Talk({ state, update, config, onFinish, showToast, onAdu
 
       {timeUp && adult && !stopped && (
         <div style={{ padding: '6px 14px 0' }}>
-          <button className="press cta study-go" onClick={() => finish()}>📘 お勉強へ すすむ ▶</button>
+          <button className="press cta study-go" onClick={() => finish()}>{NEXT_LABEL[config.nextStep] || '✅ きょうのまとめへ ▶'}</button>
         </div>
       )}
 

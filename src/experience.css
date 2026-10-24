@@ -2,10 +2,20 @@
 :root {
   --forest: #216a57;
   --paper: #fbfaf5;
+}
+/* 文字色などは新しい画面（だれ？・子どものホーム・大人のホーム）だけで変える。前からの画面の色はそのまま */
+.app[data-view='who'],
+.app[data-view='home'],
+.app[data-view='adultHome'] {
   --ink: #263b35;
   --ink2: #64766d;
   --line: #e4e8df;
   --bg: #f7f8f1;
+}
+/* 小さい iPhone では、「おはなし する！」がスクロールしなくても見えるように、上の見出しを省いて庭を低く */
+@media (max-height: 760px) {
+  .kid-home .page-intro { display: none; }
+  .kid-home .garden-scene { min-height: 210px; }
 }
 body {
   background: #e8ece5;
@@ -1705,4 +1715,22 @@ button:disabled {
 @media (min-width: 701px) and (max-width: 900px) {
   .studio-art { display: none; }
   .focus-copy { width: 100%; }
+}
+
+/* 小さい iPhone（高さが低い）：「おはなし する！」がスクロールなしで見えるように詰める */
+@media (max-height: 760px) {
+  .kid-home .dashboard-content { padding-top: 10px; }
+  .kid-home .adventure-heading { display: none; }
+  .kid-home .garden-scene { min-height: 0; }
+  .kid-home .garden-bubble { margin-top: 10px; padding: 10px 12px; }
+  .kid-home .garden-bubble > button { font-size: 18px; }
+  .kid-home .buddy-button { width: 130px; height: 120px; }
+  .kid-home .buddy-label { display: none; }
+  .kid-home .adventure-action { padding: 8px 16px 12px; }
+  .kid-home .adventure-action p { display: none; }
+}
+@media (max-height: 620px) {
+  .kid-home .experience-header { padding-top: 6px; padding-bottom: 6px; }
+  .kid-home .garden-bubble p { display: none; }
+  .kid-home .buddy-button { width: 92px; height: 86px; }
 }

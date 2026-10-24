@@ -44,11 +44,21 @@ function stepsFor(kind, adult, plan) {
   return []
 }
 
+// 前回だれが使ったか（'kid' / 'adult'）
+function lastUser() {
+  try { return localStorage.getItem('mee-last-user') } catch { return null }
+}
+function rememberUser(who) {
+  try { localStorage.setItem('mee-last-user', who) } catch {}
+}
+
 export default function App() {
   const [state, setState] = useState(() => loadState())
   const [adultStore, setAdultStore] = useState(() => loadAdultStore())
   // 大人がいれば、起動したら「だれが はなす？」から
-  const [screen, setScreen] = useState(() => (loadState().profile && !loadAdultStore().order.length ? 'home' : 'who'))
+  // 前回つかったのが子どもなら、子どものホームから（字が読めない子が毎回「だれ？」画面で迷わないように）
+  const [screen, setScreen] = useState(() => (loadState().profile && (!loadAdultStore().order.length || lastUser() === 'kid') ? 'home' : 'who'))
+  const [addingAdult, setAddingAdult] = useState(false) // PIN のあとで大人を追加する
   const [talkConfig, setTalkConfig] = useState(null)
   const [result, setResult] = useState(null)
   const [toast, setToast] = useState('')
@@ -100,6 +110,7 @@ export default function App() {
         partner: partner.id,
         adultPartner: partner,
         minutes: step.minutes || course.chatMinutes || 0,
+        nextStep: steps[index + 1]?.id || null, // 時間が来たときのボタン：次の段階か、まとめか
         adultScene: {
           id: course.id,
           emoji: course.emoji,
@@ -216,7 +227,15 @@ export default function App() {
       {screen === 'friends' && <Friends {...common} />}
       {screen === 'parent' && <Parent {...common} onStart={startTalk} />}
 
-      {screen === 'who' && <Who state={state} adultStore={adultStore} updateAdultStore={updateAdultStore} onKid={() => setScreen(state.profile ? 'home' : 'setup')} onAdult={chooseAdult} />}
+      {screen === 'who' && (
+        <Who state={state} adultStore={adultStore} updateAdultStore={updateAdultStore}
+          adding={addingAdult} setAdding={setAddingAdult}
+          // 大人の追加は PIN のあと（子どもが大人のプロフィールを作れないように）
+          onAddAdult={() => { if (adultStore.pinRequired && !adultUnlocked && adultStore.order.length) setScreen('addPin'); else setAddingAdult(true) }}
+          onKid={() => { rememberUser('kid'); setScreen(state.profile ? 'home' : 'setup') }}
+          onAdult={(id) => { rememberUser('adult'); setAddingAdult(false); chooseAdult(id) }} />
+      )}
+      {screen === 'addPin' && <PinGate onUnlock={() => { setAdultUnlocked(true); setAddingAdult(true); setScreen('who') }} onBack={() => setScreen('who')} />}
       {screen === 'adultPin' && <PinGate onUnlock={() => { setAdultUnlocked(true); setScreen('adultHome') }} onBack={() => setScreen('who')} />}
       {screen === 'adultHome' && adult && <AdultHome {...adultCommon} onStart={startAdult} onSwitch={() => { setAdultUnlocked(false); setScreen('who') }} />}
       {screen === 'adultMemory' && adult && <AdultMemory {...adultCommon} />}

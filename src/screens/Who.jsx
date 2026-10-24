@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { newAdult, withAdult } from '../lib/adult.js'
 import { validToeicTarget } from '../lib/journey.js'
-import { unlockSpeech } from '../lib/tts.js'
+import { speak, unlockSpeech } from '../lib/tts.js'
 import { Brand, Icon } from '../components/experience.jsx'
 
 const EMOJIS = ['🌿', '☕', '🌼', '🌙', '🧑', '🦊']
@@ -11,9 +11,21 @@ export default function Who({
   adultStore,
   updateAdultStore,
   onKid,
-  onAdult
+  onAdult,
+  onAddAdult,
+  adding,
+  setAdding
 }) {
-  const [adding, setAdding] = useState(false)
+  // 作る画面を開いたら、見える所までスクロール
+  useEffect(() => { if (adding) document.querySelector('.learner-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [adding])
+  const adults = adultStore.order.map((id) => adultStore.adults[id]).filter(Boolean)
+  // 大人のカード：もう登録があれば、その人の続きへ（2人以上なら下の一覧へ）。なければ新しく作る（PIN のあと）
+  const openAdult = () => {
+    unlockSpeech()
+    if (adults.length === 1) return onAdult(adults[0].id)
+    if (adults.length > 1) return document.querySelector('.saved-learners')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    onAddAdult()
+  }
   const [name, setName] = useState('')
   const [emoji, setEmoji] = useState('🌿')
   const [target, setTarget] = useState('730')
@@ -47,7 +59,7 @@ export default function Who({
               あなたらしい英語の時間を、ここから。
             </p>
           </div>
-          <div className="welcome-art" aria-hidden="true">
+          <div className="welcome-art" role="button" aria-label="こどもの ぼうけんへ" onClick={() => { unlockSpeech(); speak('あそぼう！', { lang: 'ja-JP', rate: 1, pitch: 1.2 }); onKid() }}>
             <span className="art-orbit" />
             <span className="hello-note">Hello, new world!</span>
             <img className="welcome-howamy" src="/monsters/m049.webp" alt="" />
@@ -88,7 +100,7 @@ export default function Who({
             </button>
             <button
               className="entry-card entry-adult"
-              onClick={() => setAdding(true)}
+              onClick={openAdult}
             >
               <span className="entry-icon">
                 <Icon name="chat" size={30} />
@@ -101,7 +113,7 @@ export default function Who({
                 今日の気分で、自分だけの学び方を。
               </p>
               <span className="entry-link">
-                大人の学習をはじめる
+                {adults.length ? 'つづきから 学ぶ' : '大人の学習をはじめる'}
                 <Icon name="arrow" />
               </span>
             </button>
@@ -127,6 +139,7 @@ export default function Who({
                     </button>
                   )
                 })}
+                <button className="learner-chip" onClick={onAddAdult}>＋ 新しい人</button>
               </div>
             </section>
           )}

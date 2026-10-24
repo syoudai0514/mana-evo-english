@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>mana-evo-english mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2B2950; --ink2:#6A6890; --line:#E7E3F5;
+  --coral:#FF6B5B; --coral-d:#E04A3B;
+  --sun:#FFC83D; --sun-d:#E5A400;
+  --mint:#2FC79F; --mint-d:#1BA07D;
+  --sky:#4AA8FF; --sky-d:#2A84DB;
+  --grape:#8B6CF0; --grape-d:#6A4CD0;
+  --pink:#FF8FC0; --pink-d:#E06A9E;
+  --card:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1d1b33;font-family:"Zen Maru Gothic",sans-serif;color:var(--ink);padding:40px;display:flex;flex-wrap:wrap;gap:40px}
+.en{font-family:"Baloo 2","Zen Maru Gothic",sans-serif}
+.phone{width:390px;height:844px;border-radius:0;overflow:hidden;position:relative;background:linear-gradient(180deg,#FFF4E6 0%,#FFE9F1 45%,#E9F1FF 100%)}
+.status{height:47px;display:flex;justify-content:space-between;align-items:center;padding:0 30px 0 34px;font:600 16px -apple-system,"Baloo 2",sans-serif}
+.status .r{display:flex;gap:6px;align-items:center;font-size:13px}
+.cloud{position:absolute;background:#fff;border-radius:999px;opacity:.7}
+.top{display:flex;justify-content:space-between;align-items:center;padding:6px 20px 0}
+.pill{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:6px 12px 6px 8px;font-weight:900;font-size:14px;box-shadow:0 3px 0 var(--line)}
+.pill .ic{font-size:18px}
+.press{border-radius:24px;box-shadow:0 6px 0 var(--d,#ddd);}
+.bubble{background:#fff;border-radius:24px;padding:14px 16px;box-shadow:0 4px 0 var(--line),0 10px 24px rgba(80,60,140,.08);position:relative}
+.kana{font-size:12px;color:var(--ink2);font-weight:700;letter-spacing:.02em;margin-top:4px}
+.ja{font-size:12.5px;color:#8a7fb8;margin-top:6px;padding-top:6px;border-top:1.5px dashed var(--line);font-weight:700}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;background:#fff;border-top:2px solid #F1EDFA;display:flex;justify-content:space-around;padding-top:10px}
+.tabbar div{display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:900;color:#B3AECF;gap:2px}
+.tabbar div span{font-size:24px;filter:grayscale(1);opacity:.55}
+.tabbar .on{color:var(--coral)} .tabbar .on span{filter:none;opacity:1}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:9px;background:#2B2950}
+.sig{display:inline-block;width:18px;height:11px;background:linear-gradient(90deg,currentColor 0 3px,transparent 3px 5px,currentColor 5px 8px,transparent 8px 10px,currentColor 10px 13px,transparent 13px 15px,currentColor 15px 18px);clip-path:polygon(0 100%,100% 0,100% 100%)}
+.bat{display:inline-block;width:24px;height:11px;border:1.5px solid currentColor;border-radius:3.5px;position:relative;opacity:.9}.bat:after{content:"";position:absolute;inset:1.5px;right:4px;background:currentColor;border-radius:1.5px}
+.label{color:#fff;font:800 18px "Zen Maru Gothic";width:390px;margin-bottom:-28px}
+.label small{display:block;font-weight:500;font-size:13px;color:#b9b4df;margin-top:2px}
+.wrap{display:flex;flex-direction:column;gap:12px}
+
+.dk{background:linear-gradient(180deg,#1E2340 0%,#252B4D 55%,#2C2550 100%);color:#EEF0FF}
+.dk .pill{background:#323A63;color:#EEF0FF;box-shadow:0 3px 0 #1A1F38}
+.card2{background:#2F3760;border-radius:20px;padding:14px 16px;box-shadow:0 4px 0 #1A1F38}
+.muted{color:#A9AED8;font-size:12px;font-weight:700}
+.chip{display:inline-block;font-size:11px;font-weight:900;border-radius:999px;padding:3px 9px;background:#3D4677;color:#C9CDF5}
+.gold{color:#FFC83D}
+.bub2{background:#343D6B;border-radius:20px;padding:12px 14px;font-size:15px;font-weight:700;line-height:1.35}
+.me2{background:linear-gradient(180deg,#5DB5FF,#4AA8FF);color:#fff;border-radius:20px;border-bottom-right-radius:6px;padding:9px 14px;font-size:15px;font-weight:700;margin-left:auto;max-width:78%}
+.ja2{font-size:12px;color:#A9AED8;margin-top:6px;padding-top:6px;border-top:1.5px dashed #4A5385;font-weight:700}
+.tip2{background:#3A3560;border:1.5px solid #6A5CC0;border-radius:14px;padding:8px 12px;font-size:12px;font-weight:700;color:#DCD5FF}
+.phase{display:flex;gap:6px;margin:10px 20px 0}
+.phase div{flex:1;height:8px;border-radius:9px;background:#3D4677}
+.phase .on{background:#2FC79F}
+.who{width:150px;height:190px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:18px}
+.qopt{background:#343D6B;border-radius:14px;padding:10px 12px;font-size:14px;font-weight:700;display:flex;gap:10px;align-items:center}
+.qopt b{width:26px;height:26px;border-radius:50%;background:#4A5385;display:flex;align-items:center;justify-content:center;font-size:13px}
+.mem{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #3D4677;font-size:13px;font-weight:700}
+.mem .x{margin-left:auto;color:#7D83B5;font-size:12px}
+
+.ep{display:flex;gap:12px;align-items:center}
+.ep .ic{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:28px;flex:none}
+.prog{height:6px;border-radius:9px;background:#3D4677;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:#2FC79F}
+.tl{padding:10px 12px;border-radius:14px;margin:6px 0;font-family:"Baloo 2";font-weight:700;font-size:15px;line-height:1.35;color:#8F95C5}
+.tl .spk{font-family:"Zen Maru Gothic";font-size:11px;font-weight:900;color:#7D83B5;display:block}
+.tl .jp{font-family:"Zen Maru Gothic";font-size:12px;color:#7D83B5;margin-top:3px;font-weight:700}
+.tl.now{background:#343D6B;color:#fff}.tl.now .jp{color:#C9CDF5}
+.ctrl{display:flex;justify-content:space-around;align-items:center;margin:14px 20px 0}
+.ctrl .b{width:54px;height:54px;border-radius:50%;background:#323A63;display:grid;place-items:center;font-size:20px;font-weight:900}
+.ctrl .p{width:78px;height:78px;border-radius:50%;background:linear-gradient(180deg,#3BD8AE,#2FC79F);display:grid;place-items:center;font-size:32px;box-shadow:0 5px 0 #1BA07D;color:#fff}
+.seg2{display:flex;gap:6px}.seg2 span{font-size:11px;font-weight:900;border-radius:999px;padding:4px 10px;background:#323A63;color:#A9AED8}.seg2 .on{background:#4A5385;color:#fff}
+
+.dk{background:linear-gradient(180deg,#1E2340 0%,#252B4D 55%,#2C2550 100%);color:#EEF0FF}
+.scr{position:absolute;top:47px;bottom:0;left:0;right:0;overflow:hidden;padding:4px 16px 0}
+.h1{font:900 22px "Zen Maru Gothic";margin:8px 2px 2px}
+.sec{font:900 13px "Zen Maru Gothic";color:#A9AED8;margin:14px 2px 7px;display:flex;justify-content:space-between;align-items:center}
+.sec a{color:#7FE3C4;font-size:12px}
+.row{display:flex;gap:10px;align-items:center}
+.ep{background:#2F3760;border-radius:16px;padding:10px 12px;box-shadow:0 3px 0 #1A1F38;margin-bottom:8px}
+.ep .t{font-weight:900;font-size:14px}
+.ep .s{font-size:11.5px;color:#A9AED8;font-weight:700;margin-top:2px}
+.ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.bar{height:5px;border-radius:9px;background:#3D4677;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:#2FC79F}
+.cta2{background:linear-gradient(180deg,#3BD8AE,#2FC79F);color:#0F3B30;font-weight:900;border-radius:18px;padding:13px;text-align:center;box-shadow:0 5px 0 #1BA07D;font-size:16px}
+.ghost{background:#323A63;border-radius:16px;padding:11px;text-align:center;font-weight:900;font-size:14px;box-shadow:0 4px 0 #1A1F38}
+.seg3{display:flex;gap:6px}.seg3 span{flex:1;text-align:center;border-radius:999px;padding:6px 0;font-weight:900;font-size:12px;background:#323A63;color:#C9CDF5}.seg3 .on{background:#2FC79F;color:#0F3B30}
+.chk{width:22px;height:22px;border-radius:7px;border:2px solid #5A6399;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900}
+.chk.on{background:#2FC79F;border-color:#2FC79F;color:#0F3B30}
+.len span{font-size:11px;font-weight:900;border-radius:999px;padding:3px 8px;background:#3D4677;color:#C9CDF5;margin-left:4px}
+.len .on{background:#FFC83D;color:#3B2E00}
+.badge{font-size:10.5px;font-weight:900;border-radius:999px;padding:2px 7px}
+.ok{background:#1F5547;color:#7FE3C4}.new{background:#5B2E46;color:#FF9CC5}.dl{background:#4A4320;color:#FFD86B}
+.stor{background:#262D52;border-radius:14px;padding:10px 12px;font-size:12px;font-weight:700;color:#C9CDF5}
+.dock{position:absolute;left:12px;right:12px;bottom:26px;background:#343D6B;border-radius:18px;padding:10px 12px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.chap{display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid #3D4677;font-size:13px;font-weight:700}
+.chap .n{width:24px;height:24px;border-radius:50%;background:#3D4677;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex:none}
+.chap.now{color:#7FE3C4}.chap.now .n{background:#2FC79F;color:#0F3B30}.chap.done{color:#7C82B5}
+.line2{background:#343D6B;border-radius:16px;padding:10px 12px;margin-bottom:7px;font-weight:700;font-size:14px;line-height:1.35}
+.line2 .sp{font-size:11px;color:#A9AED8;display:block}.line2 .jp{font-size:12px;color:#A9AED8;display:block;margin-top:3px}
+.line2.now{background:#3F4A85;border:1.5px solid #7FE3C4}
+.ctl{display:flex;justify-content:space-around;align-items:center;margin-top:8px;font-size:20px}
+.ctl .p{width:54px;height:54px;border-radius:50%;background:#2FC79F;color:#0F3B30;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 0 #1BA07D}
+.note{width:390px;color:#d9d5f5;font-size:13px;line-height:1.6;font-weight:500}
+.note b{color:#fff}
+</style></head><body><div class="wrap"><div class="label">① 電車モードのホーム<small>つづきから・通勤リスト・ライブラリ</small></div><div class="phone dk"><div class="status" style="color:#EEF0FF"><span>8:12</span><span class="r"><span class="sig"></span><span class="bat"></span></span></div><div class="scr">
+<div class="row" style="justify-content:space-between"><div class="pill">‹ ホーム</div><div class="pill">📦 6本・412MB</div></div>
+<div class="h1">🚃 電車モード</div>
+<div class="muted">話さなくてOK。聞いて・見て覚える番組</div>
+<div class="sec">つづきから</div>
+<div class="ep"><div class="row"><div class="ico" style="background:#2E5B52">🎙️</div><div style="flex:1"><div class="t">Alex & Sam ロング雑談：週末と子育て</div><div class="s">30分・第3章 / 6章・のこり 18分</div><div class="bar"><i style="width:40%"></i></div></div><div style="font-size:26px">▶</div></div></div>
+<div class="sec">きょうの通勤リスト <a>へんしゅう</a></div>
+<div class="ep"><div class="row"><div class="ico" style="background:#3A3560">🗂️</div><div style="flex:1"><div class="t">行き：35分</div><div class="s">ビジネスドラマ 第2話 15分 → 耳で復習 10分 → TOEIC 10問 10分</div></div></div></div>
+<div class="cta2">▶ リストをぜんぶ聞く（35分）</div>
+<div class="sec">ライブラリ <a>すべて ›</a></div>
+<div class="ep"><div class="row"><div class="ico" style="background:#4A3550">💼</div><div style="flex:1"><div class="t">ビジネスドラマ 第2話「延期の連絡」</div><div class="s">15分・<span class="badge new">未聴</span></div></div></div></div>
+<div class="ep"><div class="row"><div class="ico" style="background:#3D3A25">📘</div><div style="flex:1"><div class="t">TOEIC Part 3・4 模試 15問</div><div class="s">15分・聞き流しOK（答えは自動で表示）</div></div></div></div>
+<div class="ghost" style="margin-top:6px">📺 番組表から えらんで ダウンロード</div>
+</div><div class="homebar" style="background:#EEF0FF"></div></div></div><div class="wrap"><div class="label">② 番組表<small>選んで、長さを決めて、まとめてダウンロード</small></div><div class="phone dk"><div class="status" style="color:#EEF0FF"><span>8:12</span><span class="r"><span class="sig"></span><span class="bat"></span></span></div><div class="scr">
+<div class="row" style="justify-content:space-between"><div class="pill">‹</div><div class="pill">📺 番組表</div><div style="width:42px"></div></div>
+<div class="muted" style="margin:10px 2px 4px">見たいものにチェック → 長さをえらんで、まとめてダウンロード</div>
+<div class="ep"><div class="row"><div class="chk on">✓</div><div class="ico" style="background:#2E5B52">🎙️</div><div style="flex:1"><div class="t">ロング雑談（ポッドキャスト風）</div><div class="s">Alex と Sam が本物の速さで</div><div class="len" style="margin-top:4px"><span>10分</span><span>20分</span><span class="on">30分</span></div></div></div></div>
+<div class="ep"><div class="row"><div class="chk on">✓</div><div class="ico" style="background:#4A3550">💼</div><div style="flex:1"><div class="t">連続ビジネスドラマ</div><div class="s">会議・出張・トラブル。毎話つづく</div><div class="len" style="margin-top:4px"><span class="on">15分</span><span>×3話</span></div></div></div></div>
+<div class="ep"><div class="row"><div class="chk on">✓</div><div class="ico" style="background:#25433D">🧠</div><div style="flex:1"><div class="t">英語ラジオ講座（日本語解説つき）</div><div class="s">ひとつの表現を、解説→例文→会話で</div><div class="len" style="margin-top:4px"><span class="on">10分</span><span>20分</span></div></div></div></div>
+<div class="ep"><div class="row"><div class="chk"></div><div class="ico" style="background:#3B2F55">📖</div><div style="flex:1"><div class="t">朗読ストーリー（章ごと）</div><div class="s">やさしい英語の物語を、ゆっくり→ふつう</div><div class="len" style="margin-top:4px"><span>15分</span><span>30分</span></div></div></div></div>
+<div class="ep"><div class="row"><div class="chk"></div><div class="ico" style="background:#3D3A25">📘</div><div style="flex:1"><div class="t">TOEIC Part 3・4 模試</div><div class="s">答える／聞き流す をえらべる</div><div class="len" style="margin-top:4px"><span>10問</span><span>20問</span></div></div></div></div>
+<div class="ep"><div class="row"><div class="chk"></div><div class="ico" style="background:#3A3560">🔁</div><div style="flex:1"><div class="t">あなたの会話ネイティブ版・耳で復習カード</div><div class="s">あなたの学習から作る</div></div></div></div>
+<div class="stor">📶 Wi-Fi・🔌 充電中・画面はつけたまま がおすすめ<br>えらんだ3本：合計 55分・約 40MB（作るのに 約40分）</div>
+<div class="cta2" style="margin-top:8px">⬇ 3本をまとめてダウンロード</div>
+</div><div class="homebar" style="background:#EEF0FF"></div></div></div><div class="wrap"><div class="label">③ ライブラリ<small>ダウンロード中・絞りこみ・チェックしてリスト再生</small></div><div class="phone dk"><div class="status" style="color:#EEF0FF"><span>8:12</span><span class="r"><span class="sig"></span><span class="bat"></span></span></div><div class="scr">
+<div class="row" style="justify-content:space-between"><div class="pill">‹</div><div class="pill">📚 ライブラリ</div><div style="width:42px"></div></div>
+<div class="sec" style="margin-top:10px">ダウンロード中</div>
+<div class="ep"><div class="row"><div class="ico" style="background:#2E5B52">🎙️</div><div style="flex:1"><div class="t">ロング雑談 30分</div><div class="s"><span class="badge dl">声の準備 第4章/6章</span> とちゅうで止まっても続きから</div><div class="bar"><i style="width:62%;background:#FFC83D"></i></div></div></div></div>
+<div class="ep"><div class="row"><div class="ico" style="background:#25433D">🧠</div><div style="flex:1"><div class="t">英語ラジオ講座 10分</div><div class="s">じゅんばん待ち</div></div></div></div>
+<div class="seg3" style="margin:12px 0 8px"><span class="on">すべて 12</span><span>未聴 5</span><span>ロング 4</span><span>聞いた</span></div>
+<div class="ep"><div class="row"><div class="chk on">1</div><div style="flex:1"><div class="t">💼 ビジネスドラマ 第2話</div><div class="s">15分・<span class="badge new">未聴</span></div></div><div>⋯</div></div></div>
+<div class="ep"><div class="row"><div class="chk on">2</div><div style="flex:1"><div class="t">🎧 耳で復習カード 30枚</div><div class="s">10分</div></div><div>⋯</div></div></div>
+<div class="ep"><div class="row"><div class="chk on">3</div><div style="flex:1"><div class="t">📘 TOEIC 模試 10問</div><div class="s">10分・聞き流し</div></div><div>⋯</div></div></div>
+<div class="ep"><div class="row"><div class="chk"></div><div style="flex:1"><div class="t">📖 朗読：The Lost Umbrella</div><div class="s">30分・<span class="badge ok">聞いた</span></div></div><div>⋯</div></div></div>
+<div class="stor">💾 端末の保存：412MB / 2.1GB つかえる　<a style="color:#7FE3C4">聞いたものを まとめて消す</a></div>
+<div class="dock"><div class="row"><div style="flex:1"><div class="t" style="font-weight:900">3本えらんだ・35分</div><div class="muted">チェックした順に聞きます</div></div><div class="ghost" style="padding:8px 10px">リストに保存</div><div class="cta2" style="padding:8px 12px">▶ 聞く</div></div></div>
+</div><div class="homebar" style="background:#EEF0FF"></div></div></div><div class="wrap"><div class="label">④ ロング番組の再生<small>章つき・字幕・おやすみタイマー</small></div><div class="phone dk"><div class="status" style="color:#EEF0FF"><span>8:12</span><span class="r"><span class="sig"></span><span class="bat"></span></span></div><div class="scr">
+<div class="row" style="justify-content:space-between"><div class="pill">‹</div><div class="pill">🎙️ ロング雑談 30分</div><div class="pill">🔖</div></div>
+<div class="row" style="gap:6px;margin:10px 0 8px"><span class="chip">第3章 / 6章</span><span class="chip">「週末の公園」</span></div>
+<div class="line2"><span class="sp">Sam</span>So did you end up taking the kids to the park?<span class="jp">結局、子どもたちを公園に連れてったの？</span></div>
+<div class="line2 now"><span class="sp">Alex</span>Yeah, we did, but it was absolutely packed. Like, you couldn't move.<span class="jp">うん、行ったけど、すごい混んでて。身動きとれないくらい。</span></div>
+<div class="tip2" style="margin-bottom:7px">💡 <b>packed</b> ＝ ぎゅうぎゅうに混んでいる</div>
+<div class="line2"><span class="sp">Sam</span>Oh, tell me about it. Saturdays are the worst.<span class="jp">わかる〜。土曜は最悪だよね。</span></div>
+<div class="sec">章</div>
+<div class="chap done"><div class="n">1</div>月曜の朝 ・5分</div>
+<div class="chap done"><div class="n">2</div>子どもの習いごと ・5分</div>
+<div class="chap now"><div class="n">3</div>週末の公園 ・5分（再生中）</div>
+<div class="chap"><div class="n">4</div>行きたい旅行 ・5分</div>
+<div class="dock"><div class="bar" style="margin:0 0 4px"><i style="width:45%"></i></div><div class="muted row" style="justify-content:space-between"><span>13:24</span><span>30:05</span></div><div class="ctl"><span>⏮</span><span>↺</span><span class="p">❚❚</span><span style="font:900 14px 'Baloo 2'">1.0×</span><span>⏭</span></div><div class="seg3" style="margin-top:8px"><span class="on">英＋日</span><span>英だけ</span><span>なし</span><span>⏲ 30分で停止</span></div></div>
+</div><div class="homebar" style="background:#EEF0FF"></div></div></div><div class="note"><b>決めてほしいこと</b><br>
+① 番組の種類（番組表）：ロング雑談／連続ビジネスドラマ／英語ラジオ講座（日本語解説つき）／朗読ストーリー／TOEIC 模試／あなたの学習から作るもの。足したい・いらないものはありますか？<br>
+② 長さ：10・15・20・30分から選ぶ。長い番組は5分ごとの「章」に分けて作る（途中で止まっても、できた章までは聞ける・続きから作れる）。<br>
+③ 保存：1人あたり最大30本くらい（容量を表示、聞いたものをまとめて消せる）。声は圧縮して保存（30分で約20MB）。<br>
+④ 作る時間：30分の番組を作るのに20〜40分かかる見込み（AIの声で1行ずつ読ませるため）。iPhone はアプリを閉じると止まるので、家で画面をつけたまま・充電しながら作る想定。<br>
+⑤ TOEIC 模試は「答える」と「聞き流し（答えを自動で表示して続ける）」を選べる。<br>
+⑥ 通勤リスト：ライブラリからチェックした順に連続再生。リストに名前をつけて保存（例：行き・帰り）。おやすみタイマー付き。</div></body></html>

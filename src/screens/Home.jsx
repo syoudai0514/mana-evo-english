@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { personaOf } from '../data/personas.js'
 import { MODES } from '../data/modes.js'
 import { levelOf } from '../data/levels.js'
@@ -42,11 +42,21 @@ export default function Home({
     unlockSpeech()
     onStart({ mode: 'free', partner: persona.id, topic })
   }
+  // 字が読めない子のために、相棒が声で「ここを おしてね」と教える
+  const guideJa = () => speak(done ? 'きょうは おしまい。また あした あそぼうね' : 'おはなし しよう！ したの おおきな ボタンを おしてね', { lang: 'ja-JP', rate: 1, pitch: 1.15 })
   const poke = () => {
     unlockSpeech()
     setWiggle(true)
-    speak("Hi! Let's play together!", voice).finally(() => setWiggle(false))
+    speak("Hi! Let's play together!", voice).then(guideJa).finally(() => setWiggle(false))
   }
+  // ホームを開いたら1回だけ（タップで来たとき＝音を出してよいときだけ）
+  useEffect(() => {
+    if (sessionStorage.getItem('mee-home-guided') || !navigator.userActivation?.hasBeenActive) return
+    try { sessionStorage.setItem('mee-home-guided', '1') } catch {}
+    const timer = setTimeout(() => speak(topic.opener.en, voice).then(guideJa), 600)
+    return () => clearTimeout(timer)
+  }, [])
+  const playLetter = () => letterPlay(letter.item, voice, !letter.played && (() => update((prev) => withLetterPlayed(prev))))
   return (
     <div className="screen kid-home">
       <div className="scroll">
@@ -161,14 +171,7 @@ export default function Home({
                   <span>🌱</span>
                 </div>
                 <p>ひとつ できたら、はなまる！</p>
-                <button
-                  className="mission-row"
-                  onClick={() =>
-                    document
-                      .getElementById('daily-letter')
-                      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  }
-                >
+                <button className="mission-row" onClick={playLetter}>
                   <span
                     className={`mission-check ${letter.played ? 'checked' : ''}`}
                   >
@@ -180,7 +183,7 @@ export default function Home({
                   </span>
                   <Icon name="arrow" size={17} />
                 </button>
-                <button className="mission-row" disabled={done} onClick={start}>
+                <button className="mission-row" onClick={() => (done ? guideJa() : start())}>
                   <span
                     className={`mission-check ${talkedToday ? 'checked' : ''}`}
                   >
@@ -221,10 +224,10 @@ export default function Home({
                 <button
                   className={`play-tile play-${id}`}
                   key={id}
-                  disabled={done}
+                  aria-disabled={done}
                   onClick={() => {
                     unlockSpeech()
-                    if (done) return showToast('また あした！')
+                    if (done) { guideJa(); return showToast('また あした！') }
                     navigate(id)
                   }}
                 >
@@ -256,20 +259,7 @@ function LetterCard({ state, update, voice, navigate }) {
   const today = letterToday(state)
   const item = today.item
   const seen = Object.keys(state.lettersSeen || {}).length
-  const play = () => {
-    unlockSpeech()
-    // 英語のあと、文字の名前と音のちがいを日本語で（フォニックスの いちばん大事なところ）
-    speak(`${item.letter}! ${item.word}! ${item.letter} is for ${item.word}!`, {
-      ...voice,
-      rate: voice.rate * 0.9
-    }).then(() =>
-      speak(
-        `「${item.name}」は、「${item.sound}」の おと。${item.wordKana}の「${item.sound}」`,
-        { lang: 'ja-JP', rate: 1, pitch: 1.1 }
-      )
-    )
-    if (!today.played) update((prev) => withLetterPlayed(prev))
-  }
+  const play = () => letterPlay(item, voice, !today.played && (() => update((prev) => withLetterPlayed(prev))))
   return (
     <div className="letter-card-wrap">
       <button
@@ -309,4 +299,12 @@ function LetterCard({ state, update, voice, navigate }) {
       </button>
     </div>
   )
+}
+
+// きょうの もじを読む：英語のあと、文字の名前と音のちがいを日本語で（フォニックスの いちばん大事なところ）
+function letterPlay(item, voice, onPlayed) {
+  unlockSpeech()
+  speak(`${item.letter}! ${item.word}! ${item.letter} is for ${item.word}!`, { ...voice, rate: voice.rate * 0.9 })
+    .then(() => speak(`「${item.name}」は、「${item.sound}」の おと。${item.wordKana}の「${item.sound}」`, { lang: 'ja-JP', rate: 1, pitch: 1.1 }))
+  if (onPlayed) onPlayed()
 }

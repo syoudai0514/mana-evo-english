@@ -111,8 +111,10 @@ export class LiveSession {
   // card: 'nonblocking'（声を止めずにカードを渡す）/ 'blocking' / null
   // resume: 切れても続きからつなぎなおせるようにする（resumeHandle があればその続きから）
   // functions：show_card 以外の関数を渡すとき（大人の問題づくりなど）。届いたら handlers.onTool(name, args)
-  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, functions = null, resume = false, resumeHandle = '' }) {
+  constructor({ token, model, system, voiceName, handlers, text = false, asr = false, muted = false, transcription = {}, card = null, functions = null, resume = false, resumeHandle = '', watchdog = null }) {
     this.card = card
+    // 返事が止まったら閉じる見はり。指定がなければ、声を鳴らす会話の接続だけ
+    this.watchdog = watchdog
     this.functions = functions
     this.resume = resume
     this.resumeHandle = resumeHandle
@@ -242,7 +244,7 @@ export class LiveSession {
     if (content.modelTurn?.parts?.length) this.generating = true
     // 返事の途中で8秒なにも届かなくなったら、接続が止まったとみなして閉じる（つなぎなおしで続ける）
     clearTimeout(this.stallTimer)
-    if (this.generating && !content.turnComplete && !content.interrupted && !this.asr && !this.muted) {
+    if (this.generating && !content.turnComplete && !content.interrupted && !this.asr && (this.watchdog ?? !this.muted)) {
       this.stallTimer = setTimeout(() => {
         if (this.closedByUs || this.dead) return
         reportLiveProblem({ step: 'stall', model: this.model, message: `no turnComplete for 8s (age ${Math.round(this.age / 1000)}s)` })
