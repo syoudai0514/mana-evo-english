@@ -9,6 +9,8 @@ import { recentTranscript } from '../lib/episodes.js'
 import { primePlayback } from '../lib/audio.js'
 import { unlockTrainAudio } from '../lib/trainAudio.js'
 import { AdultTop } from '../components/adultUi.jsx'
+import { isMockMode } from '../lib/config.js'
+import { cancelProgram, downloadProgram, downloadedServerIds, requestProgram, retryProgram, serverStatus } from '../lib/trainServer.js'
 
 const ERRORS = {
   'no-chat': 'まだ Alex との雑談がありません（3往復以上話すと作れます）',
@@ -19,7 +21,27 @@ const ERRORS = {
   gone: '番組が見つかりませんでした',
   failed: 'うまく作れませんでした'
 }
-const STAGES = { queued: 'じゅんばん待ち', plan: '番組の計画', script: '台本づくり', voice: '声の準備', encode: '保存の準備', done: 'できあがり！' }
+const STAGES = { queued: 'じゅんばん待ち', plan: '番組の計画', script: '台本づくり', voice: '声の準備', encode: '保存の準備', ready: 'ダウンロード中', done: 'できあがり！' }
+
+// サーバーで作る（アプリを閉じても作りつづける）。確認用の mock のときは、この iPhone で作る
+const onServer = () => !isMockMode()
+
+// サーバーの番組づくりの様子を、この画面の形に
+function fromServer(job) {
+  const progress = job.progress || {}
+  return {
+    id: job.id,
+    server: true,
+    programId: job.program_id,
+    title: progress.title || PROGRAMS[job.program_id]?.title || '番組',
+    stage: job.status === 'ready' ? 'ready' : job.status === 'queued' && !progress.stage ? 'queued' : progress.stage || 'queued',
+    chapter: progress.chapter || 0,
+    chapters: progress.chapters || 0,
+    done: progress.done || 0,
+    total: progress.total || 0,
+    error: job.status === 'failed' ? job.error || 'failed' : null
+  }
+}
 
 function minutes(seconds) {
   return `${Math.max(1, Math.round((seconds || 0) / 60))}分`
@@ -46,12 +68,49 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
   const [jobs, setJobs] = useState([])
   const [storage, setStorage] = useState(null)
   const [lists, setLists] = useState(() => loadLists(adult.id))
+  const [remote, setRemote] = useState({ jobs: [], catalog: [] }) // サーバーで作っている番組・毎晩の作り置き
+  const [have, setHave] = useState(new Set()) // もう受けとった作り置き
+  const fetching = useRef(new Set())
 
   const reload = () => {
     listEpisodes(adult.id).then(setEpisodes).catch(() => setEpisodes([]))
     storageInfo().then(setStorage)
   }
   useEffect(() => { reload() }, [adult.id])
+
+  // サーバーの様子を見る（この画面を開いている間、8秒ごと）。できた番組は自動でダウンロード
+  useEffect(() => {
+    if (!onServer()) return undefined
+    let alive = true
+    const check = async () => {
+      try {
+        const status = await serverStatus(adult)
+        if (!alive) return
+        setRemote(status)
+        setHave(await downloadedServerIds(adult))
+        for (const job of status.jobs.filter((item) => item.status === 'ready' && !fetching.current.has(item.id))) {
+          fetching.current.add(job.id)
+          downloadProgram(adult, job.id)
+            .then(() => { if (alive) { showToast('番組ができました！'); reload() } })
+            .catch(() => fetching.current.delete(job.id))
+        }
+      } catch {}
+    }
+    check()
+    const timer = setInterval(check, 8000)
+    return () => { alive = false; clearInterval(timer) }
+  }, [adult.id])
+
+  const downloadShared = async (items) => {
+    for (const item of items) {
+      if (fetching.current.has(item.id)) continue
+      fetching.current.add(item.id)
+      try { await downloadProgram(adult, item.id) } catch { showToast('ダウンロードできませんでした。電波のいい所でもう一度') }
+      fetching.current.delete(item.id)
+    }
+    setHave(await downloadedServerIds(adult))
+    reload()
+  }
   // 章ができた・番組ができたら一覧を読みなおす（進み具合のたびには読まない）
   const progressKey = useRef('')
   useEffect(() => subscribeJobs((next) => {
@@ -81,7 +140,8 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
     saveLists(adult.id, next)
   }
 
-  const common = { adult, episodes: episodes || [], jobs, play, showToast, reload, storage }
+  const allJobs = [...jobs, ...remote.jobs.map(fromServer)]
+  const common = { adult, episodes: episodes || [], jobs: allJobs, play, showToast, reload, storage }
   if (view === 'catalog') return <Catalog {...common} onBack={() => setView('home')} onDone={() => setView('library')} />
   if (view === 'library') return <Library {...common} onBack={() => setView('home')} onSaveList={saveList} onCatalog={() => setView('catalog')} />
 
@@ -98,7 +158,24 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
         <div className="a-section">
           <div className="muted s">話さなくてOK。聞いて・見て覚える番組。家の Wi-Fi で作っておけば、電車では通信なしで聞けます。</div>
 
-          {jobs.length > 0 && <JobList jobs={jobs} adult={adult} episodes={all} compact />}
+          {allJobs.length > 0 && <JobList jobs={allJobs} adult={adult} episodes={all} compact />}
+
+          {onServer() && remote.catalog.some((item) => !have.has(item.id)) && (
+            <>
+              <div className="a-label">🌙 とどいた番組（みんなの作り置き）</div>
+              {remote.catalog.filter((item) => !have.has(item.id)).slice(0, 6).map((item) => (
+                <div key={item.id} className="a-card row" style={{ gap: 10 }}>
+                  <div className="ep-ic" style={{ background: PROGRAMS[item.program_id]?.bg }}>{PROGRAMS[item.program_id]?.emoji}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="t ellipsis">{item.title || PROGRAMS[item.program_id]?.title}</div>
+                    <div className="muted s">{minutes(item.duration)}・{new Date(item.created_at).toLocaleDateString('ja-JP')}</div>
+                  </div>
+                  <button className="chip btnchip" onClick={() => downloadShared([item])}>⬇</button>
+                </div>
+              ))}
+              <button className="press btn ghost dark-ghost" style={{ height: 46 }} onClick={() => downloadShared(remote.catalog.filter((item) => !have.has(item.id)))}>⬇ とどいた番組を ぜんぶダウンロード</button>
+            </>
+          )}
 
           {resumeItem && (
             <>
@@ -192,7 +269,13 @@ function JobList({ jobs, adult, episodes, compact = false }) {
                   : `${STAGES[job.stage] || ''}${job.chapters > 1 && job.stage !== 'queued' && job.stage !== 'done' ? `・第${job.chapter + 1}章/${job.chapters}章` : ''}${job.stage === 'voice' && job.total ? ` ${job.done}/${job.total}` : ''}`}
               </div>
             </div>
-            {job.error && (
+            {job.error && job.server && (
+              <>
+                <button className="chip btnchip" onClick={() => retryProgram(job.id).catch(() => null)}>もう一度</button>
+                <button className="x" onClick={() => cancelProgram(job.id).catch(() => null)}>✕</button>
+              </>
+            )}
+            {job.error && !job.server && (
               <>
                 {job.episodeId && episodes.find((episode) => episode.id === job.episodeId)?.status === 'making' && (
                   <button className="chip btnchip" onClick={() => { const episode = episodes.find((item) => item.id === job.episodeId); dismissJob(job.id); resumeProgram(adult, episode) }}>続きを作る</button>
@@ -204,7 +287,7 @@ function JobList({ jobs, adult, episodes, compact = false }) {
           {!job.error && job.stage === 'voice' && job.total > 0 && <div className="prog"><i style={{ width: `${(job.done / job.total) * 100}%`, background: '#FFC83D' }} /></div>}
         </div>
       ))}
-      {!compact && <div className="muted s" style={{ marginTop: 6 }}>📶 Wi-Fi・🔌 充電しながら、画面はつけたままにしてください（iPhone は画面が消えると止まります。止まっても続きから作れます）</div>}
+      {!compact && <div className="muted s" style={{ marginTop: 6 }}>{onServer() ? '☁️ サーバーで作っています。アプリを閉じても・画面を消しても大丈夫。できたら、次に開いたときに自動でダウンロードします' : '📶 Wi-Fi・🔌 充電しながら、画面はつけたままにしてください'}</div>}
     </div>
   )
 }
@@ -229,9 +312,18 @@ function Catalog({ adult, episodes, jobs, showToast, onBack, onDone }) {
     })
   }
 
-  const download = () => {
-    for (const [id, length] of chosen) enqueueProgram(adult, id, length, { topic: PROGRAMS[id].topic ? topic.trim() : '' })
-    showToast('作りはじめました。画面はつけたままにしてね')
+  const download = async () => {
+    if (onServer()) {
+      try {
+        for (const [id, length] of chosen) await requestProgram(adult, id, length, { topic: PROGRAMS[id].topic ? topic.trim() : '' })
+        showToast('サーバーで作りはじめました。アプリを閉じても大丈夫です')
+      } catch (error) {
+        return showToast(error?.code === 'auth' ? ERRORS.auth : error?.code === 'too_many' ? '同時に頼めるのは8本までです' : 'うまく頼めませんでした。電波のいい所でもう一度')
+      }
+    } else {
+      for (const [id, length] of chosen) enqueueProgram(adult, id, length, { topic: PROGRAMS[id].topic ? topic.trim() : '' })
+      showToast('作りはじめました。画面はつけたままにしてね')
+    }
     onDone()
   }
 
@@ -271,9 +363,9 @@ function Catalog({ adult, episodes, jobs, showToast, onBack, onDone }) {
             </div>
           )}
           <div className="a-card s" style={{ background: '#262D52' }}>
-            📶 Wi-Fi・🔌 充電中・画面はつけたまま がおすすめ<br />
+            {onServer() ? '☁️ サーバーで作るので、頼んだらアプリを閉じても大丈夫。できたら自動でダウンロードします' : '📶 Wi-Fi・🔌 充電中・画面はつけたまま がおすすめ'}<br />
             {chosen.length
-              ? `えらんだ${chosen.length}本：合計 約${Math.round(total.minutes)}分・約${total.mb}MB（作るのに 約${total.make}分。1本ずつ順番に作ります）`
+              ? `えらんだ${chosen.length}本：合計 約${Math.round(total.minutes)}分・約${total.mb}MB（できあがるまで 約${total.make}分）`
               : 'まだ えらんでいません'}
             {jobs.length > 0 && <><br />いま {jobs.length}本 作成中（そのあとに続けて作ります）</>}
           </div>
