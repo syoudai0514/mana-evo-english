@@ -1,8 +1,9 @@
-// 電車モードの番組表。長い番組は「章」（1章＝約5分）に分けて作る。
+// 電車モードの番組表。長い番組は「章」（1章＝約2〜3分）に分けて作る。
 // 章ごとに保存するので、作っている途中で止まっても、できた章までは聞ける・続きから作れる。
 // 指示文は英語で書く（Gemini にそのまま渡す）。
 
-export const CHAPTER_MINUTES = 5
+// 1章の長さ（分）。実際に作った番組の長さから決めた（台本の指示より短くなりがち）
+export const CHAPTER_MINUTES = { radio: 2.2, default: 2.6 }
 
 export const PROGRAMS = {
   talk: {
@@ -39,7 +40,7 @@ export const PROGRAMS = {
 export function chapterCount(programId, length) {
   if (programId === 'toeic') return Math.max(1, Math.round(length / 5))
   if (programId === 'mine' || programId === 'cards') return 1
-  return Math.max(1, Math.round(length / CHAPTER_MINUTES))
+  return Math.max(1, Math.round(length / (CHAPTER_MINUTES[programId] || CHAPTER_MINUTES.default)))
 }
 
 // 番組を作るのにかかる時間・大きさの目安（1行ずつ AI の声で読ませるため、聞く時間とおなじくらいかかる）
@@ -136,7 +137,7 @@ const PROGRAM_STYLE = {
 
 export function outlineRequest({ programId, chapters, topic, memory, previous }) {
   return [
-    `Plan a programme of ${chapters} chapters (about 5 minutes each).`,
+    `Plan a programme of ${chapters} chapters (about 3 minutes each).`,
     PROGRAM_STYLE[programId],
     topic ? `Theme requested by the learner: ${topic}.` : 'Choose a theme close to a Japanese working parent\'s life (work, family, kids, travel, food, hobbies).',
     memory?.length ? `The learner's life, for ideas (never talk about "the learner"): ${memory.join('; ')}` : '',
