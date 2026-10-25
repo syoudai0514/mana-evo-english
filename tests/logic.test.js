@@ -464,7 +464,7 @@ test('long train programmes are built from chapters with whole-programme timing'
   const { chapterCount, estimate } = await import('../src/data/programs.js')
   const { withChapter, tailOf } = await import('../src/lib/programMaker.js')
   const { partAt } = await import('../src/screens/TrainPlayer.jsx').catch(() => ({}))
-  assert.equal(chapterCount('talk', 30), 12)
+  assert.equal(chapterCount('talk', 30), 8)
   assert.equal(chapterCount('radio', 10), 5)
   assert.equal(chapterCount('toeic', 20), 4)
   assert.equal(chapterCount('cards', 10), 1)

@@ -3,7 +3,7 @@
 // 指示文は英語で書く（Gemini にそのまま渡す）。
 
 // 1章の長さ（分）。実際に作った番組の長さから決めた（台本の指示より短くなりがち）
-export const CHAPTER_MINUTES = { radio: 2.2, default: 2.6 }
+export const CHAPTER_MINUTES = { talk: 3.8, radio: 2.2, default: 2.6 }
 
 export const PROGRAMS = {
   talk: {
