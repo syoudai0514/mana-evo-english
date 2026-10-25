@@ -12,6 +12,10 @@ import { AdultTop } from '../components/adultUi.jsx'
 import { isMockMode } from '../lib/config.js'
 import { cancelProgram, downloadProgram, downloadedServerIds, requestProgram, retryProgram, serverStatus } from '../lib/trainServer.js'
 
+// 頼んだ・やり直した・やめたあと、すぐサーバーの様子を見なおす
+const CHECK_EVENT = 'mee-train-check'
+const checkServer = () => window.dispatchEvent(new Event(CHECK_EVENT))
+
 const ERRORS = {
   'no-chat': 'まだ Alex との雑談がありません（3往復以上話すと作れます）',
   'no-cards': '復習カードがまだありません（雑談すると増えます）',
@@ -78,11 +82,16 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
   }
   useEffect(() => { reload() }, [adult.id])
 
-  // サーバーの様子を見る（この画面を開いている間、8秒ごと）。できた番組は自動でダウンロード
+  // サーバーの様子を見る。作っている番組があるときだけ15秒ごと（ないときは開いたときだけ。サーバーの無料枠を使いすぎないように）
+  // できた番組は自動でダウンロード
   useEffect(() => {
     if (!onServer()) return undefined
     let alive = true
+    let timer = null
     const check = async () => {
+      clearTimeout(timer)
+      if (document.hidden) return
+      let busy = false
       try {
         const status = await serverStatus(adult)
         if (!alive) return
@@ -94,11 +103,20 @@ export default function Train({ adult, navigate, onPlay, showToast }) {
             .then(() => { if (alive) { showToast('番組ができました！'); reload() } })
             .catch(() => fetching.current.delete(job.id))
         }
+        busy = status.jobs.some((job) => job.status === 'queued' || job.status === 'working')
       } catch {}
+      if (alive && busy) timer = setTimeout(check, 15000)
     }
+    const onVisible = () => { if (!document.hidden) check() }
     check()
-    const timer = setInterval(check, 8000)
-    return () => { alive = false; clearInterval(timer) }
+    window.addEventListener(CHECK_EVENT, check)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      alive = false
+      clearTimeout(timer)
+      window.removeEventListener(CHECK_EVENT, check)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [adult.id])
 
   const downloadShared = async (items) => {
@@ -271,8 +289,8 @@ function JobList({ jobs, adult, episodes, compact = false }) {
             </div>
             {job.error && job.server && (
               <>
-                <button className="chip btnchip" onClick={() => retryProgram(job.id).catch(() => null)}>もう一度</button>
-                <button className="x" onClick={() => cancelProgram(job.id).catch(() => null)}>✕</button>
+                <button className="chip btnchip" onClick={() => retryProgram(job.id).catch(() => null).then(checkServer)}>もう一度</button>
+                <button className="x" onClick={() => cancelProgram(job.id).catch(() => null).then(checkServer)}>✕</button>
               </>
             )}
             {job.error && !job.server && (
@@ -316,6 +334,7 @@ function Catalog({ adult, episodes, jobs, showToast, onBack, onDone }) {
     if (onServer()) {
       try {
         for (const [id, length] of chosen) await requestProgram(adult, id, length, { topic: PROGRAMS[id].topic ? topic.trim() : '' })
+        checkServer()
         showToast('サーバーで作りはじめました。アプリを閉じても大丈夫です')
       } catch (error) {
         return showToast(error?.code === 'auth' ? ERRORS.auth : error?.code === 'too_many' ? '同時に頼めるのは8本までです' : 'うまく頼めませんでした。電波のいい所でもう一度')
