@@ -271,6 +271,7 @@ async function voiceSome(job: any, state: any, startedAt: number) {
     bySpeaker.get(line.speaker)!.push(index)
   })
   const readers: Reader[] = []
+  const result = { ok: 0, failed: 0 } // この実行で録れた行・失敗した行（全部だめなら、しばらく休む）
   await Promise.all([...bySpeaker.entries()].map(async ([speaker, indexes]) => {
     const reader = new Reader(speaker)
     readers.push(reader)
@@ -292,16 +293,20 @@ async function voiceSome(job: any, state: any, startedAt: number) {
         const { error } = await db.storage.from(BUCKET).upload(path, bytes, { contentType: 'application/octet-stream', upsert: true })
         if (error) throw new Error(`upload ${error.message}`)
         await db.from('english_train_segments').upsert({ job_id: job.id, chapter: k, line: index, pcm_path: path, gap, clip: clip.length, status: 'raw' }, { onConflict: 'job_id,chapter,line' })
+        result.ok += 1
       } catch (error) {
         const message = String((error as Error)?.message ?? error)
         console.warn('read failed', speaker, message)
         reader.close()
-        // 使いすぎで切られたら、この実行ではこの人の行をやめる（次の実行で）
-        if (/quota|1011|exhausted/i.test(message)) return
+        result.failed += 1
+        // 返事が来ない・使いすぎで切られた：その行の失敗には数えず、この実行ではこの人の行をやめる（あとで）
+        state.tries[index] -= 1
+        if (/quota|1011|exhausted|timeout/i.test(message)) return
       }
     }
   }))
   for (const reader of readers) reader.close()
+  return result
 }
 
 // 録音した行を MP3 にする（いくつもの実行が同時に、30秒ぶんずつ）
@@ -401,7 +406,12 @@ async function work(job: any, startedAt: number) {
       state.recorded = 0
       await save(job, { state, progress: progressOf(state) })
     }
-    await voiceSome(job, state, startedAt)
+    const voiced = await voiceSome(job, state, startedAt)
+    // 1行も録れずに失敗ばかり（Live が混んでいる・使いすぎ）：10分休んでから続ける
+    if (voiced.failed && !voiced.ok) {
+      await save(job, { state, status: 'queued', error: 'busy', lease_until: new Date(Date.now() + 10 * 60000).toISOString() })
+      return false
+    }
     const rows = await recordedLines(job, state.chapter)
     const recorded = new Set(rows.map((row: any) => row.line))
     state.recorded = rows.length
